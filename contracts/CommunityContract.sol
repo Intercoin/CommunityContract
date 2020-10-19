@@ -52,49 +52,36 @@ contract CommunityContract is Ownable {
     /// modifiers  section
     ///////////////////////////////////////////////////////////
     
-    /**
-     * is role can be managed by sender's roles?
-     * @dev can addMember/removeMember/addMemberRole/removeMemberRole
-     * @param sender sender
-     * @param targetRole role that check to be managed by sender's roles
-     */
-    modifier canManage(address sender, bytes32 targetRole) {
-     
-        bool isCan = false;
-        
-        uint256 targetRoleID = _roles[targetRole];
-        
-        require(
-            targetRoleID != 0,
-            string(abi.encodePacked("Such role '",bytes32ToString(targetRole),"' does not exists"))
-        );
-        
-        for (uint256 i = 0; i<_rolesByMember[sender].length(); i++) {
-            
-            if (_canManageRoles[_rolesByMember[sender].at(i)].contains(targetRoleID) == true) {
-                isCan = true;
-                break;
-            }
-        }
     
+    /**
+     * does address belong to role
+     * @param target address
+     * @param targetRole role name
+     */
+    modifier ifTargetInRole(address target, bytes32 targetRole) {
+        
         require(
-            isCan == true,
-            string(abi.encodePacked("Sender can not manage Members with role '",bytes32ToString(targetRole),"'"))
+            _isTargetInRole(target, targetRole),
+            string(abi.encodePacked("Target account must be with role '",bytes32ToString(targetRole),"'"))
         );
         _;
     }
     
     /**
-     * does address belong to rolename
-     * @param target address
-     * @param targetRole rolename
+     * is role can be managed by sender's roles?
+     * @dev can addMembers/removeMembers/addMemberRole/removeMemberRole
+     * @param sender sender
+     * @param targetRole role that check to be managed by sender's roles
      */
-    modifier ifTargetInRole(address target, bytes32 targetRole) {
-        
+    modifier canManage(address sender, bytes32 targetRole) {
+     
+        bool isCan = _isCanManage(sender, targetRole);
+      
         require(
-            _rolesByMember[target].contains(_roles[targetRole]) == true,
-            string(abi.encodePacked("Target account must be with role '",bytes32ToString(targetRole),"'"))
+            isCan == true,
+            string(abi.encodePacked("Sender can not manage Members with role '",bytes32ToString(targetRole),"'"))
         );
+        
         _;
     }
     
@@ -117,66 +104,110 @@ contract CommunityContract is Ownable {
     }
     
     /**
-     * Added participant to role members
-     * @param member address
+     * Added participants to role members
+     * @param members participant's addresses
      */
-    function addMember(
-        address member
+    function addMembers(
+        address[] memory members
     )
         canManage(_msgSender(), DEFAULT_MEMBERS_ROLE)
         public 
     {
-        _addMemberRole(member, DEFAULT_MEMBERS_ROLE);
+        
+        uint256 len = members.length;
+        uint256 i;
+        for (i = 0; i < len; i++) {
+            _addMemberRole(members[i], DEFAULT_MEMBERS_ROLE);
+        }
     }
     
     /**
-     * Removed participant from  role members
-     * @param member address
+     * Removed participants from  role members
+     * @param members participant's addresses
      */
-    function removeMember(
-        address member
+    function removeMembers(
+        address[] memory members
     )
         canManage(_msgSender(), DEFAULT_MEMBERS_ROLE)
         public 
     {
-        _removeMemberRole(member, DEFAULT_MEMBERS_ROLE);
-        //TODO 0: does need to remove from all exists roles?
+        uint256 len = members.length;
+        uint256 i;
+        for (i = 0; i < len; i++) {
+            _removeMemberRole(members[i], DEFAULT_MEMBERS_ROLE);
+            //TODO 0: does need to remove from all exists roles?
+        }
+    }
+    
+    /**
+     * Added new Roles for members
+     * @param members participant's addresses
+     * @param roles Roles name
+     */
+    function addRoles(
+        address[] memory members, 
+        string[] memory roles
+    )
+        public 
+    {
+        uint256 lengthMembers = members.length;
+        uint256 lenRoles = roles.length;
+        uint256 i;
+        uint256 j;
+        
+        for (i = 0; i < lengthMembers; i++) {
+            if (!_isTargetInRole(members[i], DEFAULT_MEMBERS_ROLE)) {
+                revert(string(abi.encodePacked("Target account must be with role '",bytes32ToString(DEFAULT_MEMBERS_ROLE),"'")));
+                //_addMemberRole(members[i], DEFAULT_MEMBERS_ROLE);
+                
+            }
+            for (j = 0; j < lenRoles; j++) {
+                if (!_isCanManage(_msgSender(), stringToBytes32(roles[j]))) {
+                    revert(string(abi.encodePacked("Sender can not manage Members with role '",roles[j],"'")));
+                }
+                _addMemberRole(members[i], stringToBytes32(roles[j]));
+            }
+        }
+        
         
     }
     
     /**
-     * Added new Role for member
-     * @param member address
-     * @param roleName Role name
-     */
-    function addMemberRole(
-        address member, 
-        string memory roleName
-    )
-        ifTargetInRole(member, DEFAULT_MEMBERS_ROLE)
-        canManage(_msgSender(), stringToBytes32(roleName))
-        public 
-    {
-        _addMemberRole(member, stringToBytes32(roleName));
-    }
-    
-    /**
      * Removed Role for member
-     * @param member address
-     * @param roleName Role name
+     * @param members participant's addresses
+     * @param roles Roles name
      */
-    function removeMemberRole(
-        address member, 
-        string memory roleName
+    function removeRoles(
+        address[] memory members, 
+        string[] memory roles
     ) 
-        ifTargetInRole(member, DEFAULT_MEMBERS_ROLE)
-        canManage(_msgSender(), stringToBytes32(roleName))
         public 
     {
-        if (stringToBytes32(roleName) == DEFAULT_MEMBERS_ROLE) {
-            revert(string(abi.encodePacked("Can not remove role '",roleName,"'")));
+        uint256 lengthMembers = members.length;
+        uint256 lenRoles = roles.length;
+        uint256 i;
+        uint256 j;
+        
+        for (i = 0; i < lengthMembers; i++) {
+            if (!_isTargetInRole(members[i], DEFAULT_MEMBERS_ROLE)) {
+                revert(string(abi.encodePacked("Target account must be with role '",bytes32ToString(DEFAULT_MEMBERS_ROLE),"'")));
+                //_addMemberRole(members[i], DEFAULT_MEMBERS_ROLE);
+                
+            }
+            for (j = 0; j < lenRoles; j++) {
+                
+                if (stringToBytes32(roles[j]) == DEFAULT_MEMBERS_ROLE) {
+                    revert(string(abi.encodePacked("Can not remove role '",roles[j],"'")));
+                }
+                
+                if (!_isCanManage(_msgSender(), stringToBytes32(roles[j]))) {
+                    revert(string(abi.encodePacked("Sender can not manage Members with role '",roles[j],"'")));
+                }
+                _removeMemberRole(members[i], stringToBytes32(roles[j]));
+            }
         }
-        _removeMemberRole(member, stringToBytes32(roleName));
+        
+        
     }
     
     /**
@@ -191,26 +222,26 @@ contract CommunityContract is Ownable {
     
     /**
      * creating new role. can called onlyOwner
-     * @param roleName role name
+     * @param role role name
      */
     function createRole(
-        string memory roleName
+        string memory role
     ) 
         public 
         onlyOwner 
     {
-        require(_roles[stringToBytes32(roleName)] == 0, 'Such role is already exists');
+        require(_roles[stringToBytes32(role)] == 0, 'Such role is already exists');
         
         // prevent creating role in CamelCases with admins and owners (Admins,ADMINS,ADminS)
-        require(_roles[stringToBytes32(_toLower(roleName))] == 0, 'Such role is already exists');
+        require(_roles[stringToBytes32(_toLower(role))] == 0, 'Such role is already exists');
         
-        _createRole(stringToBytes32(roleName));
+        _createRole(stringToBytes32(role));
         
        // new role must manage DEFAULT_MEMBERS_ROLE to be able to add members
-       _manageRole(stringToBytes32(roleName), DEFAULT_MEMBERS_ROLE);
+       _manageRole(stringToBytes32(role), DEFAULT_MEMBERS_ROLE);
        
-       _manageRole(DEFAULT_OWNERS_ROLE, stringToBytes32(roleName));
-       _manageRole(DEFAULT_ADMINS_ROLE, stringToBytes32(roleName));
+       _manageRole(DEFAULT_OWNERS_ROLE, stringToBytes32(role));
+       _manageRole(DEFAULT_ADMINS_ROLE, stringToBytes32(role));
        
     }
     
@@ -234,25 +265,38 @@ contract CommunityContract is Ownable {
     
     /**
      * Returns all members belong to Role
-     * @param roleName role name
+     * @param role role name
      * @return array of address 
      */
     function getMembers(
-        string memory roleName
+        string memory role
     ) 
         public 
         view
         returns(address[] memory)
     {
-        bytes32 roleNameB= stringToBytes32(roleName);
-        uint256 len = _membersByRoles[roleNameB].length();
+        bytes32 roleBytes32= stringToBytes32(role);
+        uint256 len = _membersByRoles[roleBytes32].length();
         address[] memory l = new address[](len);
         uint256 i;
             
         for (i = 0; i < len; i++) {
-            l[i] = _membersByRoles[roleNameB].at(i);
+            l[i] = _membersByRoles[roleBytes32].at(i);
         }
         return l;
+    }
+    
+    /**
+     * if call without params then returns all members belong to `DEFAULT_MEMBERS_ROLE`
+     * @return array of address 
+     */
+    function getMembers(
+    ) 
+        public 
+        view
+        returns(address[] memory)
+    {
+        return getMembers(bytes32ToString(DEFAULT_MEMBERS_ROLE));
     }
     
     /**
@@ -277,22 +321,58 @@ contract CommunityContract is Ownable {
         return l;
     }
     
+    /**
+     * if call without params then returns all existing roles 
+     * @return array of roles 
+     */
+    function getRoles(
+    ) 
+        public 
+        view
+        returns(string[] memory)
+    {
+
+        string[] memory l = new string[](rolesIndex);
+        for (uint256 i = 0; i < rolesIndex; i++) {
+            l[i] = bytes32ToString(_rolesIndices[i]);
+        }
+        return l;
+    }
+    
+    function memberCount(
+        string memory role
+    )
+        public
+        view
+        returns(uint256)
+    {
+        return _membersByRoles[stringToBytes32(role)].length();
+    }
+        
+    function memberCount(
+    )
+        public
+        view
+        returns(uint256)
+    {
+        return memberCount(bytes32ToString(DEFAULT_MEMBERS_ROLE));
+    }
     ///////////////////////////////////////////////////////////
     /// internal section
     ///////////////////////////////////////////////////////////
-    
+   
     ///////////////////////////////////////////////////////////
     /// private section
     ///////////////////////////////////////////////////////////
     /**
-     * @param roleName role name
+     * @param role role name
      */
-    function _createRole(bytes32 roleName) private {
-       _roles[roleName] = rolesIndex;
-       _rolesIndices[rolesIndex] = roleName;
+    function _createRole(bytes32 role) private {
+       _roles[role] = rolesIndex;
+       _rolesIndices[rolesIndex] = role;
        rolesIndex = rolesIndex.add(1);
        
-       emit RoleCreated(roleName, _msgSender());
+       emit RoleCreated(role, _msgSender());
     }
    
     /**
@@ -331,6 +411,31 @@ contract CommunityContract is Ownable {
        _membersByRoles[targetRole].remove(account);
        
        emit RoleRevoked(targetRole, account, _msgSender());
+    }
+    
+    function _isTargetInRole(address target, bytes32 targetRole) private returns(bool) {
+        return _rolesByMember[target].contains(_roles[targetRole]);
+    }
+    
+    function _isCanManage(address sender, bytes32 targetRole) private returns (bool) {
+     
+        bool isCan = false;
+        
+        uint256 targetRoleID = _roles[targetRole];
+        
+        require(
+            targetRoleID != 0,
+            string(abi.encodePacked("Such role '",bytes32ToString(targetRole),"' does not exists"))
+        );
+        
+        for (uint256 i = 0; i<_rolesByMember[sender].length(); i++) {
+            
+            if (_canManageRoles[_rolesByMember[sender].at(i)].contains(targetRoleID) == true) {
+                isCan = true;
+                break;
+            }
+        }
+        return isCan;
     }
     
     /**

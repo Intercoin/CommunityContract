@@ -46,7 +46,7 @@ contract('CommunityContract', (accounts) => {
     
     it('creator must be owner and admin', async () => {
         var CommunityContractInstance = await CommunityContract.new({from: accountOne});
-        var rolesList = (await CommunityContractInstance.getRoles(accountOne));
+        var rolesList = (await CommunityContractInstance.getRoles(accountOne,{from: accountOne}));
         assert.isTrue(rolesList.includes(rolesTitle.get('owners')), 'outside OWNERS role');
         assert.isTrue(rolesList.includes(rolesTitle.get('admins')), 'outside ADMINS role');
     });
@@ -54,8 +54,8 @@ contract('CommunityContract', (accounts) => {
     it('can add member', async () => {
         var CommunityContractInstance = await CommunityContract.new({from: accountOne});
         
-        await CommunityContractInstance.addMember(accountTwo);
-        var rolesList = (await CommunityContractInstance.getRoles(accountTwo));
+        await CommunityContractInstance.addMembers([accountTwo]);
+        var rolesList = (await CommunityContractInstance.getRoles(accountTwo,{from: accountOne}));
         assert.isTrue(rolesList.includes(rolesTitle.get('members')), 'outside members role');
     });
     
@@ -63,12 +63,12 @@ contract('CommunityContract', (accounts) => {
         var rolesList;
         var CommunityContractInstance = await CommunityContract.new({from: accountOne});
         
-        await CommunityContractInstance.addMember(accountTwo);
-        rolesList = (await CommunityContractInstance.getRoles(accountTwo));
+        await CommunityContractInstance.addMembers([accountTwo]);
+        rolesList = (await CommunityContractInstance.getRoles(accountTwo,{from: accountOne}));
         assert.isTrue(rolesList.includes(rolesTitle.get('members')), 'outside members role');
         
-        await CommunityContractInstance.removeMember(accountTwo);
-        rolesList = (await CommunityContractInstance.getRoles(accountTwo));
+        await CommunityContractInstance.removeMembers([accountTwo]);
+        rolesList = (await CommunityContractInstance.getRoles(accountTwo,{from: accountOne}));
         assert.isFalse(rolesList.includes(rolesTitle.get('members')), 'outside members role');
     });
     
@@ -126,27 +126,27 @@ contract('CommunityContract', (accounts) => {
         // manage role
         await CommunityContractInstance.manageRole(rolesTitle.get('role1'),rolesTitle.get('role2'), {from: accountOne});
         //add member
-        await CommunityContractInstance.addMember(accountTwo, {from: accountOne});
+        await CommunityContractInstance.addMembers([accountTwo], {from: accountOne});
 
         // added member to none-exists member
         await truffleAssert.reverts(
-            CommunityContractInstance.addMemberRole(accountThree, rolesTitle.get('role1'), {from: accountOne}),
+            CommunityContractInstance.addRoles([accountThree], [rolesTitle.get('role1')], {from: accountOne}),
             "Target account must be with role '" +rolesTitle.get('members')+"'"
         );
 
          // added member to none-exists role 
         await truffleAssert.reverts(
-            CommunityContractInstance.addMemberRole(accountTwo, rolesTitle.get('role4'), {from: accountOne}),
+            CommunityContractInstance.addRoles([accountTwo], [rolesTitle.get('role4')], {from: accountOne}),
             "Such role '"+rolesTitle.get('role4')+"' does not exists"
         );
        
-        await CommunityContractInstance.addMemberRole(accountTwo, rolesTitle.get('role1'), {from: accountOne});
+        await CommunityContractInstance.addRoles([accountTwo], [rolesTitle.get('role1')], {from: accountOne});
 
         //add member by accountTwo
-        await CommunityContractInstance.addMember(accountFourth, {from: accountTwo});
+        await CommunityContractInstance.addMembers([accountFourth], {from: accountTwo});
        
         //add role2 to accountFourth by accountTwo
-        await CommunityContractInstance.addMemberRole(accountFourth, rolesTitle.get('role2'), {from: accountTwo});
+        await CommunityContractInstance.addRoles([accountFourth], [rolesTitle.get('role2')], {from: accountTwo});
         
     });
     
@@ -155,28 +155,26 @@ contract('CommunityContract', (accounts) => {
         var CommunityContractInstance = await CommunityContractMock.new({from: accountOne});
         await CommunityContractInstance.createRole(rolesTitle.get('role1'), {from: accountOne});
         //add member
-        await CommunityContractInstance.addMember(accountTwo, {from: accountOne});
+        await CommunityContractInstance.addMembers([accountTwo], {from: accountOne});
         // add member to role
-        await CommunityContractInstance.addMemberRole(accountTwo, rolesTitle.get('role1'), {from: accountOne});
+        await CommunityContractInstance.addRoles([accountTwo], [rolesTitle.get('role1')], {from: accountOne});
         
         // check that accountTwo got `get('role1')`
-        rolesList = (await CommunityContractInstance.getRoles(accountTwo));
+        rolesList = (await CommunityContractInstance.getRoles(accountTwo, {from: accountOne}));
         assert.isTrue(rolesList.includes(rolesTitle.get('role1')), 'outside role');
         
         // remove
-        await CommunityContractInstance.removeMemberRole(accountTwo, rolesTitle.get('role1'), {from: accountOne});
+        await CommunityContractInstance.removeRoles([accountTwo], [rolesTitle.get('role1')], {from: accountOne});
         // check removing
-        rolesList = (await CommunityContractInstance.getRoles(accountTwo));
+        rolesList = (await CommunityContractInstance.getRoles(accountTwo,{from: accountOne}));
         assert.isFalse(rolesList.includes(rolesTitle.get('role1')), 'outside role');
         
         // check allowance to remove default role `members`
         await truffleAssert.reverts(
-            CommunityContractInstance.removeMemberRole(accountTwo, rolesTitle.get('members'), {from: accountOne}),
+            CommunityContractInstance.removeRoles([accountTwo], [rolesTitle.get('members')], {from: accountOne}),
             "Can not remove role '" +rolesTitle.get('members')+"'"
         );
     });
-    
-    
     
     it('possible to grant with cycle. ', async () => {
         var CommunityContractInstance = await CommunityContractMock.new({from: accountTen});
@@ -192,31 +190,147 @@ contract('CommunityContract', (accounts) => {
         await CommunityContractInstance.manageRole(rolesTitle.get('role4'),rolesTitle.get('role1'), {from: accountTen});
         
         // account 1
-        await CommunityContractInstance.addMember(accountOne, {from: accountTen});
-        await CommunityContractInstance.addMemberRole(accountOne, rolesTitle.get('role1'), {from: accountTen});
+        await CommunityContractInstance.addMembers([accountOne], {from: accountTen});
+        await CommunityContractInstance.addRoles([accountOne], [rolesTitle.get('role1')], {from: accountTen});
         
         // check
-        rolesList = (await CommunityContractInstance.getRoles(accountOne));
+        rolesList = (await CommunityContractInstance.getRoles(accountOne,{from: accountTen}));
         assert.isTrue(rolesList.includes(rolesTitle.get('role1')), 'outside role');
         
         // account 2
-        await CommunityContractInstance.addMember(accountTwo, {from: accountOne});
-        await CommunityContractInstance.addMemberRole(accountTwo, rolesTitle.get('role2'), {from: accountOne});
+        await CommunityContractInstance.addMembers([accountTwo], {from: accountOne});
+        await CommunityContractInstance.addRoles([accountTwo], [rolesTitle.get('role2')], {from: accountOne});
         
         // account 3
-        await CommunityContractInstance.addMember(accountThree, {from: accountTwo});
-        await CommunityContractInstance.addMemberRole(accountThree, rolesTitle.get('role3'), {from: accountTwo});
+        await CommunityContractInstance.addMembers([accountThree], {from: accountTwo});
+        await CommunityContractInstance.addRoles([accountThree], [rolesTitle.get('role3')], {from: accountTwo});
         
         // account 4
-        await CommunityContractInstance.addMember(accountFourth, {from: accountThree});
-        await CommunityContractInstance.addMemberRole(accountFourth, rolesTitle.get('role4'), {from: accountThree});
+        await CommunityContractInstance.addMembers([accountFourth], {from: accountThree});
+        await CommunityContractInstance.addRoles([accountFourth], [rolesTitle.get('role4')], {from: accountThree});
         
         // account 4 remove account1 from role1
-        await CommunityContractInstance.removeMemberRole(accountOne, rolesTitle.get('role1'), {from: accountFourth});
+        await CommunityContractInstance.removeRoles([accountOne], [rolesTitle.get('role1')], {from: accountFourth});
         
         // check again
-        rolesList = (await CommunityContractInstance.getRoles(accountOne));
+        rolesList = (await CommunityContractInstance.getRoles(accountOne,{from: accountTen}));
         assert.isFalse(rolesList.includes(rolesTitle.get('role1')), 'outside role');
     });
-   
+    
+    it('test using params as array', async () => {
+        var CommunityContractInstance = await CommunityContractMock.new({from: accountTen});
+        // create roles
+        await CommunityContractInstance.createRole(rolesTitle.get('role1'), {from: accountTen});
+        await CommunityContractInstance.createRole(rolesTitle.get('role2'), {from: accountTen});
+        await CommunityContractInstance.createRole(rolesTitle.get('role3'), {from: accountTen});
+        await CommunityContractInstance.createRole(rolesTitle.get('role4'), {from: accountTen});
+        
+        // Adding
+        await CommunityContractInstance.addMembers(
+            [
+                accountOne,
+                accountTwo,
+                accountThree,
+                accountFourth,
+                accountFive,
+                accountSix,
+                accountSeven
+            ], {from: accountTen}
+        );
+        
+        await CommunityContractInstance.addRoles(
+            [
+                accountOne,
+                accountTwo,
+                accountThree
+            ], 
+            [
+                rolesTitle.get('role1'),
+                rolesTitle.get('role2'),
+                rolesTitle.get('role3'),
+            ], {from: accountTen}
+        );
+        await CommunityContractInstance.addRoles(
+            [
+                accountFourth,
+                accountFive
+            ], 
+            [
+                rolesTitle.get('role2'),
+                rolesTitle.get('role3')
+            ], {from: accountTen}
+        );
+        await CommunityContractInstance.addRoles(
+            [
+                accountSix,
+                accountSeven
+            ], 
+            [
+                rolesTitle.get('role1'),
+                rolesTitle.get('role2')
+            ], {from: accountTen}
+        );
+        
+        ///// checking by Members
+        var rolesList;
+        // accountOne
+        rolesList = (await CommunityContractInstance.getRoles(accountOne,{from: accountTen}));
+        assert.isTrue(rolesList.includes(rolesTitle.get('role1')), 'outside role');
+        assert.isTrue(rolesList.includes(rolesTitle.get('role2')), 'outside role');
+        assert.isTrue(rolesList.includes(rolesTitle.get('role3')), 'outside role');
+        assert.isFalse(rolesList.includes(rolesTitle.get('role4')), 'outside role');
+        // accountTwo
+        rolesList = (await CommunityContractInstance.getRoles(accountTwo,{from: accountTen}));
+        assert.isTrue(rolesList.includes(rolesTitle.get('role1')), 'outside role');
+        assert.isTrue(rolesList.includes(rolesTitle.get('role2')), 'outside role');
+        assert.isTrue(rolesList.includes(rolesTitle.get('role3')), 'outside role');
+        assert.isFalse(rolesList.includes(rolesTitle.get('role4')), 'outside role');
+        // accountThree
+        rolesList = (await CommunityContractInstance.getRoles(accountThree,{from: accountTen}));
+        assert.isTrue(rolesList.includes(rolesTitle.get('role1')), 'outside role');
+        assert.isTrue(rolesList.includes(rolesTitle.get('role2')), 'outside role');
+        assert.isTrue(rolesList.includes(rolesTitle.get('role3')), 'outside role');
+        assert.isFalse(rolesList.includes(rolesTitle.get('role4')), 'outside role');
+        // accountFourth
+        rolesList = (await CommunityContractInstance.getRoles(accountFourth,{from: accountTen}));
+        assert.isFalse(rolesList.includes(rolesTitle.get('role1')), 'outside role');
+        assert.isTrue(rolesList.includes(rolesTitle.get('role2')), 'outside role');
+        assert.isTrue(rolesList.includes(rolesTitle.get('role3')), 'outside role');
+        assert.isFalse(rolesList.includes(rolesTitle.get('role4')), 'outside role');
+        // accountFive
+        rolesList = (await CommunityContractInstance.getRoles(accountFive,{from: accountTen}));
+        assert.isFalse(rolesList.includes(rolesTitle.get('role1')), 'outside role');
+        assert.isTrue(rolesList.includes(rolesTitle.get('role2')), 'outside role');
+        assert.isTrue(rolesList.includes(rolesTitle.get('role3')), 'outside role');
+        assert.isFalse(rolesList.includes(rolesTitle.get('role4')), 'outside role');
+        // accountSix
+        rolesList = (await CommunityContractInstance.getRoles(accountSix,{from: accountTen}));
+        assert.isTrue(rolesList.includes(rolesTitle.get('role1')), 'outside role');
+        assert.isTrue(rolesList.includes(rolesTitle.get('role2')), 'outside role');
+        assert.isFalse(rolesList.includes(rolesTitle.get('role3')), 'outside role');
+        assert.isFalse(rolesList.includes(rolesTitle.get('role4')), 'outside role');
+        // accountSeven
+        rolesList = (await CommunityContractInstance.getRoles(accountSeven,{from: accountTen}));
+        assert.isTrue(rolesList.includes(rolesTitle.get('role1')), 'outside role');
+        assert.isTrue(rolesList.includes(rolesTitle.get('role2')), 'outside role');
+        assert.isFalse(rolesList.includes(rolesTitle.get('role3')), 'outside role');
+        assert.isFalse(rolesList.includes(rolesTitle.get('role4')), 'outside role');
+        
+        var memberCount;
+        // role1
+        memberCount = (await CommunityContractInstance.memberCount(rolesTitle.get('role1'),{from: accountTen}));
+        assert.equal(memberCount, 5, "Wrong memberCount for role '"+rolesTitle.get('role1')+"'");
+        // role2
+        memberCount = (await CommunityContractInstance.memberCount(rolesTitle.get('role2'),{from: accountTen}));
+        assert.equal(memberCount, 7, "Wrong memberCount for role '"+rolesTitle.get('role2')+"'");
+        // role3
+        memberCount = (await CommunityContractInstance.memberCount(rolesTitle.get('role3'),{from: accountTen}));
+        assert.equal(memberCount, 5, "Wrong memberCount for role '"+rolesTitle.get('role3')+"'");
+        // role4
+        memberCount = (await CommunityContractInstance.memberCount(rolesTitle.get('role4'),{from: accountTen}));
+        assert.equal(memberCount, 0, "Wrong memberCount for role '"+rolesTitle.get('role4')+"'");
+        // all members
+        memberCount = (await CommunityContractInstance.memberCount({from: accountTen}));
+        assert.equal(memberCount, 7, "Wrong memberCount for all roles");
+    });
 });
