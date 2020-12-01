@@ -1,18 +1,23 @@
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.6.0 <0.7.0;
 pragma experimental ABIEncoderV2;
+import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/utils/EnumerableSet.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/utils/Address.sol";
 
 
-import "./openzeppelin-contracts/contracts/math/SafeMath.sol";
-import "./openzeppelin-contracts/contracts/utils/EnumerableSet.sol";
-import "./openzeppelin-contracts/contracts/access/Ownable.sol";
-//import "./openzeppelin-contracts/contracts/access/AccessControl.sol";
-import "./openzeppelin-contracts/contracts/utils/Address.sol";
+import "./lib/ECDSAExt.sol";
+import "./lib/StringUtils.sol";
 
+contract CommunityContract is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
+    
+    using StringUtils for *;
 
-/*
-0x5a0b54d5dc17e0aadc383d2db43b0a0d3e029c4c
-*/
-contract CommunityContract is Ownable {
+    using ECDSAExt for string;
+    using ECDSA for bytes32;
+    
     using SafeMath for uint256;
     
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -24,35 +29,44 @@ contract CommunityContract is Ownable {
         bytes32 adminRole;
     }
     
-    uint256 private rolesIndex = 1;
+    struct inviteSignature {
+        bytes pSig;
+        bytes rpSig;
+        uint256 gasCost;
+        ReimburseStatus reimbursed;
+        bool used;
+        bool exists;
+    }
+    
+    uint256 private rolesIndex;
     mapping (bytes32 => uint256) internal _roles;
     mapping (uint256 => bytes32) internal _rolesIndices;
-    
-    
     mapping (address => EnumerableSet.UintSet) internal _rolesByMember;
     mapping (bytes32 => EnumerableSet.AddressSet) internal _membersByRoles;
-    
     mapping (uint256 => EnumerableSet.UintSet) internal _canManageRoles;
     
-    // _rolesByMember = {address: array}
-    // _membersByRoles = {role: array}
-
+    mapping (bytes => inviteSignature) inviteSignatures;          
+    
     bytes32 public constant DEFAULT_OWNERS_ROLE = 0x6f776e6572730000000000000000000000000000000000000000000000000000;
     bytes32 public constant DEFAULT_ADMINS_ROLE = 0x61646d696e730000000000000000000000000000000000000000000000000000;
     bytes32 public constant DEFAULT_MEMBERS_ROLE = 0x6d656d6265727300000000000000000000000000000000000000000000000000;
+    bytes32 public constant DEFAULT_WEBX_ROLE = 0x7765627800000000000000000000000000000000000000000000000000000000;
+    
+    enum ReimburseStatus{ NONE, PENDING, DONE }
+    uint256 public constant REWARD_AMOUNT = 100000000000000; // 0.001 * 1e18
+    uint256 public constant REPLENISH_AMOUNT = 100000000000000; // 0.001 * 1e18
 
     event RoleCreated(bytes32 indexed role, address indexed sender);
     event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender);
     event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender);
     event RoleManaged(bytes32 indexed sourceRole, bytes32 indexed targetRole, address indexed sender);
-
-// 0xdba76e955e3660da446b348c972b44d911a1cf32
-
+    
+    event RoleAddedErrorMessage(address indexed sender, string msg);
+    
     ///////////////////////////////////////////////////////////
     /// modifiers  section
     ///////////////////////////////////////////////////////////
-    
-    
+
     /**
      * does address belong to role
      * @param target address
@@ -62,7 +76,7 @@ contract CommunityContract is Ownable {
         
         require(
             _isTargetInRole(target, targetRole),
-            string(abi.encodePacked("Target account must be with role '",bytes32ToString(targetRole),"'"))
+            string(abi.encodePacked("Target account must be with role '",targetRole.bytes32ToString(),"'"))
         );
         _;
     }
@@ -79,28 +93,108 @@ contract CommunityContract is Ownable {
       
         require(
             isCan == true,
-            string(abi.encodePacked("Sender can not manage Members with role '",bytes32ToString(targetRole),"'"))
+            string(abi.encodePacked("Sender can not manage Members with role '",targetRole.bytes32ToString(),"'"))
         );
         
         _;
     }
     
+    /**
+     * @param pSig signature of admin whom generate invite and signed it
+     */
+    modifier accummulateGasCost(bytes memory pSig)
+    {
+        uint remainingGasStart = gasleft();
+
+        _;
+
+        uint remainingGasEnd = gasleft();
+        uint usedGas = remainingGasStart - remainingGasEnd;
+        // Add intrinsic gas and transfer gas. Need to account for gas stipend as well.
+        // usedGas += 21000 + 9700;
+        usedGas += 30000;
+        // Possibly need to check max gasprice and usedGas here to limit possibility for abuse.
+        uint gasCost = usedGas * tx.gasprice;
+        // accummulate refund gas cost
+        inviteSignatures[pSig].gasCost = inviteSignatures[pSig].gasCost.add(gasCost);
+    }
+
+    /**
+     * @param pSig signature of admin whom generate invite and signed it
+     */
+    modifier refundGasCost(bytes memory pSig)
+    {
+        uint remainingGasStart = gasleft();
+
+        _;
+        
+        uint gasCost;
+        
+        if (inviteSignatures[pSig].reimbursed == ReimburseStatus.NONE) {
+            uint remainingGasEnd = gasleft();
+            uint usedGas = remainingGasStart - remainingGasEnd;
+
+            // Add intrinsic gas and transfer gas. Need to account for gas stipend as well.
+            usedGas += 21000 + 9700 + 47500;
+
+            // Possibly need to check max gasprice and usedGas here to limit possibility for abuse.
+            gasCost = usedGas * tx.gasprice;
+
+            inviteSignatures[pSig].gasCost = inviteSignatures[pSig].gasCost.add(gasCost);
+        } else {
+            
+        }
+        // Refund gas cost
+        gasCost = inviteSignatures[pSig].gasCost;
+
+        if (
+            (gasCost <= address(this).balance) && 
+            (
+            inviteSignatures[pSig].reimbursed == ReimburseStatus.NONE ||
+            inviteSignatures[pSig].reimbursed == ReimburseStatus.PENDING
+            )
+        ) {
+            inviteSignatures[pSig].reimbursed = ReimburseStatus.DONE;
+            //payable (inviteSignatures[pSig].caller).transfer(gasCost);
+           
+            payable(_msgSender()).transfer(gasCost);
+
+        } else {
+            inviteSignatures[pSig].reimbursed = ReimburseStatus.PENDING;
+        }
+        
+        
+    }
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    
+    
     ///////////////////////////////////////////////////////////
     /// public  section
     ///////////////////////////////////////////////////////////
+    
+    
     /**
      * @dev creates three default roles and manage relations between it
      */
-    constructor() public {
+    function init() public initializer {
+        
+        __Ownable_init();
+        __ReentrancyGuard_init();
+        
+        rolesIndex = 1;
+        
         _createRole(DEFAULT_OWNERS_ROLE);
         _createRole(DEFAULT_ADMINS_ROLE);
         _createRole(DEFAULT_MEMBERS_ROLE);
+        _createRole(DEFAULT_WEBX_ROLE);
         _addMemberRole(_msgSender(), DEFAULT_OWNERS_ROLE);
         _addMemberRole(_msgSender(), DEFAULT_ADMINS_ROLE);
+        _addMemberRole(_msgSender(), DEFAULT_WEBX_ROLE);
         _manageRole(DEFAULT_OWNERS_ROLE, DEFAULT_ADMINS_ROLE);
         _manageRole(DEFAULT_ADMINS_ROLE, DEFAULT_MEMBERS_ROLE);
+        _manageRole(DEFAULT_ADMINS_ROLE, DEFAULT_WEBX_ROLE);
         //_manageRole(DEFAULT_MEMBERS_ROLE, DEFAULT_MEMBERS_ROLE);
-        
     }
     
     /**
@@ -157,19 +251,17 @@ contract CommunityContract is Ownable {
         
         for (i = 0; i < lengthMembers; i++) {
             if (!_isTargetInRole(members[i], DEFAULT_MEMBERS_ROLE)) {
-                revert(string(abi.encodePacked("Target account must be with role '",bytes32ToString(DEFAULT_MEMBERS_ROLE),"'")));
+                revert(string(abi.encodePacked("Target account must be with role '",DEFAULT_MEMBERS_ROLE.bytes32ToString(),"'")));
                 //_addMemberRole(members[i], DEFAULT_MEMBERS_ROLE);
                 
             }
             for (j = 0; j < lenRoles; j++) {
-                if (!_isCanManage(_msgSender(), stringToBytes32(roles[j]))) {
+                if (!_isCanManage(_msgSender(), roles[j].stringToBytes32())) {
                     revert(string(abi.encodePacked("Sender can not manage Members with role '",roles[j],"'")));
                 }
-                _addMemberRole(members[i], stringToBytes32(roles[j]));
+                _addMemberRole(members[i], roles[j].stringToBytes32());
             }
         }
-        
-        
     }
     
     /**
@@ -190,24 +282,22 @@ contract CommunityContract is Ownable {
         
         for (i = 0; i < lengthMembers; i++) {
             if (!_isTargetInRole(members[i], DEFAULT_MEMBERS_ROLE)) {
-                revert(string(abi.encodePacked("Target account must be with role '",bytes32ToString(DEFAULT_MEMBERS_ROLE),"'")));
+                revert(string(abi.encodePacked("Target account must be with role '",DEFAULT_MEMBERS_ROLE.bytes32ToString(),"'")));
                 //_addMemberRole(members[i], DEFAULT_MEMBERS_ROLE);
                 
             }
             for (j = 0; j < lenRoles; j++) {
                 
-                if (stringToBytes32(roles[j]) == DEFAULT_MEMBERS_ROLE) {
+                if (roles[j].stringToBytes32() == DEFAULT_MEMBERS_ROLE) {
                     revert(string(abi.encodePacked("Can not remove role '",roles[j],"'")));
                 }
                 
-                if (!_isCanManage(_msgSender(), stringToBytes32(roles[j]))) {
+                if (!_isCanManage(_msgSender(), roles[j].stringToBytes32())) {
                     revert(string(abi.encodePacked("Sender can not manage Members with role '",roles[j],"'")));
                 }
-                _removeMemberRole(members[i], stringToBytes32(roles[j]));
+                _removeMemberRole(members[i], roles[j].stringToBytes32());
             }
         }
-        
-        
     }
     
     /**
@@ -215,9 +305,12 @@ contract CommunityContract is Ownable {
      */
     function transferOwnership(address newOwner) public override onlyOwner {
         
-        Ownable.transferOwnership(newOwner);
+        OwnableUpgradeSafe.transferOwnership(newOwner);
         _removeMemberRole(owner(), DEFAULT_OWNERS_ROLE);
         _addMemberRole(newOwner, DEFAULT_OWNERS_ROLE);
+        _addMemberRole(newOwner, DEFAULT_ADMINS_ROLE);
+        _addMemberRole(newOwner, DEFAULT_WEBX_ROLE);
+
     }
     
     /**
@@ -230,19 +323,18 @@ contract CommunityContract is Ownable {
         public 
         onlyOwner 
     {
-        require(_roles[stringToBytes32(role)] == 0, 'Such role is already exists');
+        require(_roles[role.stringToBytes32()] == 0, 'Such role is already exists');
         
         // prevent creating role in CamelCases with admins and owners (Admins,ADMINS,ADminS)
-        require(_roles[stringToBytes32(_toLower(role))] == 0, 'Such role is already exists');
+        require(_roles[role._toLower().stringToBytes32()] == 0, 'Such role is already exists');
         
-        _createRole(stringToBytes32(role));
+        _createRole(role.stringToBytes32());
         
        // new role must manage DEFAULT_MEMBERS_ROLE to be able to add members
-       _manageRole(stringToBytes32(role), DEFAULT_MEMBERS_ROLE);
+       _manageRole(role.stringToBytes32(), DEFAULT_MEMBERS_ROLE);
        
-       _manageRole(DEFAULT_OWNERS_ROLE, stringToBytes32(role));
-       _manageRole(DEFAULT_ADMINS_ROLE, stringToBytes32(role));
-       
+       _manageRole(DEFAULT_OWNERS_ROLE, role.stringToBytes32());
+       _manageRole(DEFAULT_ADMINS_ROLE, role.stringToBytes32());
     }
     
     /**
@@ -256,11 +348,11 @@ contract CommunityContract is Ownable {
         onlyOwner
     {
         
-        if (stringToBytes32(targetRole) == DEFAULT_OWNERS_ROLE) {
+        if (targetRole.stringToBytes32() == DEFAULT_OWNERS_ROLE) {
             revert(string(abi.encodePacked("targetRole сan not be '",targetRole,"'")));
         }
         
-        _manageRole(stringToBytes32(sourceRole), stringToBytes32(targetRole));
+        _manageRole(sourceRole.stringToBytes32(), targetRole.stringToBytes32());
     }
     
     /**
@@ -275,7 +367,7 @@ contract CommunityContract is Ownable {
         view
         returns(address[] memory)
     {
-        bytes32 roleBytes32= stringToBytes32(role);
+        bytes32 roleBytes32= role.stringToBytes32();
         uint256 len = _membersByRoles[roleBytes32].length();
         address[] memory l = new address[](len);
         uint256 i;
@@ -296,7 +388,7 @@ contract CommunityContract is Ownable {
         view
         returns(address[] memory)
     {
-        return getMembers(bytes32ToString(DEFAULT_MEMBERS_ROLE));
+        return getMembers(DEFAULT_MEMBERS_ROLE.bytes32ToString());
     }
     
     /**
@@ -316,7 +408,7 @@ contract CommunityContract is Ownable {
         uint256 i;
             
         for (i = 0; i < len; i++) {
-            l[i] = bytes32ToString(_rolesIndices[_rolesByMember[member].at(i)]);
+            l[i] = _rolesIndices[_rolesByMember[member].at(i)].bytes32ToString();
         }
         return l;
     }
@@ -334,11 +426,15 @@ contract CommunityContract is Ownable {
 
         string[] memory l = new string[](rolesIndex);
         for (uint256 i = 0; i < rolesIndex; i++) {
-            l[i] = bytes32ToString(_rolesIndices[i]);
+            l[i] = _rolesIndices[i].bytes32ToString();
         }
         return l;
     }
     
+    /**
+     * @param role role name
+     * @return count of members for that role
+     */
     function memberCount(
         string memory role
     )
@@ -346,20 +442,140 @@ contract CommunityContract is Ownable {
         view
         returns(uint256)
     {
-        return _membersByRoles[stringToBytes32(role)].length();
+        return _membersByRoles[role.stringToBytes32()].length();
     }
         
+    /**
+     * if call without params then returns count of all members with default role
+     * @return count of members
+     */
     function memberCount(
     )
         public
         view
         returns(uint256)
     {
-        return memberCount(bytes32ToString(DEFAULT_MEMBERS_ROLE));
+        return memberCount(DEFAULT_MEMBERS_ROLE.bytes32ToString());
     }
+    
+    /**
+     * @param pSig signature of admin whom generate invite and signed it
+     * @return structure inviteSignature
+     */
+    function inviteView(
+        bytes memory pSig
+    ) 
+        public 
+        view
+        returns(inviteSignature memory)
+    {
+        return inviteSignatures[pSig];
+    }
+    
+    /**
+     * @param pSig signature of admin whom generate invite and signed it
+     * @param rpSig signature of recipient
+     */
+    function invitePrepare(
+        bytes memory pSig, 
+        bytes memory rpSig
+    ) 
+        public 
+        ifTargetInRole(_msgSender(), DEFAULT_WEBX_ROLE) 
+        accummulateGasCost(pSig)
+    {
+        require(inviteSignatures[pSig].exists == false, "Such signature is already exists");
+        inviteSignatures[pSig].pSig = pSig;
+        inviteSignatures[pSig].rpSig = rpSig;
+        inviteSignatures[pSig].reimbursed = ReimburseStatus.NONE;
+        inviteSignatures[pSig].used = false;
+        inviteSignatures[pSig].exists = true;
+    }
+    
+    /**
+     * @dev
+     * // ==P==
+     * // format is "<some string data>:<address of communityContract>:<array of rolenames (sep=',')>:<some string data>"        
+     * // invite:0x0A098Eda01Ce92ff4A4CCb7A4fFFb5A43EBC70DC:judges,guests,admins:GregMagarshak
+     * // ==R==
+     * // format is "<address of R wallet>:<name of user>"
+     * // 0x5B38Da6a701c568545dCfcB03FcB875f56beddC4:John Doe
+     * 
+     * @param p invite message of admin whom generate messageHash and signed it
+     * @param pSig signature of admin whom generate invite and signed it
+     * @param rp message of recipient whom generate messageHash and signed it
+     * @param rpSig signature of recipient
+     */
+    function inviteAccept(
+        string memory p, 
+        bytes memory pSig, 
+        string memory rp, 
+        bytes memory rpSig
+    )
+        public 
+        ifTargetInRole(_msgSender(), DEFAULT_WEBX_ROLE) 
+        refundGasCost(pSig)
+        nonReentrant()
+    {
+        require(inviteSignatures[pSig].used == false, "Such signature is already used");
+
+        (address pAddr, address rpAddr) = _recoverAddresses(p, pSig, rp, rpSig);
+       
+        string[] memory dataArr = p.slice(":");
+        string[] memory rolesArr = dataArr[2].slice(",");
+        string[] memory rpDataArr = rp.slice(":");
+        
+        if (
+            pAddr == address(0) || 
+            rpAddr == address(0) || 
+            keccak256(abi.encode(inviteSignatures[pSig].rpSig)) != keccak256(abi.encode(rpSig)) ||
+            rpDataArr[0].parseAddr() != rpAddr || 
+            dataArr[1].parseAddr() != address(this)
+        ) {
+            revert('Signature are mismatch');
+        }
+        
+        bool isCanProceed = false;
+        
+        if (_isCanManage(pAddr, DEFAULT_MEMBERS_ROLE)) {
+            _addMemberRole(rpAddr, DEFAULT_MEMBERS_ROLE);
+            
+            for (uint256 i = 0; i < rolesArr.length; i++) {
+                if (_isCanManage(pAddr, rolesArr[i].stringToBytes32())) {
+                    isCanProceed = true;
+                    _addMemberRole(rpAddr, rolesArr[i].stringToBytes32());
+                } else {
+                    emit RoleAddedErrorMessage(_msgSender(), string(abi.encodePacked("inviting user did not have permission to add role '",rolesArr[i],"'")));
+                }
+            }
+        
+        } else {
+            emit RoleAddedErrorMessage(_msgSender(), string(abi.encodePacked("inviting user did not have permission to add role '",DEFAULT_MEMBERS_ROLE.bytes32ToString(),"'")));
+        }
+        
+        if (isCanProceed == true) {
+            inviteSignatures[pSig].used = true;
+            // _reimburseCaller(); happens in modifier and processed after all
+            _rewardCaller();
+            _replenishRecipient(rpAddr);
+            
+        } else {
+            revert("Can not add no one role");
+        }
+        
+    }
+    
+    
+    ///////////////////////////////////////////////////////////
+    /// external section
+    ///////////////////////////////////////////////////////////
+   
+    fallback() external payable {}
+    
     ///////////////////////////////////////////////////////////
     /// internal section
     ///////////////////////////////////////////////////////////
+   
    
     ///////////////////////////////////////////////////////////
     /// private section
@@ -413,11 +629,11 @@ contract CommunityContract is Ownable {
        emit RoleRevoked(targetRole, account, _msgSender());
     }
     
-    function _isTargetInRole(address target, bytes32 targetRole) private returns(bool) {
+    function _isTargetInRole(address target, bytes32 targetRole) private view returns(bool) {
         return _rolesByMember[target].contains(_roles[targetRole]);
     }
     
-    function _isCanManage(address sender, bytes32 targetRole) private returns (bool) {
+    function _isCanManage(address sender, bytes32 targetRole) private view returns (bool) {
      
         bool isCan = false;
         
@@ -425,7 +641,7 @@ contract CommunityContract is Ownable {
         
         require(
             targetRoleID != 0,
-            string(abi.encodePacked("Such role '",bytes32ToString(targetRole),"' does not exists"))
+            string(abi.encodePacked("Such role '",targetRole.bytes32ToString(),"' does not exists"))
         );
         
         for (uint256 i = 0; i<_rolesByMember[sender].length(); i++) {
@@ -439,52 +655,51 @@ contract CommunityContract is Ownable {
     }
     
     /**
-     * convert string to bytes32
-     * @param source string variable
+     * @param p invite message of admin whom generate messageHash and signed it
+     * @param pSig signature of admin whom generate invite and signed it
+     * @param rp message of recipient whom generate messageHash and signed it
+     * @param rpSig signature of recipient
      */
-    function stringToBytes32(string memory source) internal view returns (bytes32 result) {
-        bytes memory tempEmptyStringTest = bytes(source);
-        if (tempEmptyStringTest.length == 0) {
-            return 0x0;
-        }
-
-        assembly {
-            result := mload(add(source, 32))
+    function _recoverAddresses(
+        string memory p, 
+        bytes memory pSig, 
+        string memory rp, 
+        bytes memory rpSig
+    ) 
+        private 
+        returns(address, address)
+    {
+        bytes32 pHash = p.recreateMessageHash();
+        bytes32 rpHash = rp.recreateMessageHash();
+        address pAddr = pHash.recover(pSig);
+        address rpAddr = rpHash.recover(rpSig);
+        return (pAddr, rpAddr);
+    }
+    
+    /**
+     * reward caller(webx)
+     */
+    function _rewardCaller(
+    ) 
+        private 
+    {
+        if (REWARD_AMOUNT <= address(this).balance) {
+            payable(_msgSender()).transfer(REWARD_AMOUNT);
         }
     }
     
     /**
-     * convert bytes32 to string
-     * @param _bytes32 bytes32 variable
+     * replenish recipient which added via invite
+     * @param rpAddr recipient's address 
      */
-    function bytes32ToString(bytes32 _bytes32) internal view returns (string memory) {
-        uint8 i = 0;
-        while(i < 32 && _bytes32[i] != 0) {
-            i++;
+    function _replenishRecipient(
+        address rpAddr
+    ) 
+        private 
+    {
+        if (REPLENISH_AMOUNT <= address(this).balance) {
+            payable(rpAddr).transfer(REPLENISH_AMOUNT);
         }
-        bytes memory bytesArray = new bytes(i);
-        for (i = 0; i < 32 && _bytes32[i] != 0; i++) {
-            bytesArray[i] = _bytes32[i];
-        }
-        return string(bytesArray);
-    }
-    
-    /**
-     * convert string to lowercase
-     */
-    function _toLower(string memory str) internal view returns (string memory) {
-        bytes memory bStr = bytes(str);
-        bytes memory bLower = new bytes(bStr.length);
-        for (uint i = 0; i < bStr.length; i++) {
-            // Uppercase character...
-            if ((uint8(bStr[i]) >= 65) && (uint8(bStr[i]) <= 90)) {
-                // So we add 32 to make it lowercase
-                bLower[i] = bytes1(uint8(bStr[i]) + 32);
-            } else {
-                bLower[i] = bStr[i];
-            }
-        }
-        return string(bLower);
     }
    
 }

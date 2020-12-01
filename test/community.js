@@ -1,11 +1,19 @@
-const BN = require('bn.js'); // https://github.com/indutny/bn.js
+const BigNumber = require('bignumber.js');
+
+//const Web3 = require("web3");
+//const web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
+//var util = require('web3-utils');
+
 const util = require('util');
+
 const CommunityContract = artifacts.require("CommunityContract");
-const CommunityContractMock = artifacts.require("CommunityContractMock");
+//const CommunityContractMock = artifacts.require("CommunityContractMock");
 //const ERC20MintableToken = artifacts.require("ERC20Mintable");
 const truffleAssert = require('truffle-assertions');
 
 const helper = require("../helpers/truffleTestHelper");
+const EthUtil             = require('ethereumjs-util');
+
 
 contract('CommunityContract', (accounts) => {
     
@@ -37,22 +45,37 @@ contract('CommunityContract', (accounts) => {
       ['owners', 'owners'],
       ['admins', 'admins'],
       ['members', 'members'],
+      ['webx', 'webx'],
       ['role1', 'Role#1'],
       ['role2', 'Role#2'],
       ['role3', 'Role#3'],
       ['role4', 'Role#4'],
       ['cc_admins', 'AdMiNs']
     ]);
+   
+   
+  var CommunityContractInstance;
+   
+    beforeEach(function() {
+        return CommunityContract.new({from: accountOne})
+        .then(function(instance) {
+            CommunityContractInstance = instance;
+        });
+    });
     
+  
     it('creator must be owner and admin', async () => {
-        var CommunityContractInstance = await CommunityContract.new({from: accountOne});
+        
+        await CommunityContractInstance.init({from: accountOne});
+        
         var rolesList = (await CommunityContractInstance.getRoles(accountOne,{from: accountOne}));
         assert.isTrue(rolesList.includes(rolesTitle.get('owners')), 'outside OWNERS role');
         assert.isTrue(rolesList.includes(rolesTitle.get('admins')), 'outside ADMINS role');
     });
     
     it('can add member', async () => {
-        var CommunityContractInstance = await CommunityContract.new({from: accountOne});
+        
+        await CommunityContractInstance.init({from: accountOne});
         
         await CommunityContractInstance.addMembers([accountTwo]);
         var rolesList = (await CommunityContractInstance.getRoles(accountTwo,{from: accountOne}));
@@ -60,9 +83,9 @@ contract('CommunityContract', (accounts) => {
     });
     
     it('can remove member', async () => {
+        await CommunityContractInstance.init({from: accountOne});
         var rolesList;
-        var CommunityContractInstance = await CommunityContract.new({from: accountOne});
-        
+
         await CommunityContractInstance.addMembers([accountTwo]);
         rolesList = (await CommunityContractInstance.getRoles(accountTwo,{from: accountOne}));
         assert.isTrue(rolesList.includes(rolesTitle.get('members')), 'outside members role');
@@ -74,7 +97,8 @@ contract('CommunityContract', (accounts) => {
     
     
     it('can create new role', async () => {
-        var CommunityContractInstance = await CommunityContract.new({from: accountOne});
+        await CommunityContractInstance.init({from: accountOne});
+        
         await truffleAssert.reverts(
             CommunityContractInstance.createRole(rolesTitle.get('role1'), {from: accountThree}),
             "Ownable: caller is not the owner"
@@ -104,7 +128,8 @@ contract('CommunityContract', (accounts) => {
     });
     
     it('can manage role', async () => {
-        var CommunityContractInstance = await CommunityContractMock.new({from: accountOne});
+        await CommunityContractInstance.init({from: accountOne});
+        
         // create two roles
         await CommunityContractInstance.createRole(rolesTitle.get('role1'), {from: accountOne});
         await CommunityContractInstance.createRole(rolesTitle.get('role2'), {from: accountOne});
@@ -151,8 +176,9 @@ contract('CommunityContract', (accounts) => {
     });
     
     it('can remove account from role', async () => {
+        await CommunityContractInstance.init({from: accountOne});
         var rolesList;
-        var CommunityContractInstance = await CommunityContractMock.new({from: accountOne});
+        
         await CommunityContractInstance.createRole(rolesTitle.get('role1'), {from: accountOne});
         //add member
         await CommunityContractInstance.addMembers([accountTwo], {from: accountOne});
@@ -177,7 +203,9 @@ contract('CommunityContract', (accounts) => {
     });
     
     it('possible to grant with cycle. ', async () => {
-        var CommunityContractInstance = await CommunityContractMock.new({from: accountTen});
+        
+        await CommunityContractInstance.init({from: accountTen});
+        
         // create roles
         await CommunityContractInstance.createRole(rolesTitle.get('role1'), {from: accountTen});
         await CommunityContractInstance.createRole(rolesTitle.get('role2'), {from: accountTen});
@@ -218,7 +246,8 @@ contract('CommunityContract', (accounts) => {
     });
     
     it('test using params as array', async () => {
-        var CommunityContractInstance = await CommunityContractMock.new({from: accountTen});
+        
+        await CommunityContractInstance.init({from: accountTen});
         // create roles
         await CommunityContractInstance.createRole(rolesTitle.get('role1'), {from: accountTen});
         await CommunityContractInstance.createRole(rolesTitle.get('role2'), {from: accountTen});
@@ -333,4 +362,142 @@ contract('CommunityContract', (accounts) => {
         memberCount = (await CommunityContractInstance.memberCount({from: accountTen}));
         assert.equal(memberCount, 7, "Wrong memberCount for all roles");
     });
+    
+    
+    it('invites test', async () => {   
+
+        // be sure that ganashe run with params 
+        // ganache-cli --account "0xbde48e940a420314a923b9714be791b3d7917b186a7acd6bc0fabbd94016e980,300000000000000000000" 
+        //             --account "0xd18dff433755e36145ed20c6d17e080b38ee1de8cf03c1d9acddce03e6a46748,300000000000000000000" 
+        let privatekey1 = "bde48e940a420314a923b9714be791b3d7917b186a7acd6bc0fabbd94016e980";
+        let privatekey2 = "d18dff433755e36145ed20c6d17e080b38ee1de8cf03c1d9acddce03e6a46748";        
+        
+        var rolesList;
+        
+        await CommunityContractInstance.init({from: accountOne});
+        
+        const amountETHSendToContract = 2*10**18; // 2ETH
+        
+        // console.log(accountNine);
+        // console.log(CommunityContractInstance.address);
+        // console.log('0x'+amountETHSendToContract.toString(16));
+        
+        // send ETH to Contract      
+        await web3.eth.sendTransaction({
+            from:accountThree,
+            to: CommunityContractInstance.address, 
+            value: amountETHSendToContract
+        });
+        const CommunityContractInstanceStartingBalance = (await web3.eth.getBalance(CommunityContractInstance.address));
+        // create webx user
+        // Adding
+        await CommunityContractInstance.addMembers([accountTen], {from: accountOne});
+        await CommunityContractInstance.addRoles(
+            [accountTen], 
+            [rolesTitle.get('webx')], 
+            {from: accountOne}
+        );
+        rolesList = (await CommunityContractInstance.getRoles(accountTen,{from: accountOne}));
+        
+        assert.isTrue(rolesList.includes(rolesTitle.get('webx')), 'outside webx role');
+        
+        // create roles
+        await CommunityContractInstance.createRole(rolesTitle.get('role1'), {from: accountOne});
+        await CommunityContractInstance.createRole(rolesTitle.get('role2'), {from: accountOne});
+        await CommunityContractInstance.createRole(rolesTitle.get('role3'), {from: accountOne});
+    
+        // generate messages and signatures
+
+            
+        //let adminMsg = 'invite:'+CommunityContractInstance.address+':role1,role2,role3:GregMagarshak';
+        let adminMsg = [
+            'invite',
+            CommunityContractInstance.address,
+            [
+                rolesTitle.get('role1'),
+                rolesTitle.get('role2'),
+                rolesTitle.get('role3')
+            ].join(','),
+            'GregMagarshak'
+            ].join(':');;
+        let recipientMsg = ''+accountTwo+':John Doe';
+        
+        let psignature = EthUtil.ecsign(EthUtil.hashPersonalMessage(new Buffer(adminMsg)), new Buffer(privatekey1, 'hex')); 
+        let pSig = EthUtil.toRpcSig(psignature.v, psignature.r, psignature.s);
+        
+        let rpsignature = EthUtil.ecsign(EthUtil.hashPersonalMessage(new Buffer(recipientMsg)), new Buffer(privatekey2, 'hex')); 
+        let rpSig = EthUtil.toRpcSig(rpsignature.v, rpsignature.r, rpsignature.s);
+        
+        const recipientStartingBalance = (await web3.eth.getBalance(accountTwo));
+        const accountTenStartingBalance = (await web3.eth.getBalance(accountTen));
+        
+        // imitate invitePrepare and check it in system
+        await CommunityContractInstance.invitePrepare(pSig,rpSig, {from: accountTen});
+
+        let invite = await CommunityContractInstance.inviteView(pSig, {from: accountTen});
+        assert.isTrue(invite.exists, 'invite not found');
+        assert.isTrue(invite.exists && invite.used==false, 'invite not used before');
+        //console.log('(1)invite.gasCost=',invite.gasCost);
+       
+        // imitate inviteAccept
+        await CommunityContractInstance.inviteAccept(adminMsg, pSig, recipientMsg, rpSig, {from: accountTen});
+
+        const accountTenEndingBalance = (await web3.eth.getBalance(accountTen));
+        //let nvite2 = await CommunityContractInstance.inviteView(pSig, {from: accountTen});
+
+
+        const CommunityContractInstanceEndinggBalance = (await web3.eth.getBalance(CommunityContractInstance.address));
+        const recipientEndingBalance = (await web3.eth.getBalance(accountTwo));
+
+        // check roles of accountTwo
+        rolesList = (await CommunityContractInstance.getRoles(accountTwo,{from: accountOne}));
+        assert.isTrue(rolesList.includes(rolesTitle.get('role1')), 'outside role1 role');
+        assert.isTrue(rolesList.includes(rolesTitle.get('role2')), 'outside role2 role');
+        assert.isTrue(rolesList.includes(rolesTitle.get('role3')), 'outside role3 role');
+
+        // let rewardAmount = await CommunityContractInstance.getRewardAmount();
+        // let replenishAmount = await CommunityContractInstance.getReplenishAmount();
+        
+        // if (parseInt((BigNumber(CommunityContractInstanceStartingBalance).minus(BigNumber(rewardAmount))).toString(10))>0) {
+        //     assert.isTrue(
+        //         parseInt((BigNumber(CommunityContractInstanceStartingBalance).minus(BigNumber(CommunityContractInstanceEndinggBalance))).toString(10))>=0, 
+        //         "wrong Reward count"
+        //     );
+        // }
+        // assert.equal(BigNumber(recipientEndingBalance).minus(BigNumber(recipientStartingBalance)).toString(10), BigNumber(replenishAmount).toString(10), "wrong replenishAmount");
+        
+        
+        await truffleAssert.reverts(
+            CommunityContractInstance.inviteAccept(adminMsg, pSig, recipientMsg, rpSig, {from: accountTen}),
+            "Such signature is already used"
+        );
+      
+        await truffleAssert.reverts(
+            CommunityContractInstance.invitePrepare(pSig,rpSig, {from: accountTen}),
+            "Such signature is already exists"
+        );
+
+        // await CommunityContractInstance.getPastEvents('GasTTT', {
+        //     filter: {addr: accountOne}, 
+        //     fromBlock: 0,
+        //     toBlock: 'latest'
+        // }, function(error, events){ })
+        // .then(function(events){
+        //     //invokeID = events[0].returnValues['invokeID'];
+        //     console.log(events);
+        // });
+        
+        // await CommunityContractInstance.getPastEvents('TTT2', {
+        //     filter: {addr: accountOne}, 
+        //     fromBlock: 0,
+        //     toBlock: 'latest'
+        // }, function(error, events){ })
+        // .then(function(events){
+        //     //invokeID = events[0].returnValues['invokeID'];
+        //     console.log(events);
+        // });
+
+    });
+    
+    
 });

@@ -4,26 +4,16 @@ import "../CommunityContract.sol";
 
 contract CommunityContractMock is CommunityContract {
    
-    function getTargetRoleID(string memory targetRole) public view returns(uint256) {
-        return _roles[stringToBytes32(targetRole)];
-    }
-    function getRolesByMemberLength(address account) public view returns(uint256) {
-        return _rolesByMember[account].length();
-    }
-    
-    
-    function canManageRoles(string memory sourceRole) public view returns(string[] memory) {
-        
-        uint256 sourceRoleID = _roles[stringToBytes32(sourceRole)];
-        
-        uint256 len = _canManageRoles[sourceRoleID].length();
-        string[] memory l = new string[](len);
-        for (uint256 i = 0; i<len; i++) {
-            l[i] = bytes32ToString(_rolesIndices[_canManageRoles[sourceRoleID].at(i)]);
-        }
-        return l;
+   function getRewardAmount() public view returns(uint256) {
+       // uint256 public constant REWARD_AMOUNT = 100000000000000; // 0.001 * 1e18
+       return REWARD_AMOUNT;
+   }
+   function getReplenishAmount() public view returns(uint256) {
+       // uint256 public constant REPLENISH_AMOUNT = 100000000000000; // 0.001 * 1e18
+       return REPLENISH_AMOUNT;
    }
 
+    
 }
 
 

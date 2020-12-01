@@ -24,6 +24,9 @@
 // const fs = require('fs');
 // const mnemonic = fs.readFileSync(".secret").toString().trim();
 
+const HDWalletProvider = require("@truffle/hdwallet-provider");
+ 
+const mnemonicPhrase = "mountains supernatural bird accidentally phrase generate command specific development parity this network_id";
 
 module.exports = {
     
@@ -43,12 +46,14 @@ module.exports = {
     // You should run a client (like ganache-cli, geth or parity) in a separate terminal
     // tab if you use this network and you must also set the `host`, `port` and `network_id`
     // options below to some value.
-    //
-    // development: {
-    //  host: "127.0.0.1",     // Localhost (default: none)
-    //  port: 8545,            // Standard Ethereum port (default: none)
-    //  network_id: "*",       // Any network (default: none)
-    // },
+    //-----------------------------------------------------
+    // ganache-cli --gasLimit 8000000 --account "0xbde48e940a420314a923b9714be791b3d7917b186a7acd6bc0fabbd94016e980,300000000000000000000" --account "0xd18dff433755e36145ed20c6d17e080b38ee1de8cf03c1d9acddce03e6a46748,300000000000000000000" --account "0xa0d7b221b8036514d20a4b5a0c1505a3e8aa56912f0815d3b51ee67ab5552f93,300000000000000000000" --account "0xc2f4d2258f78db18163b4c87230fc8e2a1d76b9a1e2320c8477b04c86d64a7d4,300000000000000000000" --account "0x08c34c33a419667207ac459cd6ce36da4eecd575c262930804aff2c5988f6278,300000000000000000000" --account "0xd655ec94440153972b071ea2caa869e732e3fe37c5d861d6251ede95de7860a2,300000000000000000000" --account "0x6232bc892200550c70118d520c8f1800ef77577ff58504990a2f36f321fddc80,300000000000000000000" --account "0xefbfd07fc3c849999bda3528ac384d37ccf5f60993803643b1b29c533ef5bfbf,300000000000000000000" --account "0x129f914e38176b67ac29ef6a2d604a48de31853b4c2fe01536a4ab6984d4b737,300000000000000000000" --account "0xb0bd2ecde7fc54857d883808cd557fe9791a40cee99fec61f80c0ac5224f60d0,300000000000000000000"
+    development: {
+     host: "127.0.0.1",     // Localhost (default: none)
+     port: 8545,            // Standard Ethereum port (default: none)
+     network_id: "*",       // Any network (default: none)
+     gas: 8000000
+    },
     // Another network with more advanced options...
     // advanced: {
     // port: 8777,             // Custom port
