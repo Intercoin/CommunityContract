@@ -53,8 +53,8 @@ contract CommunityContract is Initializable, OwnableUpgradeSafe, ReentrancyGuard
     bytes32 public constant DEFAULT_WEBX_ROLE = 0x7765627800000000000000000000000000000000000000000000000000000000;
     
     enum ReimburseStatus{ NONE, PENDING, DONE }
-    uint256 public constant REWARD_AMOUNT = 100000000000000; // 0.001 * 1e18
-    uint256 public constant REPLENISH_AMOUNT = 100000000000000; // 0.001 * 1e18
+    uint256 public constant REWARD_AMOUNT = 10000000000000; // 0.001 * 1e18
+    uint256 public constant REPLENISH_AMOUNT = 10000000000000; // 0.001 * 1e18
 
     event RoleCreated(bytes32 indexed role, address indexed sender);
     event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender);
@@ -167,7 +167,7 @@ contract CommunityContract is Initializable, OwnableUpgradeSafe, ReentrancyGuard
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    
+   function donateETH() public payable {} 
     
     ///////////////////////////////////////////////////////////
     /// public  section

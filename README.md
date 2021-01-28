@@ -257,7 +257,7 @@ exists|bool|if true invite is exist
 	* Recipient 
 		* check that invite was added in communityContract by calling method inviteView(`pSig`). Signature `rpSig` must match.
 		* send `p`,`pSig`,`rp`,`rpSig` to X  (and maybe address of communityContract)
-	* X call method invitePrepare(`p`,`pSig`,`rp`,`rpSig`) at communityContract
+	* X call method inviteAccept(`p`,`pSig`,`rp`,`rpSig`) at communityContract
 	* if all ok X will reimburced gas for this two transactions and Recipient will become a roles `judges,guests`
 	* also 
 		* X will get reward for using system. contract will send `REWARD_AMOUNT` eth. REWARD_AMOUNT is constant 0.001 eth.
