@@ -97,6 +97,16 @@ Once installed will be use methods:
 		<td>anyone</td>
 		<td>Returns tuple of invite stored at contract</td>
 	</tr>
+	<tr>
+		<td><a href="#getsettings">getSettings</a></td>
+		<td>anyone</td>
+		<td>Returns title ico and ticket texts</td>
+	</tr>
+	<tr>
+		<td><a href="#setsettings">setSettings</a></td>
+		<td>owner</td>
+		<td>setup text string</td>
+	</tr>
 </tbody>
 </table>
 
@@ -223,6 +233,26 @@ gasCost|uint256| stored gas which was spent by webX for invitePrepare(or and inv
 reimbursed|ENUM(0,1,2)|ReimburseStatus (0-NONE,1-PENDING,2-DONE)
 used|bool| if true invite is already used
 exists|bool|if true invite is exist
+
+#### setSettings	
+setup text strings
+
+Params:
+name  | type | description | example
+--|--|--|--
+title|string|title|Lorem ipsum
+ico|tuple|source of image in base64|["data:image/png;base64","iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAIAAACRXR/mAAAB..."]
+ticker|string|ticker|Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+
+#### getSettings
+return saved string data
+
+Return:
+name  | type | description
+--|--|--
+title|string|title
+ico|tuple|source of image in base64
+ticker|string|ticker
 	
 ## Example to use
 1.	add several users to role 'contest-users'

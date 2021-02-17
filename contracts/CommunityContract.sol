@@ -55,6 +55,14 @@ contract CommunityContract is Initializable, OwnableUpgradeSafe, ReentrancyGuard
     enum ReimburseStatus{ NONE, PENDING, DONE }
     uint256 public constant REWARD_AMOUNT = 1000000000000000; // 0.001 * 1e18
     uint256 public constant REPLENISH_AMOUNT = 1000000000000000; // 0.001 * 1e18
+    
+    struct Image {
+        string itype;
+        string idata;
+    }
+    string title;
+    Image ico;
+    string ticker;
 
     event RoleCreated(bytes32 indexed role, address indexed sender);
     event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender);
@@ -565,6 +573,33 @@ contract CommunityContract is Initializable, OwnableUpgradeSafe, ReentrancyGuard
         
     }
     
+    function setSettings(
+        string memory _title,
+        Image memory _ico,
+        string memory _ticker
+    ) 
+        public 
+        onlyOwner 
+    {
+        title = _title;
+        ico.itype = _ico.itype;
+        ico.idata = _ico.idata;
+        ticker = _ticker;
+    }
+    
+    function getSettings(
+    ) 
+        public
+        view
+        returns(
+            string memory,
+            Image memory,
+            string memory
+        )
+         
+    {
+        return ( title, ico, ticker);
+    }
     
     ///////////////////////////////////////////////////////////
     /// external section
