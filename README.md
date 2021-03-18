@@ -103,6 +103,11 @@ Once installed will be use methods:
 		<td>Returns title ico and ticket texts</td>
 	</tr>
 	<tr>
+		<td><a href="#isinvited">isInvited</a></td>
+		<td>anyone</td>
+		<td>Return true if receiver has been invited by sender</td>
+	</tr>
+	<tr>
 		<td><a href="#setsettings">setSettings</a></td>
 		<td>owner</td>
 		<td>setup text string</td>
@@ -254,6 +259,15 @@ title|string|title
 ico|tuple|source of image in base64
 ticker|string|ticker
 	
+#### isInvited
+return true if receiver has been invited by sender
+
+Params:
+name  | type | description
+--|--|--
+sender|address|who invited
+reciever|address|who been invited
+
 ## Example to use
 1.	add several users to role 'contest-users'
 	* owner create new role 'contest-users' by calling method `createRole('contest-users')`

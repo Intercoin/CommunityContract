@@ -14,7 +14,6 @@ const truffleAssert = require('truffle-assertions');
 const helper = require("../helpers/truffleTestHelper");
 const EthUtil             = require('ethereumjs-util');
 
-
 contract('CommunityContract', (accounts) => {
     
     // it("should assert true", async function(done) {
@@ -364,14 +363,18 @@ contract('CommunityContract', (accounts) => {
     });
     
     
+    
     it('invites test', async () => {   
 
         // be sure that ganashe run with params 
         // ganache-cli --account "0xbde48e940a420314a923b9714be791b3d7917b186a7acd6bc0fabbd94016e980,300000000000000000000" 
         //             --account "0xd18dff433755e36145ed20c6d17e080b38ee1de8cf03c1d9acddce03e6a46748,300000000000000000000" 
-        let privatekey1 = "bde48e940a420314a923b9714be791b3d7917b186a7acd6bc0fabbd94016e980";
-        let privatekey2 = "d18dff433755e36145ed20c6d17e080b38ee1de8cf03c1d9acddce03e6a46748";        
-        
+//console.log(web3.currentProvider);        
+        // let bufferPrivateKey1 = web3.currentProvider.wallets[accountOne.toLowerCase()].getPrivateKey();
+        // let bufferPrivateKey2 = web3.currentProvider.wallets[accountTwo.toLowerCase()].getPrivateKey();    
+         let privatekey1 = 'bde48e940a420314a923b9714be791b3d7917b186a7acd6bc0fabbd94016e980';
+         let privatekey2 = 'd18dff433755e36145ed20c6d17e080b38ee1de8cf03c1d9acddce03e6a46748';
+
         var rolesList;
         
         await CommunityContractInstance.init({from: accountOne});
@@ -407,7 +410,6 @@ contract('CommunityContract', (accounts) => {
         await CommunityContractInstance.createRole(rolesTitle.get('role3'), {from: accountOne});
     
         // generate messages and signatures
-
             
         //let adminMsg = 'invite:'+CommunityContractInstance.address+':role1,role2,role3:GregMagarshak';
         let adminMsg = [
@@ -423,9 +425,11 @@ contract('CommunityContract', (accounts) => {
         let recipientMsg = ''+accountTwo+':John Doe';
         
         let psignature = EthUtil.ecsign(EthUtil.hashPersonalMessage(new Buffer(adminMsg)), new Buffer(privatekey1, 'hex')); 
+        //let psignature = EthUtil.ecsign(EthUtil.hashPersonalMessage(new Buffer(adminMsg)), bufferPrivateKey1); 
         let pSig = EthUtil.toRpcSig(psignature.v, psignature.r, psignature.s);
         
         let rpsignature = EthUtil.ecsign(EthUtil.hashPersonalMessage(new Buffer(recipientMsg)), new Buffer(privatekey2, 'hex')); 
+        //let rpsignature = EthUtil.ecsign(EthUtil.hashPersonalMessage(new Buffer(recipientMsg)), bufferPrivateKey2); 
         let rpSig = EthUtil.toRpcSig(rpsignature.v, rpsignature.r, rpsignature.s);
         
         const recipientStartingBalance = (await web3.eth.getBalance(accountTwo));
@@ -443,8 +447,6 @@ contract('CommunityContract', (accounts) => {
         await CommunityContractInstance.inviteAccept(adminMsg, pSig, recipientMsg, rpSig, {from: accountTen});
 
         const accountTenEndingBalance = (await web3.eth.getBalance(accountTen));
-        //let nvite2 = await CommunityContractInstance.inviteView(pSig, {from: accountTen});
-
 
         const CommunityContractInstanceEndinggBalance = (await web3.eth.getBalance(CommunityContractInstance.address));
         const recipientEndingBalance = (await web3.eth.getBalance(accountTwo));
@@ -454,6 +456,8 @@ contract('CommunityContract', (accounts) => {
         assert.isTrue(rolesList.includes(rolesTitle.get('role1')), 'outside role1 role');
         assert.isTrue(rolesList.includes(rolesTitle.get('role2')), 'outside role2 role');
         assert.isTrue(rolesList.includes(rolesTitle.get('role3')), 'outside role3 role');
+        
+        
 
         // let rewardAmount = await CommunityContractInstance.getRewardAmount();
         // let replenishAmount = await CommunityContractInstance.getReplenishAmount();
@@ -468,35 +472,23 @@ contract('CommunityContract', (accounts) => {
         
         
         await truffleAssert.reverts(
-            CommunityContractInstance.inviteAccept(adminMsg, pSig, recipientMsg, rpSig, {from: accountTen}),
-            "Such signature is already used"
-        );
-      
-        await truffleAssert.reverts(
             CommunityContractInstance.invitePrepare(pSig,rpSig, {from: accountTen}),
             "Such signature is already exists"
         );
 
-        // await CommunityContractInstance.getPastEvents('GasTTT', {
-        //     filter: {addr: accountOne}, 
-        //     fromBlock: 0,
-        //     toBlock: 'latest'
-        // }, function(error, events){ })
-        // .then(function(events){
-        //     //invokeID = events[0].returnValues['invokeID'];
-        //     console.log(events);
-        // });
         
-        // await CommunityContractInstance.getPastEvents('TTT2', {
-        //     filter: {addr: accountOne}, 
-        //     fromBlock: 0,
-        //     toBlock: 'latest'
-        // }, function(error, events){ })
-        // .then(function(events){
-        //     //invokeID = events[0].returnValues['invokeID'];
-        //     console.log(events);
-        // });
-
+         await truffleAssert.reverts(
+             
+             CommunityContractInstance.inviteAccept(adminMsg, pSig, recipientMsg, rpSig, {from: accountTen}),
+             "Such signature is already used"
+         );
+        
+        
+        
+        assert.isTrue((await CommunityContractInstance.isInvited(accountTwo, accountOne)), 'does not store invited mapping');
+        assert.isFalse((await CommunityContractInstance.isInvited(accountTwo, accountNine)), 'store wrong keys in invited mapping');
+      
+       
     });
     
     

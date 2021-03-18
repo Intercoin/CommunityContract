@@ -64,6 +64,11 @@ contract CommunityContract is Initializable, OwnableUpgradeSafe, ReentrancyGuard
     Image ico;
     string ticker;
 
+    //receiver => sender
+    mapping(address => address) internal acceptedInvite;
+    //sender => receivers
+    mapping(address => EnumerableSet.AddressSet) internal invited;
+    
     event RoleCreated(bytes32 indexed role, address indexed sender);
     event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender);
     event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender);
@@ -563,7 +568,10 @@ contract CommunityContract is Initializable, OwnableUpgradeSafe, ReentrancyGuard
         
         if (isCanProceed == true) {
             inviteSignatures[pSig].used = true;
-            // _reimburseCaller(); happens in modifier and processed after all
+            
+            acceptedInvite[rpAddr] = pAddr;
+            invited[pAddr].add(rpAddr);
+            
             _rewardCaller();
             _replenishRecipient(rpAddr);
             
@@ -598,7 +606,18 @@ contract CommunityContract is Initializable, OwnableUpgradeSafe, ReentrancyGuard
         )
          
     {
-        return ( title, ico, ticker);
+        return (title, ico, ticker);
+    }
+    
+    function isInvited(
+        address sender, 
+        address reciever
+    ) 
+        public 
+        view 
+        returns(bool) 
+    {
+        return (acceptedInvite[sender] == reciever ? true : false);
     }
     
     ///////////////////////////////////////////////////////////
