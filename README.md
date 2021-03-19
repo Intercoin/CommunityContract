@@ -274,7 +274,12 @@ sender|address|who invited
 recipient|address|who been invited
 
 #### whoInvited
-Return the address sender's invite who added recipent
+Return the address sender's invite who added recipient
+
+Params:
+name  | type | description
+--|--|--
+recipient|address|who been invited
 
 
 ## Example to use

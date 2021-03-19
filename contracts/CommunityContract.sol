@@ -630,12 +630,13 @@ contract CommunityContract is Initializable, OwnableUpgradeSafe, ReentrancyGuard
      * return address who created invite. if address(0) then recipient have not been added to community via invite
      */
     function whoInvited(
+		address recipient
     ) 
         public 
         view 
         returns(address) 
     {
-        return invitedBy[_msgSender()];
+        return invitedBy[recipient];
     }
     
     ///////////////////////////////////////////////////////////
