@@ -112,7 +112,6 @@ Once installed will be use methods:
 		<td>anyone</td>
 		<td>Return true if recipient has been invited by sender</td>
 	</tr>
-	
 	<tr>
 		<td><a href="#whoinvited">whoInvited</a></td>
 		<td>anyone</td>
