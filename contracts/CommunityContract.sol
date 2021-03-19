@@ -609,15 +609,32 @@ contract CommunityContract is Initializable, OwnableUpgradeSafe, ReentrancyGuard
         return (title, ico, ticker);
     }
     
+    /**
+     * return true if address sender invited address recipient
+     * @param sender person who create sent invite
+     * @param recipient person who accept invite successfully
+     */
     function isInvited(
         address sender, 
-        address reciever
+        address recipient
     ) 
         public 
         view 
         returns(bool) 
     {
-        return (acceptedInvite[sender] == reciever ? true : false);
+        return (acceptedInvite[recipient] == sender ? true : false);
+    }
+    
+    /**
+     * return address who created invite. if address(0) then recipient have not been added to community via invite
+     */
+    function whoInvited(
+    ) 
+        public 
+        view 
+        returns(address) 
+    {
+        return acceptedInvite[_msgSender()];
     }
     
     ///////////////////////////////////////////////////////////

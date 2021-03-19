@@ -103,14 +103,20 @@ Once installed will be use methods:
 		<td>Returns title ico and ticket texts</td>
 	</tr>
 	<tr>
-		<td><a href="#isinvited">isInvited</a></td>
-		<td>anyone</td>
-		<td>Return true if receiver has been invited by sender</td>
-	</tr>
-	<tr>
 		<td><a href="#setsettings">setSettings</a></td>
 		<td>owner</td>
 		<td>setup text string</td>
+	</tr>
+	<tr>
+		<td><a href="#isinvited">isInvited</a></td>
+		<td>anyone</td>
+		<td>Return true if recipient has been invited by sender</td>
+	</tr>
+	
+	<tr>
+		<td><a href="#whoinvited">whoInvited</a></td>
+		<td>anyone</td>
+		<td>Return the address sender's invite who added recipent</td>
 	</tr>
 </tbody>
 </table>
@@ -260,13 +266,17 @@ ico|tuple|source of image in base64
 ticker|string|ticker
 	
 #### isInvited
-return true if receiver has been invited by sender
+return true if recipient has been invited by sender
 
 Params:
 name  | type | description
 --|--|--
 sender|address|who invited
-reciever|address|who been invited
+recipient|address|who been invited
+
+#### whoInvited
+Return the address sender's invite who added recipent
+
 
 ## Example to use
 1.	add several users to role 'contest-users'

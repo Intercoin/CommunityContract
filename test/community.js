@@ -62,7 +62,6 @@ contract('CommunityContract', (accounts) => {
         });
     });
     
-  
     it('creator must be owner and admin', async () => {
         
         await CommunityContractInstance.init({from: accountOne});
@@ -362,8 +361,6 @@ contract('CommunityContract', (accounts) => {
         assert.equal(memberCount, 7, "Wrong memberCount for all roles");
     });
     
-    
-    
     it('invites test', async () => {   
 
         // be sure that ganashe run with params 
@@ -483,10 +480,9 @@ contract('CommunityContract', (accounts) => {
              "Such signature is already used"
          );
         
-        
-        
-        assert.isTrue((await CommunityContractInstance.isInvited(accountTwo, accountOne)), 'does not store invited mapping');
-        assert.isFalse((await CommunityContractInstance.isInvited(accountTwo, accountNine)), 'store wrong keys in invited mapping');
+    
+        assert.isTrue((await CommunityContractInstance.isInvited(accountOne, accountTwo)), 'does not store invited mapping');
+        assert.isFalse((await CommunityContractInstance.isInvited(accountNine, accountTwo)), 'store wrong keys in invited mapping');
       
        
     });
