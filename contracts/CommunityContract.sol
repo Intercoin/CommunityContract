@@ -65,9 +65,10 @@ contract CommunityContract is Initializable, OwnableUpgradeSafe, ReentrancyGuard
     string ticker;
 
     //receiver => sender
-    mapping(address => address) internal acceptedInvite;
+    mapping(address => address) internal invitedBy;
     //sender => receivers
     mapping(address => EnumerableSet.AddressSet) internal invited;
+    
     
     event RoleCreated(bytes32 indexed role, address indexed sender);
     event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender);
@@ -569,7 +570,7 @@ contract CommunityContract is Initializable, OwnableUpgradeSafe, ReentrancyGuard
         if (isCanProceed == true) {
             inviteSignatures[pSig].used = true;
             
-            acceptedInvite[rpAddr] = pAddr;
+            invitedBy[rpAddr] = pAddr;
             invited[pAddr].add(rpAddr);
             
             _rewardCaller();
@@ -622,7 +623,7 @@ contract CommunityContract is Initializable, OwnableUpgradeSafe, ReentrancyGuard
         view 
         returns(bool) 
     {
-        return (acceptedInvite[recipient] == sender ? true : false);
+        return (invitedBy[recipient] == sender ? true : false);
     }
     
     /**
@@ -634,7 +635,7 @@ contract CommunityContract is Initializable, OwnableUpgradeSafe, ReentrancyGuard
         view 
         returns(address) 
     {
-        return acceptedInvite[_msgSender()];
+        return invitedBy[_msgSender()];
     }
     
     ///////////////////////////////////////////////////////////
