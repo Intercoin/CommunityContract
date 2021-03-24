@@ -1,31 +1,30 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.6.0 <0.7.0;
+pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
-import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts-ethereum-package/contracts/utils/ReentrancyGuard.sol";
-import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts-ethereum-package/contracts/utils/EnumerableSet.sol";
-import "@openzeppelin/contracts-ethereum-package/contracts/utils/Address.sol";
-
-
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 import "./lib/ECDSAExt.sol";
 import "./lib/StringUtils.sol";
+import "./IntercoinTrait.sol";
 
-contract CommunityContract is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
+contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable, IntercoinTrait {
     
     using StringUtils for *;
 
     using ECDSAExt for string;
-    using ECDSA for bytes32;
+    using ECDSAUpgradeable for bytes32;
     
-    using SafeMath for uint256;
+    using SafeMathUpgradeable for uint256;
     
-    using EnumerableSet for EnumerableSet.AddressSet;
-    using EnumerableSet for EnumerableSet.UintSet;
-    using Address for address;
+    using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
+    using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
+    using AddressUpgradeable for address;
 
     struct RoleData {
-        EnumerableSet.AddressSet members;
+        EnumerableSetUpgradeable.AddressSet members;
         bytes32 adminRole;
     }
     
@@ -41,9 +40,9 @@ contract CommunityContract is Initializable, OwnableUpgradeSafe, ReentrancyGuard
     uint256 private rolesIndex;
     mapping (bytes32 => uint256) internal _roles;
     mapping (uint256 => bytes32) internal _rolesIndices;
-    mapping (address => EnumerableSet.UintSet) internal _rolesByMember;
-    mapping (bytes32 => EnumerableSet.AddressSet) internal _membersByRoles;
-    mapping (uint256 => EnumerableSet.UintSet) internal _canManageRoles;
+    mapping (address => EnumerableSetUpgradeable.UintSet) internal _rolesByMember;
+    mapping (bytes32 => EnumerableSetUpgradeable.AddressSet) internal _membersByRoles;
+    mapping (uint256 => EnumerableSetUpgradeable.UintSet) internal _canManageRoles;
     
     mapping (bytes => inviteSignature) inviteSignatures;          
     
@@ -67,7 +66,7 @@ contract CommunityContract is Initializable, OwnableUpgradeSafe, ReentrancyGuard
     //receiver => sender
     mapping(address => address) internal invitedBy;
     //sender => receivers
-    mapping(address => EnumerableSet.AddressSet) internal invited;
+    mapping(address => EnumerableSetUpgradeable.AddressSet) internal invited;
     
     
     event RoleCreated(bytes32 indexed role, address indexed sender);
@@ -319,7 +318,7 @@ contract CommunityContract is Initializable, OwnableUpgradeSafe, ReentrancyGuard
      */
     function transferOwnership(address newOwner) public override onlyOwner {
         
-        OwnableUpgradeSafe.transferOwnership(newOwner);
+        OwnableUpgradeable.transferOwnership(newOwner);
         _removeMemberRole(owner(), DEFAULT_OWNERS_ROLE);
         _addMemberRole(newOwner, DEFAULT_OWNERS_ROLE);
         _addMemberRole(newOwner, DEFAULT_ADMINS_ROLE);
@@ -363,7 +362,7 @@ contract CommunityContract is Initializable, OwnableUpgradeSafe, ReentrancyGuard
     {
         
         if (targetRole.stringToBytes32() == DEFAULT_OWNERS_ROLE) {
-            revert(string(abi.encodePacked("targetRole сan not be '",targetRole,"'")));
+            revert(string(abi.encodePacked("targetRole can not be '",targetRole, "'")));
         }
         
         _manageRole(sourceRole.stringToBytes32(), targetRole.stringToBytes32());
@@ -644,6 +643,7 @@ contract CommunityContract is Initializable, OwnableUpgradeSafe, ReentrancyGuard
     ///////////////////////////////////////////////////////////
    
     fallback() external payable {}
+    receive() external payable {}
     
     ///////////////////////////////////////////////////////////
     /// internal section
@@ -740,6 +740,7 @@ contract CommunityContract is Initializable, OwnableUpgradeSafe, ReentrancyGuard
         bytes memory rpSig
     ) 
         private 
+        pure
         returns(address, address)
     {
         bytes32 pHash = p.recreateMessageHash();

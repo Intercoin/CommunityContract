@@ -35,7 +35,7 @@
  *      corresponding to the left and right parts of the string.
  */
 
-pragma solidity >=0.6.0 <0.7.0;
+pragma solidity ^0.8.0;
 
 library strings {
     struct slice {
@@ -43,22 +43,22 @@ library strings {
         uint _ptr;
     }
 
-    function memcpy(uint dest, uint src, uint len) private pure {
+    function memcpy(uint _dest, uint _src, uint _len) private pure {
         // Copy word-length chunks while possible
-        for(; len >= 32; len -= 32) {
+        for(; _len >= 32; _len -= 32) {
             assembly {
-                mstore(dest, mload(src))
+                mstore(_dest, mload(_src))
             }
-            dest += 32;
-            src += 32;
+            _dest += 32;
+            _src += 32;
         }
 
         // Copy remaining bytes
-        uint mask = 256 ** (32 - len) - 1;
+        uint mask = 256 ** (32 - _len) - 1;
         assembly {
-            let srcpart := and(mload(src), not(mask))
-            let destpart := and(mload(dest), mask)
-            mstore(dest, or(destpart, srcpart))
+            let srcpart := and(mload(_src), not(mask))
+            let destpart := and(mload(_dest), mask)
+            mstore(_dest, or(destpart, srcpart))
         }
     }
 
@@ -212,7 +212,8 @@ library strings {
             }
             if (a != b) {
                 // Mask out irrelevant bytes and check again
-                uint256 mask = uint256(-1); // 0xffff...
+                // uint256 mask = uint256(-1); // 0xffff...
+                uint256 mask = type(uint256).max; // 0xffff...
                 if(shortest < 32) {
                   mask = ~(2 ** (8 * (32 - shortest + idx)) - 1);
                 }

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.6.0 <0.7.0;
+pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 import "./strings.sol";
 
@@ -57,15 +57,18 @@ library StringUtils {
     }
     
     // Convert an hexadecimal character to their value
-    function fromHexChar(uint8 c) internal pure returns (uint8) {
+    function fromHexChar(uint8 c) internal pure returns (uint8 r) {
         if (bytes1(c) >= bytes1('0') && bytes1(c) <= bytes1('9')) {
-            return c - uint8(bytes1('0'));
+            r = c - uint8(bytes1('0'));
+            return r;
         }
         if (bytes1(c) >= bytes1('a') && bytes1(c) <= bytes1('f')) {
-            return 10 + c - uint8(bytes1('a'));
+            r = 10 + c - uint8(bytes1('a'));
+            return r;
         }
         if (bytes1(c) >= bytes1('A') && bytes1(c) <= bytes1('F')) {
-            return 10 + c - uint8(bytes1('A'));
+            r = 10 + c - uint8(bytes1('A'));
+            return r;
         }
     }
     
