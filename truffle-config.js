@@ -22,12 +22,14 @@
 // const infuraKey = "fj4jll3k.....";
 //
 // const fs = require('fs');
-// const mnemonic = fs.readFileSync(".secret").toString().trim();
+// const privateKey = fs.readFileSync(".private_key").toString().trim();
+// const infuraKey = fs.readFileSync(".infura_project_id").toString().trim();
+// const etherscanApiKey = fs.readFileSync(".etherscan_api_key").toString().trim();
+
+require('dotenv').config();
 
 const HDWalletProvider = require("@truffle/hdwallet-provider");
  
-const mnemonicPhrase = "mountains supernatural bird accidentally phrase generate command specific development parity this network_id";
-
 module.exports = {
     
   /**
@@ -55,6 +57,7 @@ module.exports = {
       network_id: "*",       // Any network (default: none)
       gas: 9000000
     },
+    
     // Another network with more advanced options...
     // advanced: {
     // port: 8777,             // Custom port
@@ -74,6 +77,15 @@ module.exports = {
     // timeoutBlocks: 200,  // # of blocks before a deployment times out  (minimum/default: 50)
     // skipDryRun: true     // Skip dry run before migrations? (default: false for public nets )
     // },
+    
+    rinkeby: {
+        provider: () => new HDWalletProvider(process.env.private_key, 'https://rinkeby.infura.io/v3/'+process.env.infura_project_id),
+        network_id: 4,       // Rinkeby's id
+        gas: 9000000,        
+        //confirmations: 2,    
+        timeoutBlocks: 200,  
+        skipDryRun: true     // Skip dry run before migrations? (default: false for public nets )
+    },
     // Useful for private networks
     // private: {
     // provider: () => new HDWalletProvider(mnemonic, `https://network.io`),
@@ -90,7 +102,7 @@ module.exports = {
   // Configure your compilers
   compilers: {
     solc: {
-      version: "0.8.0",    // Fetch exact version from solc-bin (default: truffle's version)
+      version: "0.8.3",    // Fetch exact version from solc-bin (default: truffle's version)
       // docker: true,        // Use "0.5.1" you've installed locally with docker (default: false)
       settings: {          // See the solidity docs for advice about optimization and evmVersion
         optimizer: {
@@ -101,4 +113,11 @@ module.exports = {
       }
     },
   },
+  
+  plugins: ['truffle-plugin-verify'],
+  
+  api_keys: {
+    etherscan: process.env.etherscan_api_key
+  },
+  
 };
