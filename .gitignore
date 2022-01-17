@@ -1,5 +1,16 @@
+/ipfs
 /build
 /node_modules
 artifacts
-.secret
 .env
+.deps
+secret.*.json
+TODO.txt
+/cache
+/docs
+/metadata
+/.deps
+/.debugger
+remix-compiler.config.js
+.DS_Store
+/bin
