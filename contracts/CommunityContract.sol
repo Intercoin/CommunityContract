@@ -23,11 +23,6 @@ contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuard
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
     using AddressUpgradeable for address;
 
-    struct RoleData {
-        EnumerableSetUpgradeable.AddressSet members;
-        bytes32 adminRole;
-    }
-    
     struct inviteSignature {
         bytes pSig;
         bytes rpSig;
