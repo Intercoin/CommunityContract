@@ -34,10 +34,19 @@ contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuard
     
     uint256 private rolesIndex;
     mapping (bytes32 => uint256) internal _roles;
-    mapping (uint256 => bytes32) internal _rolesIndices;
+    //mapping (uint256 => bytes32) internal _rolesIndices;
     mapping (address => EnumerableSetUpgradeable.UintSet) internal _rolesByMember;
-    mapping (bytes32 => EnumerableSetUpgradeable.AddressSet) internal _membersByRoles;
-    mapping (uint256 => EnumerableSetUpgradeable.UintSet) internal _canManageRoles;
+    //mapping (bytes32 => EnumerableSetUpgradeable.AddressSet) internal _membersByRoles;
+    //mapping (uint256 => EnumerableSetUpgradeable.UintSet) internal _canManageRoles;
+
+    struct Role {
+        bytes32 name;
+        string metadataURI;
+        EnumerableSetUpgradeable.UintSet canManageRoles;
+        EnumerableSetUpgradeable.AddressSet membersByRoles;
+    }
+    mapping (uint256 => Role) internal _rolesIndices;
+
     
     mapping (bytes => inviteSignature) inviteSignatures;          
     
@@ -376,12 +385,13 @@ contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuard
         returns(address[] memory)
     {
         bytes32 roleBytes32= role.stringToBytes32();
-        uint256 len = _membersByRoles[roleBytes32].length();
+        uint256 roleIndex = _roles[roleBytes32];
+        uint256 len = _rolesIndices[roleIndex].membersByRoles.length();
         address[] memory l = new address[](len);
         uint256 i;
             
         for (i = 0; i < len; i++) {
-            l[i] = _membersByRoles[roleBytes32].at(i);
+            l[i] = _rolesIndices[roleIndex].membersByRoles.at(i);
         }
         return l;
     }
@@ -416,7 +426,7 @@ contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuard
         uint256 i;
             
         for (i = 0; i < len; i++) {
-            l[i] = _rolesIndices[_rolesByMember[member].at(i)].bytes32ToString();
+            l[i] = _rolesIndices[_rolesByMember[member].at(i)].name.bytes32ToString();
         }
         return l;
     }
@@ -434,7 +444,7 @@ contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuard
 
         string[] memory l = new string[](rolesIndex);
         for (uint256 i = 0; i < rolesIndex; i++) {
-            l[i] = _rolesIndices[i].bytes32ToString();
+            l[i] = _rolesIndices[i].name.bytes32ToString();
         }
         return l;
     }
@@ -450,7 +460,7 @@ contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuard
         view
         returns(uint256)
     {
-        return _membersByRoles[role.stringToBytes32()].length();
+        return _rolesIndices[_roles[role.stringToBytes32()]].membersByRoles.length();
     }
         
     /**
@@ -653,7 +663,7 @@ contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuard
      */
     function _createRole(bytes32 role) private {
        _roles[role] = rolesIndex;
-       _rolesIndices[rolesIndex] = role;
+       _rolesIndices[rolesIndex].name = role;
        rolesIndex = rolesIndex.add(1);
        
        emit RoleCreated(role, _msgSender());
@@ -668,7 +678,7 @@ contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuard
        require(_roles[sourceRole] != 0, "Source role does not exists");
        require(_roles[targetRole] != 0, "Source role does not exists");
        
-       _canManageRoles[_roles[sourceRole]].add(_roles[targetRole]);
+       _rolesIndices[_roles[sourceRole]].canManageRoles.add(_roles[targetRole]);
        
        emit RoleManaged(sourceRole, targetRole, _msgSender());
     }
@@ -680,7 +690,7 @@ contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuard
      */
     function _addMemberRole(address account, bytes32 targetRole) private {
        _rolesByMember[account].add(_roles[targetRole]);
-       _membersByRoles[targetRole].add(account);
+       _rolesIndices[_roles[targetRole]].membersByRoles.add(account);
        
        emit RoleGranted(targetRole, account, _msgSender());
     }
@@ -692,7 +702,7 @@ contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuard
      */
     function _removeMemberRole(address account, bytes32 targetRole) private {
        _rolesByMember[account].remove(_roles[targetRole]);
-       _membersByRoles[targetRole].remove(account);
+       _rolesIndices[_roles[targetRole]].membersByRoles.remove(account);
        
        emit RoleRevoked(targetRole, account, _msgSender());
     }
@@ -714,7 +724,7 @@ contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuard
         
         for (uint256 i = 0; i<_rolesByMember[sender].length(); i++) {
             
-            if (_canManageRoles[_rolesByMember[sender].at(i)].contains(targetRoleID) == true) {
+            if (_rolesIndices[_rolesByMember[sender].at(i)].canManageRoles.contains(targetRoleID) == true) {
                 isCan = true;
                 break;
             }

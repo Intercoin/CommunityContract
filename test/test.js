@@ -357,13 +357,13 @@ console.log(r,s,v);
             await CommunityContractInstance.connect(accountTen).init();
         });
         it('test using params as array', async () => {
-            
+
             // create roles
-            await CommunityContractInstance.connect(accountTen).connect(accountTen).createRole(rolesTitle.get('role1'));
+            await CommunityContractInstance.connect(accountTen).createRole(rolesTitle.get('role1'));
             await CommunityContractInstance.connect(accountTen).createRole(rolesTitle.get('role2'));
             await CommunityContractInstance.connect(accountTen).createRole(rolesTitle.get('role3'));
             await CommunityContractInstance.connect(accountTen).createRole(rolesTitle.get('role4'));
-            
+
             // Adding
             await CommunityContractInstance.connect(accountTen).addMembers(
                 [
@@ -376,7 +376,7 @@ console.log(r,s,v);
                     accountSeven.address
                 ]
             );
-            
+
             await CommunityContractInstance.connect(accountTen).addRoles(
                 [
                     accountOne.address,
@@ -409,7 +409,7 @@ console.log(r,s,v);
                     rolesTitle.get('role2')
                 ]
             );
-            
+
             ///// checking by Members
             var rolesList;
             // accountOne
@@ -454,22 +454,22 @@ console.log(r,s,v);
             expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(true); 
             expect(rolesList.includes(rolesTitle.get('role3'))).to.be.eq(false); 
             expect(rolesList.includes(rolesTitle.get('role4'))).to.be.eq(false); 
-            
+
             var memberCount;
             // role1
-            memberCount = (await CommunityContractInstance.connect(accountTen)["memberCount(string)"](rolesTitle.get('role1'),{from: accountTen}));
+            memberCount = (await CommunityContractInstance.connect(accountTen)["memberCount(string)"](rolesTitle.get('role1')));
             expect(memberCount).to.be.eq(5);
             // role2
-            memberCount = (await CommunityContractInstance.connect(accountTen)["memberCount(string)"](rolesTitle.get('role2'),{from: accountTen}));
+            memberCount = (await CommunityContractInstance.connect(accountTen)["memberCount(string)"](rolesTitle.get('role2')));
             expect(memberCount).to.be.eq(7);
             // role3
-            memberCount = (await CommunityContractInstance.connect(accountTen)["memberCount(string)"](rolesTitle.get('role3'),{from: accountTen}));
+            memberCount = (await CommunityContractInstance.connect(accountTen)["memberCount(string)"](rolesTitle.get('role3')));
             expect(memberCount).to.be.eq(5);
             // role4
-            memberCount = (await CommunityContractInstance.connect(accountTen)["memberCount(string)"](rolesTitle.get('role4'),{from: accountTen}));
+            memberCount = (await CommunityContractInstance.connect(accountTen)["memberCount(string)"](rolesTitle.get('role4')));
             expect(memberCount).to.be.eq(0);
             // all members
-            memberCount = (await CommunityContractInstance.connect(accountTen)["memberCount"]);
+            memberCount = (await CommunityContractInstance.connect(accountTen)["memberCount()"]());
             expect(memberCount).to.be.eq(7);
 
         });
