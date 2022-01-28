@@ -6,11 +6,14 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/IERC721MetadataUpgradeable.sol";
+
 import "./lib/ECDSAExt.sol";
 import "./lib/StringUtils.sol";
 import "./IntercoinTrait.sol";
 
-contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable, IntercoinTrait {
+contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable, IntercoinTrait, IERC721Upgradeable, IERC721MetadataUpgradeable {
     
     using StringUtils for *;
 
@@ -186,6 +189,164 @@ contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuard
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
    function donateETH() public payable {} 
     
+
+///////////////////////////////////////////////////////////
+//// virtual erc721 ////
+
+    function balanceOf(
+        address owner
+    ) 
+        external 
+        view 
+        override
+        returns (uint256 balance) 
+    {
+        for (uint256 i= 0; i < rolesIndex; i++) {
+            if (_isTargetInRole(owner, _rolesIndices[i].name)) {
+                balance += 1;
+            }
+        }
+    }
+
+    function ownerOf(
+        uint256 tokenId
+    ) 
+        external 
+        view 
+        override
+        returns (address owner) 
+    {
+        uint256 roleId = tokenId >> 160;
+        address w = address(uint160(tokenId - (roleId << 160)));
+        
+        owner = (_isTargetInRole(w, _rolesIndices[roleId].name)) ? w : address(0);
+
+    }
+
+    function operationReverted(
+    ) 
+        internal 
+        pure
+    {
+        revert("OPERATION_DENIED");
+    }
+
+    function safeTransferFrom(
+        address /*from*/,
+        address /*to*/,
+        uint256 /*tokenId*/
+    ) 
+        external 
+        pure
+        override
+    {
+        operationReverted();
+    }
+
+    function transferFrom(
+        address /*from*/,
+        address /*to*/,
+        uint256 /*tokenId*/
+    ) 
+        external 
+        pure
+        override
+    {
+        operationReverted();
+    }
+    
+    function approve(
+        address /*to*/, 
+        uint256 /*tokenId*/
+    )
+        external 
+        pure
+        override
+    {
+        operationReverted();
+    }
+
+    function getApproved(
+        uint256 tokenId
+    ) 
+        external
+        view 
+        override 
+        returns (address operator) 
+    {
+
+    }
+
+    function setApprovalForAll(
+        address /*operator*/, 
+        bool /*_approved*/
+    ) 
+        external 
+        pure
+        override
+    {
+        operationReverted();
+    }
+
+    function isApprovedForAll(
+        address owner, 
+        address operator
+    ) 
+        external 
+        view 
+        override
+        returns (bool) 
+    {
+
+    }
+
+    function safeTransferFrom(
+        address /*from*/,
+        address /*to*/,
+        uint256 /*tokenId*/,
+        bytes calldata /*data*/
+    ) 
+        external 
+        pure
+        override
+    {
+        operationReverted();
+    }
+
+    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
+        return
+            interfaceId == type(IERC721Upgradeable).interfaceId ||
+            interfaceId == type(IERC721MetadataUpgradeable).interfaceId ||
+            interfaceId == type(IERC165Upgradeable).interfaceId;
+    }
+        
+    function name(
+    ) 
+        external 
+        pure 
+        override 
+        returns (string memory) 
+    {
+        return "Community";
+    }
+
+    
+    function symbol(
+    ) 
+        external 
+        pure 
+        override 
+        returns (string memory)
+    {
+        return "Community";
+    }
+
+    function tokenURI(uint256 tokenId) external view override returns (string memory)
+    {
+        return _rolesIndices[tokenId >> 160].metadataURI;
+    }
+///////////////////////////////////////////////////////////
+
     ///////////////////////////////////////////////////////////
     /// public  section
     ///////////////////////////////////////////////////////////
