@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+//import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
@@ -13,7 +13,7 @@ import "./lib/ECDSAExt.sol";
 import "./lib/StringUtils.sol";
 import "./IntercoinTrait.sol";
 
-contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable, IntercoinTrait, IERC721Upgradeable, IERC721MetadataUpgradeable {
+contract CommunityContract is Initializable/*, OwnableUpgradeable*/, ReentrancyGuardUpgradeable, IntercoinTrait, IERC721Upgradeable, IERC721MetadataUpgradeable {
     
     using StringUtils for *;
 
@@ -44,13 +44,15 @@ contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuard
 
     struct Role {
         bytes32 name;
-        string metadataURI;
+        string roleURI;
+        string extraURI;
         EnumerableSetUpgradeable.UintSet canManageRoles;
         EnumerableSetUpgradeable.AddressSet membersByRoles;
     }
     mapping (uint256 => Role) internal _rolesIndices;
 
-    
+
+
     mapping (bytes => inviteSignature) inviteSignatures;          
     
     bytes32 public constant DEFAULT_OWNERS_ROLE = 0x6f776e6572730000000000000000000000000000000000000000000000000000;
@@ -61,20 +63,27 @@ contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuard
     enum ReimburseStatus{ NONE, PENDING, DONE }
     uint256 public constant REWARD_AMOUNT = 1000000000000000; // 0.001 * 1e18
     uint256 public constant REPLENISH_AMOUNT = 1000000000000000; // 0.001 * 1e18
-    
-    struct Image {
-        string itype;
-        string idata;
-    }
-    string title;
-    Image ico;
-    string ticker;
-
+   
     //receiver => sender
-    mapping(address => address) internal invitedBy;
+    mapping(address => address) public invitedBy;
     //sender => receivers
     mapping(address => EnumerableSetUpgradeable.AddressSet) internal invited;
     
+
+
+// Please make grantedBy(uint160 recipient => struct ActionInfo) mapping, and save it when user grants role. (Difference with invitedBy is that invitedBy the user has to ACCEPT the invite while grantedBy doesn’t require recipient to accept).
+// And also make revokedBy same way.
+// Please refactor invited and invitedBy and to return struct ActionInfo also. Here is struct ActionInfo, it fits in ONE slot:
+// struct ActionInfo {
+//    uint160 actor;
+//    uint64 timestamp;
+//    uint32 extra; // used for any other info, eg up to four role ids can be stored here !!!
+// }
+// mapping(address => ActionInfo) public grantedBy;
+// mapping(address => ActionInfo) public revokedBy;
+
+
+
     
     event RoleCreated(bytes32 indexed role, address indexed sender);
     event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender);
@@ -177,7 +186,7 @@ contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuard
             inviteSignatures[pSig].reimbursed = ReimburseStatus.DONE;
             //payable (inviteSignatures[pSig].caller).transfer(gasCost);
            
-            payable(_msgSender()).transfer(gasCost);
+            payable(msg.sender).transfer(gasCost);
 
         } else {
             inviteSignatures[pSig].reimbursed = ReimburseStatus.PENDING;
@@ -228,7 +237,7 @@ contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuard
         internal 
         pure
     {
-        revert("OPERATION_DENIED");
+        revert("CommunityContract: NOT_AUTHORIZED");
     }
 
     function safeTransferFrom(
@@ -343,7 +352,7 @@ contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuard
 
     function tokenURI(uint256 tokenId) external view override returns (string memory)
     {
-        return _rolesIndices[tokenId >> 160].metadataURI;
+        return _rolesIndices[tokenId >> 160].roleURI;
     }
 ///////////////////////////////////////////////////////////
 
@@ -357,7 +366,7 @@ contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuard
      */
     function init() public initializer {
         
-        __Ownable_init();
+        //__Ownable_init();
         __ReentrancyGuard_init();
         
         rolesIndex = 1;
@@ -366,9 +375,13 @@ contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuard
         _createRole(DEFAULT_ADMINS_ROLE);
         _createRole(DEFAULT_MEMBERS_ROLE);
         _createRole(DEFAULT_WEBX_ROLE);
-        _addMemberRole(_msgSender(), DEFAULT_OWNERS_ROLE);
-        _addMemberRole(_msgSender(), DEFAULT_ADMINS_ROLE);
-        _addMemberRole(_msgSender(), DEFAULT_WEBX_ROLE);
+        _grantRole(msg.sender, DEFAULT_OWNERS_ROLE);
+        _grantRole(msg.sender, DEFAULT_ADMINS_ROLE);
+        _grantRole(msg.sender, DEFAULT_WEBX_ROLE);
+        //an exception from the rules. owners can manage owners role. 
+        //means that can grant member to owner role and revoke it.
+        _manageRole(DEFAULT_OWNERS_ROLE, DEFAULT_OWNERS_ROLE); 
+        //---                                                                
         _manageRole(DEFAULT_OWNERS_ROLE, DEFAULT_ADMINS_ROLE);
         _manageRole(DEFAULT_ADMINS_ROLE, DEFAULT_MEMBERS_ROLE);
         _manageRole(DEFAULT_ADMINS_ROLE, DEFAULT_WEBX_ROLE);
@@ -382,14 +395,14 @@ contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuard
     function addMembers(
         address[] memory members
     )
-        canManage(_msgSender(), DEFAULT_MEMBERS_ROLE)
+        canManage(msg.sender, DEFAULT_MEMBERS_ROLE)
         public 
     {
         
         uint256 len = members.length;
         uint256 i;
         for (i = 0; i < len; i++) {
-            _addMemberRole(members[i], DEFAULT_MEMBERS_ROLE);
+            _grantRole(members[i], DEFAULT_MEMBERS_ROLE);
         }
     }
     
@@ -400,13 +413,13 @@ contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuard
     function removeMembers(
         address[] memory members
     )
-        canManage(_msgSender(), DEFAULT_MEMBERS_ROLE)
+        canManage(msg.sender, DEFAULT_MEMBERS_ROLE)
         public 
     {
         uint256 len = members.length;
         uint256 i;
         for (i = 0; i < len; i++) {
-            _removeMemberRole(members[i], DEFAULT_MEMBERS_ROLE);
+            _revokeRole(members[i], DEFAULT_MEMBERS_ROLE);
             //TODO 0: does need to remove from all exists roles?
         }
     }
@@ -416,7 +429,7 @@ contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuard
      * @param members participant's addresses
      * @param roles Roles name
      */
-    function addRoles(
+    function grantRoles(
         address[] memory members, 
         string[] memory roles
     )
@@ -430,14 +443,14 @@ contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuard
         for (i = 0; i < lengthMembers; i++) {
             if (!_isTargetInRole(members[i], DEFAULT_MEMBERS_ROLE)) {
                 revert(string(abi.encodePacked("Target account must be with role '",DEFAULT_MEMBERS_ROLE.bytes32ToString(),"'")));
-                //_addMemberRole(members[i], DEFAULT_MEMBERS_ROLE);
+                //_grantRole(members[i], DEFAULT_MEMBERS_ROLE);
                 
             }
             for (j = 0; j < lenRoles; j++) {
-                if (!_isCanManage(_msgSender(), roles[j].stringToBytes32())) {
+                if (!_isCanManage(msg.sender, roles[j].stringToBytes32())) {
                     revert(string(abi.encodePacked("Sender can not manage Members with role '",roles[j],"'")));
                 }
-                _addMemberRole(members[i], roles[j].stringToBytes32());
+                _grantRole(members[i], roles[j].stringToBytes32());
             }
         }
     }
@@ -447,7 +460,7 @@ contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuard
      * @param members participant's addresses
      * @param roles Roles name
      */
-    function removeRoles(
+    function revokeRoles(
         address[] memory members, 
         string[] memory roles
     ) 
@@ -457,49 +470,37 @@ contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuard
         uint256 lenRoles = roles.length;
         uint256 i;
         uint256 j;
-        
+        bytes32 roleBytes32;
         for (i = 0; i < lengthMembers; i++) {
             if (!_isTargetInRole(members[i], DEFAULT_MEMBERS_ROLE)) {
                 revert(string(abi.encodePacked("Target account must be with role '",DEFAULT_MEMBERS_ROLE.bytes32ToString(),"'")));
-                //_addMemberRole(members[i], DEFAULT_MEMBERS_ROLE);
-                
             }
             for (j = 0; j < lenRoles; j++) {
-                
-                if (roles[j].stringToBytes32() == DEFAULT_MEMBERS_ROLE) {
+                roleBytes32 = roles[j].stringToBytes32();
+                if (roleBytes32 == DEFAULT_MEMBERS_ROLE) {
                     revert(string(abi.encodePacked("Can not remove role '",roles[j],"'")));
                 }
                 
-                if (!_isCanManage(_msgSender(), roles[j].stringToBytes32())) {
+                if (!_isCanManage(msg.sender, roleBytes32)) {
                     revert(string(abi.encodePacked("Sender can not manage Members with role '",roles[j],"'")));
                 }
-                _removeMemberRole(members[i], roles[j].stringToBytes32());
+                _revokeRole(members[i], roles[j].stringToBytes32());
+
+                
             }
         }
     }
     
     /**
-     * overrode transferOwnership. new owner will get DEFAULT_OWNERS_ROLE
-     */
-    function transferOwnership(address newOwner) public override onlyOwner {
-        
-        OwnableUpgradeable.transferOwnership(newOwner);
-        _removeMemberRole(owner(), DEFAULT_OWNERS_ROLE);
-        _addMemberRole(newOwner, DEFAULT_OWNERS_ROLE);
-        _addMemberRole(newOwner, DEFAULT_ADMINS_ROLE);
-        _addMemberRole(newOwner, DEFAULT_WEBX_ROLE);
-
-    }
-    
-    /**
-     * creating new role. can called onlyOwner
+     * creating new role. can called owners role only
      * @param role role name
      */
     function createRole(
         string memory role
     ) 
         public 
-        onlyOwner 
+        //onlyOwner 
+        ifTargetInRole(msg.sender, DEFAULT_OWNERS_ROLE) 
     {
         require(_roles[role.stringToBytes32()] == 0, 'Such role is already exists');
         
@@ -523,7 +524,8 @@ contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuard
         string memory targetRole
     ) 
         public 
-        onlyOwner
+        //onlyOwner
+        ifTargetInRole(msg.sender, DEFAULT_OWNERS_ROLE) 
     {
         
         if (targetRole.stringToBytes32() == DEFAULT_OWNERS_ROLE) {
@@ -660,7 +662,7 @@ contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuard
         bytes memory rpSig
     ) 
         public 
-        ifTargetInRole(_msgSender(), DEFAULT_WEBX_ROLE) 
+        ifTargetInRole(msg.sender, DEFAULT_WEBX_ROLE) 
         accummulateGasCost(pSig)
     {
         require(inviteSignatures[pSig].exists == false, "Such signature is already exists");
@@ -692,7 +694,7 @@ contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuard
         bytes memory rpSig
     )
         public 
-        ifTargetInRole(_msgSender(), DEFAULT_WEBX_ROLE) 
+        ifTargetInRole(msg.sender, DEFAULT_WEBX_ROLE) 
         refundGasCost(pSig)
         nonReentrant()
     {
@@ -717,19 +719,19 @@ contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuard
         bool isCanProceed = false;
         
         if (_isCanManage(pAddr, DEFAULT_MEMBERS_ROLE)) {
-            _addMemberRole(rpAddr, DEFAULT_MEMBERS_ROLE);
+            _grantRole(rpAddr, DEFAULT_MEMBERS_ROLE);
             
             for (uint256 i = 0; i < rolesArr.length; i++) {
                 if (_isCanManage(pAddr, rolesArr[i].stringToBytes32())) {
                     isCanProceed = true;
-                    _addMemberRole(rpAddr, rolesArr[i].stringToBytes32());
+                    _grantRole(rpAddr, rolesArr[i].stringToBytes32());
                 } else {
-                    emit RoleAddedErrorMessage(_msgSender(), string(abi.encodePacked("inviting user did not have permission to add role '",rolesArr[i],"'")));
+                    emit RoleAddedErrorMessage(msg.sender, string(abi.encodePacked("inviting user did not have permission to add role '",rolesArr[i],"'")));
                 }
             }
         
         } else {
-            emit RoleAddedErrorMessage(_msgSender(), string(abi.encodePacked("inviting user did not have permission to add role '",DEFAULT_MEMBERS_ROLE.bytes32ToString(),"'")));
+            emit RoleAddedErrorMessage(msg.sender, string(abi.encodePacked("inviting user did not have permission to add role '",DEFAULT_MEMBERS_ROLE.bytes32ToString(),"'")));
         }
         
         if (isCanProceed == true) {
@@ -747,63 +749,25 @@ contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuard
         
     }
     
-    function setSettings(
-        string memory _title,
-        Image memory _ico,
-        string memory _ticker
+    function setRoleURI(
+        string memory role,
+        string memory roleURI
     ) 
         public 
-        onlyOwner 
+        canManage(msg.sender, role.stringToBytes32())
     {
-        title = _title;
-        ico.itype = _ico.itype;
-        ico.idata = _ico.idata;
-        ticker = _ticker;
+        _rolesIndices[_roles[role.stringToBytes32()]].roleURI = roleURI;
     }
-    
-    function getSettings(
-    ) 
+
+    function setExtraURI(
+        string memory role,
+        string memory extraURI
+    )
         public
-        view
-        returns(
-            string memory,
-            Image memory,
-            string memory
-        )
-         
+        ifTargetInRole(msg.sender, role.stringToBytes32())
     {
-        return (title, ico, ticker);
+        _rolesIndices[_roles[role.stringToBytes32()]].extraURI = extraURI;
     }
-    
-    /**
-     * return true if address sender invited address recipient
-     * @param sender person who create sent invite
-     * @param recipient person who accept invite successfully
-     */
-    function isInvited(
-        address sender, 
-        address recipient
-    ) 
-        public 
-        view 
-        returns(bool) 
-    {
-        return (invitedBy[recipient] == sender ? true : false);
-    }
-    
-    /**
-     * return address who created invite. if address(0) then recipient have not been added to community via invite
-     */
-    function whoInvited(
-		address recipient
-    ) 
-        public 
-        view 
-        returns(address) 
-    {
-        return invitedBy[recipient];
-    }
-    
     ///////////////////////////////////////////////////////////
     /// external section
     ///////////////////////////////////////////////////////////
@@ -827,7 +791,7 @@ contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuard
        _rolesIndices[rolesIndex].name = role;
        rolesIndex = rolesIndex.add(1);
        
-       emit RoleCreated(role, _msgSender());
+       emit RoleCreated(role, msg.sender);
     }
    
     /**
@@ -841,7 +805,7 @@ contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuard
        
        _rolesIndices[_roles[sourceRole]].canManageRoles.add(_roles[targetRole]);
        
-       emit RoleManaged(sourceRole, targetRole, _msgSender());
+       emit RoleManaged(sourceRole, targetRole, msg.sender);
     }
     
     /**
@@ -849,11 +813,11 @@ contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuard
      * @param account account's address
      * @param targetRole role name
      */
-    function _addMemberRole(address account, bytes32 targetRole) private {
+    function _grantRole(address account, bytes32 targetRole) private {
        _rolesByMember[account].add(_roles[targetRole]);
        _rolesIndices[_roles[targetRole]].membersByRoles.add(account);
        
-       emit RoleGranted(targetRole, account, _msgSender());
+       emit RoleGranted(targetRole, account, msg.sender);
     }
     
     /**
@@ -861,11 +825,11 @@ contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuard
      * @param account account's address
      * @param targetRole role name
      */
-    function _removeMemberRole(address account, bytes32 targetRole) private {
+    function _revokeRole(address account, bytes32 targetRole) private {
        _rolesByMember[account].remove(_roles[targetRole]);
        _rolesIndices[_roles[targetRole]].membersByRoles.remove(account);
        
-       emit RoleRevoked(targetRole, account, _msgSender());
+       emit RoleRevoked(targetRole, account, msg.sender);
     }
     
     function _isTargetInRole(address target, bytes32 targetRole) private view returns(bool) {
@@ -924,7 +888,7 @@ contract CommunityContract is Initializable, OwnableUpgradeable, ReentrancyGuard
         private 
     {
         if (REWARD_AMOUNT <= address(this).balance) {
-            payable(_msgSender()).transfer(REWARD_AMOUNT);
+            payable(msg.sender).transfer(REWARD_AMOUNT);
         }
     }
     
