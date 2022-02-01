@@ -74,13 +74,14 @@ contract CommunityContract is Initializable/*, OwnableUpgradeable*/, ReentrancyG
 // Please make grantedBy(uint160 recipient => struct ActionInfo) mapping, and save it when user grants role. (Difference with invitedBy is that invitedBy the user has to ACCEPT the invite while grantedBy doesn’t require recipient to accept).
 // And also make revokedBy same way.
 // Please refactor invited and invitedBy and to return struct ActionInfo also. Here is struct ActionInfo, it fits in ONE slot:
-// struct ActionInfo {
-//    uint160 actor;
-//    uint64 timestamp;
-//    uint32 extra; // used for any other info, eg up to four role ids can be stored here !!!
-// }
-// mapping(address => ActionInfo) public grantedBy;
-// mapping(address => ActionInfo) public revokedBy;
+struct ActionInfo {
+   address actor;
+   uint64 timestamp;
+   uint32 extra; // used for any other info, eg up to four role ids can be stored here !!!
+}
+//      sourceAddr        role id     .actor
+mapping(address => mapping(uint256 => ActionInfo)) public grantedBy;
+mapping(address => mapping(uint256 => ActionInfo)) public revokedBy;
 
 
 
@@ -817,6 +818,12 @@ contract CommunityContract is Initializable/*, OwnableUpgradeable*/, ReentrancyG
        _rolesByMember[account].add(_roles[targetRole]);
        _rolesIndices[_roles[targetRole]].membersByRoles.add(account);
        
+       grantedBy[account][_roles[targetRole]] = ActionInfo({
+            actor: msg.sender,
+            timestamp: uint64(block.timestamp),
+            extra: 0
+       });
+       
        emit RoleGranted(targetRole, account, msg.sender);
     }
     
@@ -829,6 +836,12 @@ contract CommunityContract is Initializable/*, OwnableUpgradeable*/, ReentrancyG
        _rolesByMember[account].remove(_roles[targetRole]);
        _rolesIndices[_roles[targetRole]].membersByRoles.remove(account);
        
+       revokedBy[account][_roles[targetRole]] = ActionInfo({
+            actor: msg.sender,
+            timestamp: uint64(block.timestamp),
+            extra: 0
+       });
+
        emit RoleRevoked(targetRole, account, msg.sender);
     }
     
