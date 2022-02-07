@@ -87,10 +87,10 @@ struct ActionInfo {
    uint32 extra; // used for any other info, eg up to four role ids can be stored here !!!
 }
 //      sourceAddr 
-mapping(address => ActionInfo[]) grantedBy;
-mapping(address => ActionInfo[]) revokedBy;
-mapping(address => ActionInfo[]) granted;
-mapping(address => ActionInfo[]) revoked;
+mapping(address => ActionInfo[]) public grantedBy;
+mapping(address => ActionInfo[]) public revokedBy;
+mapping(address => ActionInfo[]) public granted;
+mapping(address => ActionInfo[]) public revoked;
 
 
     
