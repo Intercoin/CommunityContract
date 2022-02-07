@@ -13,8 +13,15 @@ import "./lib/ECDSAExt.sol";
 import "./lib/StringUtils.sol";
 import "./IntercoinTrait.sol";
 
+import "./lib/PackedSet.sol";
+
+
 contract CommunityContract is Initializable/*, OwnableUpgradeable*/, ReentrancyGuardUpgradeable, IntercoinTrait, IERC721Upgradeable, IERC721MetadataUpgradeable {
     
+    using PackedSet for PackedSet.Set;
+
+    //PackedSet.Set x;
+
     using StringUtils for *;
 
     using ECDSAExt for string;
@@ -35,10 +42,10 @@ contract CommunityContract is Initializable/*, OwnableUpgradeable*/, ReentrancyG
         bool exists;
     }
     
-    uint256 private rolesIndex;
-    mapping (bytes32 => uint256) internal _roles;
+    uint8 private rolesIndex;
+    mapping (bytes32 => uint8) internal _roles;
     //mapping (uint256 => bytes32) internal _rolesIndices;
-    mapping (address => EnumerableSetUpgradeable.UintSet) internal _rolesByMember;
+    mapping (address => PackedSet.Set) internal _rolesByMember;
     //mapping (bytes32 => EnumerableSetUpgradeable.AddressSet) internal _membersByRoles;
     //mapping (uint256 => EnumerableSetUpgradeable.UintSet) internal _canManageRoles;
 
@@ -49,7 +56,7 @@ contract CommunityContract is Initializable/*, OwnableUpgradeable*/, ReentrancyG
         EnumerableSetUpgradeable.UintSet canManageRoles;
         EnumerableSetUpgradeable.AddressSet membersByRoles;
     }
-    mapping (uint256 => Role) internal _rolesIndices;
+    mapping (uint8 => Role) internal _rolesIndices;
 
 
 
@@ -211,7 +218,7 @@ mapping(address => mapping(uint256 => ActionInfo)) public revokedBy;
         override
         returns (uint256 balance) 
     {
-        for (uint256 i= 0; i < rolesIndex; i++) {
+        for (uint8 i= 0; i < rolesIndex; i++) {
             if (_isTargetInRole(owner, _rolesIndices[i].name)) {
                 balance += 1;
             }
@@ -226,7 +233,7 @@ mapping(address => mapping(uint256 => ActionInfo)) public revokedBy;
         override
         returns (address owner) 
     {
-        uint256 roleId = tokenId >> 160;
+        uint8 roleId = uint8(tokenId >> 160);
         address w = address(uint160(tokenId - (roleId << 160)));
         
         owner = (_isTargetInRole(w, _rolesIndices[roleId].name)) ? w : address(0);
@@ -353,7 +360,7 @@ mapping(address => mapping(uint256 => ActionInfo)) public revokedBy;
 
     function tokenURI(uint256 tokenId) external view override returns (string memory)
     {
-        return _rolesIndices[tokenId >> 160].roleURI;
+        return _rolesIndices[uint8(tokenId >> 160)].roleURI;
     }
 ///////////////////////////////////////////////////////////
 
@@ -508,6 +515,8 @@ mapping(address => mapping(uint256 => ActionInfo)) public revokedBy;
         // prevent creating role in CamelCases with admins and owners (Admins,ADMINS,ADminS)
         require(_roles[role._toLower().stringToBytes32()] == 0, 'Such role is already exists');
         
+        require(rolesIndex < type(uint8).max -1, "Max amount of roles exceeded");
+
         _createRole(role.stringToBytes32());
         
        // new role must manage DEFAULT_MEMBERS_ROLE to be able to add members
@@ -549,7 +558,7 @@ mapping(address => mapping(uint256 => ActionInfo)) public revokedBy;
         returns(address[] memory)
     {
         bytes32 roleBytes32= role.stringToBytes32();
-        uint256 roleIndex = _roles[roleBytes32];
+        uint8 roleIndex = _roles[roleBytes32];
         uint256 len = _rolesIndices[roleIndex].membersByRoles.length();
         address[] memory l = new address[](len);
         uint256 i;
@@ -590,7 +599,7 @@ mapping(address => mapping(uint256 => ActionInfo)) public revokedBy;
         uint256 i;
             
         for (i = 0; i < len; i++) {
-            l[i] = _rolesIndices[_rolesByMember[member].at(i)].name.bytes32ToString();
+            l[i] = _rolesIndices[uint8(_rolesByMember[member].get(i))].name.bytes32ToString();
         }
         return l;
     }
@@ -607,7 +616,7 @@ mapping(address => mapping(uint256 => ActionInfo)) public revokedBy;
     {
 
         string[] memory l = new string[](rolesIndex);
-        for (uint256 i = 0; i < rolesIndex; i++) {
+        for (uint8 i = 0; i < rolesIndex; i++) {
             l[i] = _rolesIndices[i].name.bytes32ToString();
         }
         return l;
@@ -790,7 +799,7 @@ mapping(address => mapping(uint256 => ActionInfo)) public revokedBy;
     function _createRole(bytes32 role) private {
        _roles[role] = rolesIndex;
        _rolesIndices[rolesIndex].name = role;
-       rolesIndex = rolesIndex.add(1);
+       rolesIndex += 1;
        
        emit RoleCreated(role, msg.sender);
     }
@@ -862,7 +871,7 @@ mapping(address => mapping(uint256 => ActionInfo)) public revokedBy;
         
         for (uint256 i = 0; i<_rolesByMember[sender].length(); i++) {
             
-            if (_rolesIndices[_rolesByMember[sender].at(i)].canManageRoles.contains(targetRoleID) == true) {
+            if (_rolesIndices[uint8(_rolesByMember[sender].get(i))].canManageRoles.contains(targetRoleID) == true) {
                 isCan = true;
                 break;
             }
