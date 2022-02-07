@@ -86,10 +86,11 @@ struct ActionInfo {
    uint64 timestamp;
    uint32 extra; // used for any other info, eg up to four role ids can be stored here !!!
 }
-//      sourceAddr        role id     .actor
-mapping(address => mapping(uint256 => ActionInfo)) public grantedBy;
-mapping(address => mapping(uint256 => ActionInfo)) public revokedBy;
-
+//      sourceAddr 
+mapping(address => ActionInfo[]) grantedBy;
+mapping(address => ActionInfo[]) revokedBy;
+mapping(address => ActionInfo[]) granted;
+mapping(address => ActionInfo[]) revoked;
 
 
     
@@ -827,11 +828,16 @@ mapping(address => mapping(uint256 => ActionInfo)) public revokedBy;
        _rolesByMember[account].add(_roles[targetRole]);
        _rolesIndices[_roles[targetRole]].membersByRoles.add(account);
        
-       grantedBy[account][_roles[targetRole]] = ActionInfo({
+       grantedBy[account].push(ActionInfo({
             actor: msg.sender,
             timestamp: uint64(block.timestamp),
-            extra: 0
-       });
+            extra: uint32(_roles[targetRole])
+       }));
+       grantedBy[msg.sender].push(ActionInfo({
+            actor: account,
+            timestamp: uint64(block.timestamp),
+            extra: uint32(_roles[targetRole])
+       }));
        
        emit RoleGranted(targetRole, account, msg.sender);
     }
@@ -845,11 +851,16 @@ mapping(address => mapping(uint256 => ActionInfo)) public revokedBy;
        _rolesByMember[account].remove(_roles[targetRole]);
        _rolesIndices[_roles[targetRole]].membersByRoles.remove(account);
        
-       revokedBy[account][_roles[targetRole]] = ActionInfo({
+       revokedBy[account].push(ActionInfo({
             actor: msg.sender,
             timestamp: uint64(block.timestamp),
-            extra: 0
-       });
+            extra: uint32(_roles[targetRole])
+       }));
+       revoked[msg.sender].push(ActionInfo({
+            actor: account,
+            timestamp: uint64(block.timestamp),
+            extra: uint32(_roles[targetRole])
+       }));
 
        emit RoleRevoked(targetRole, account, msg.sender);
     }
