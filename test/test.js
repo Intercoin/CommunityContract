@@ -21,7 +21,7 @@ const ONE_ETH = ethers.utils.parseEther('1');
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const DEAD_ADDRESS = '0x000000000000000000000000000000000000dEaD';
 
-describe("CommunityContract tests", function () {
+describe("Community tests", function () {
     const accounts = waffle.provider.getWallets();
     
     // Setup accounts.
@@ -56,17 +56,17 @@ describe("CommunityContract tests", function () {
       ['cc_admins', 'AdMiNs']
     ]);
 
-    var CommunityContractInstance;
-    var CommunityContractFactory;
+    var CommunityInstance;
+    var CommunityFactory;
     beforeEach("deploying", async() => {
-        CommunityContractFactory = await ethers.getContractFactory("CommunityContract");
-        CommunityContractInstance = await CommunityContractFactory.deploy();
-        await CommunityContractInstance.connect(owner).init();
+        CommunityFactory = await ethers.getContractFactory("Community");
+        CommunityInstance = await CommunityFactory.deploy();
+        await CommunityInstance.connect(owner).init();
     });
 
     it("creator must be owner and admin", async () => {
         
-        var rolesList = (await CommunityContractInstance.connect(owner)["getRoles(address)"](owner.address));
+        var rolesList = (await CommunityInstance.connect(owner)["getRoles(address)"](owner.address));
         expect(rolesList.includes(rolesTitle.get('owners'))).to.be.eq(true); // outside OWNERS role
         expect(rolesList.includes(rolesTitle.get('admins'))).to.be.eq(true); // outside ADMINS role
 
@@ -74,8 +74,8 @@ describe("CommunityContract tests", function () {
     
     it("can add member", async () => {
         
-        await CommunityContractInstance.addMembers([accountTwo.address]);
-        var rolesList = (await CommunityContractInstance.connect(owner)["getRoles(address)"](accountTwo.address));
+        await CommunityInstance.addMembers([accountTwo.address]);
+        var rolesList = (await CommunityInstance.connect(owner)["getRoles(address)"](accountTwo.address));
         expect(rolesList.includes(rolesTitle.get('members'))).to.be.eq(true); // outside members role
     });
     
@@ -83,70 +83,70 @@ describe("CommunityContract tests", function () {
         
         var rolesList;
 
-        await CommunityContractInstance.addMembers([accountTwo.address]);
-        rolesList = (await CommunityContractInstance.connect(owner)["getRoles(address)"](accountTwo.address));
+        await CommunityInstance.addMembers([accountTwo.address]);
+        rolesList = (await CommunityInstance.connect(owner)["getRoles(address)"](accountTwo.address));
         expect(rolesList.includes(rolesTitle.get('members'))).to.be.eq(true);
         
-        await CommunityContractInstance.removeMembers([accountTwo.address]);
-        rolesList = (await CommunityContractInstance.connect(owner)["getRoles(address)"](accountTwo.address));
+        await CommunityInstance.removeMembers([accountTwo.address]);
+        rolesList = (await CommunityInstance.connect(owner)["getRoles(address)"](accountTwo.address));
         expect(rolesList.includes(rolesTitle.get('members'))).to.be.eq(false);
     });
     
     
     it('can create new role', async () => {
-        await expect(CommunityContractInstance.connect(accountThree).createRole(rolesTitle.get('role1'))).to.be.revertedWith("Target account must be with role '" +rolesTitle.get('owners')+"''");
-        await expect(CommunityContractInstance.connect(accountOne).createRole(rolesTitle.get('owners'))).to.be.revertedWith("Such role is already exists");
-        await expect(CommunityContractInstance.connect(accountOne).createRole(rolesTitle.get('admins'))).to.be.revertedWith("Such role is already exists");
-        await expect(CommunityContractInstance.connect(accountOne).createRole(rolesTitle.get('members'))).to.be.revertedWith("Such role is already exists");
-        await expect(CommunityContractInstance.connect(accountOne).createRole(rolesTitle.get('cc_admins'))).to.be.revertedWith("Such role is already exists");
+        await expect(CommunityInstance.connect(accountThree).createRole(rolesTitle.get('role1'))).to.be.revertedWith("Target account must be with role '" +rolesTitle.get('owners')+"''");
+        await expect(CommunityInstance.connect(accountOne).createRole(rolesTitle.get('owners'))).to.be.revertedWith("Such role is already exists");
+        await expect(CommunityInstance.connect(accountOne).createRole(rolesTitle.get('admins'))).to.be.revertedWith("Such role is already exists");
+        await expect(CommunityInstance.connect(accountOne).createRole(rolesTitle.get('members'))).to.be.revertedWith("Such role is already exists");
+        await expect(CommunityInstance.connect(accountOne).createRole(rolesTitle.get('cc_admins'))).to.be.revertedWith("Such role is already exists");
         
-        await CommunityContractInstance.connect(accountOne).createRole(rolesTitle.get('role1'));
-        await expect(CommunityContractInstance.connect(accountOne).createRole(rolesTitle.get('role1'))).to.be.revertedWith("Such role is already exists");
+        await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'));
+        await expect(CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'))).to.be.revertedWith("Such role is already exists");
         
     });
     
     it('can manage role', async () => {
         
         // create two roles
-        await CommunityContractInstance.connect(accountOne).createRole(rolesTitle.get('role1'));
-        await CommunityContractInstance.connect(accountOne).createRole(rolesTitle.get('role2'));
+        await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'));
+        await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role2'));
         
         // ownbale check
         await expect(
-            CommunityContractInstance.connect(accountThree).manageRole(rolesTitle.get('role1'),rolesTitle.get('role2'))
+            CommunityInstance.connect(accountThree).manageRole(rolesTitle.get('role1'),rolesTitle.get('role2'))
         ).to.be.revertedWith("Target account must be with role '" +rolesTitle.get('owners')+"'");
         
         // role exist check
         await expect(
-            CommunityContractInstance.connect(accountOne).manageRole(rolesTitle.get('role4'),rolesTitle.get('role2'))
+            CommunityInstance.connect(accountOne).manageRole(rolesTitle.get('role4'),rolesTitle.get('role2'))
         ).to.be.revertedWith("Source role does not exists");
         await expect(
-            CommunityContractInstance.connect(accountOne).manageRole(rolesTitle.get('role1'),rolesTitle.get('role4'))
+            CommunityInstance.connect(accountOne).manageRole(rolesTitle.get('role1'),rolesTitle.get('role4'))
         ).to.be.revertedWith("Source role does not exists");
         
         // manage role
-        await CommunityContractInstance.connect(accountOne).manageRole(rolesTitle.get('role1'),rolesTitle.get('role2'));
+        await CommunityInstance.connect(accountOne).manageRole(rolesTitle.get('role1'),rolesTitle.get('role2'));
         //add member
-        await CommunityContractInstance.connect(accountOne).addMembers([accountTwo.address]);
+        await CommunityInstance.connect(accountOne).addMembers([accountTwo.address]);
 
         // added member to none-exists member
         await expect(
-            CommunityContractInstance.connect(accountOne).grantRoles([accountThree.address], [rolesTitle.get('role1')])
+            CommunityInstance.connect(accountOne).grantRoles([accountThree.address], [rolesTitle.get('role1')])
         ).to.be.revertedWith("Target account must be with role '" +rolesTitle.get('members')+"'");
         
 
         // added member to none-exists role 
         await expect(
-            CommunityContractInstance.connect(accountOne).grantRoles([accountTwo.address], [rolesTitle.get('role4')])
+            CommunityInstance.connect(accountOne).grantRoles([accountTwo.address], [rolesTitle.get('role4')])
         ).to.be.revertedWith("Such role '"+rolesTitle.get('role4')+"' does not exists");
         
-        await CommunityContractInstance.connect(accountOne).grantRoles([accountTwo.address], [rolesTitle.get('role1')]);
+        await CommunityInstance.connect(accountOne).grantRoles([accountTwo.address], [rolesTitle.get('role1')]);
 
         //add member by accountTwo
-        await CommunityContractInstance.connect(accountTwo).addMembers([accountFourth.address]);
+        await CommunityInstance.connect(accountTwo).addMembers([accountFourth.address]);
 
         //add role2 to accountFourth by accountTwo
-        await CommunityContractInstance.connect(accountTwo).grantRoles([accountFourth.address], [rolesTitle.get('role2')]);
+        await CommunityInstance.connect(accountTwo).grantRoles([accountFourth.address], [rolesTitle.get('role2')]);
 
     });
     
@@ -154,25 +154,25 @@ describe("CommunityContract tests", function () {
 
         var rolesList;
         
-        await CommunityContractInstance.connect(accountOne).createRole(rolesTitle.get('role1'));
+        await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'));
         //add member
-        await CommunityContractInstance.connect(accountOne).addMembers([accountTwo.address]);
+        await CommunityInstance.connect(accountOne).addMembers([accountTwo.address]);
         // add member to role
-        await CommunityContractInstance.connect(accountOne).grantRoles([accountTwo.address], [rolesTitle.get('role1')]);
+        await CommunityInstance.connect(accountOne).grantRoles([accountTwo.address], [rolesTitle.get('role1')]);
         
         // check that accountTwo got `get('role1')`
-        rolesList = (await CommunityContractInstance.connect(accountOne)["getRoles(address)"](accountTwo.address));
+        rolesList = (await CommunityInstance.connect(accountOne)["getRoles(address)"](accountTwo.address));
         expect(rolesList.includes(rolesTitle.get('role1'))).to.be.eq(true); // 'outside role'
         
         // remove
-        await CommunityContractInstance.connect(accountOne).revokeRoles([accountTwo.address], [rolesTitle.get('role1')]);
+        await CommunityInstance.connect(accountOne).revokeRoles([accountTwo.address], [rolesTitle.get('role1')]);
         // check removing
-        rolesList = (await CommunityContractInstance.connect(accountOne)["getRoles(address)"](accountTwo.address));
+        rolesList = (await CommunityInstance.connect(accountOne)["getRoles(address)"](accountTwo.address));
         expect(rolesList.includes(rolesTitle.get('role1'))).to.be.eq(false); // 'outside role'
         
         // check allowance to remove default role `members`
         await expect(
-            CommunityContractInstance.connect(accountOne).revokeRoles([accountTwo.address], [rolesTitle.get('members')])
+            CommunityInstance.connect(accountOne).revokeRoles([accountTwo.address], [rolesTitle.get('members')])
         ).to.be.revertedWith("Can not remove role '" +rolesTitle.get('members')+"'");
             
     });
@@ -180,41 +180,41 @@ describe("CommunityContract tests", function () {
     it('possible to grant with cycle. ', async () => {
         
         // create roles
-        await CommunityContractInstance.connect(accountOne).createRole(rolesTitle.get('role2'));
-        await CommunityContractInstance.connect(accountOne).createRole(rolesTitle.get('role3'));
-        await CommunityContractInstance.connect(accountOne).createRole(rolesTitle.get('role4'));
-        await CommunityContractInstance.connect(accountOne).createRole(rolesTitle.get('role5'));
+        await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role2'));
+        await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role3'));
+        await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role4'));
+        await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role5'));
         // manage roles to cycle 
-        await CommunityContractInstance.connect(accountOne).manageRole(rolesTitle.get('role2'),rolesTitle.get('role3'));
-        await CommunityContractInstance.connect(accountOne).manageRole(rolesTitle.get('role3'),rolesTitle.get('role4'));
-        await CommunityContractInstance.connect(accountOne).manageRole(rolesTitle.get('role4'),rolesTitle.get('role5'));
-        await CommunityContractInstance.connect(accountOne).manageRole(rolesTitle.get('role5'),rolesTitle.get('role2'));
+        await CommunityInstance.connect(accountOne).manageRole(rolesTitle.get('role2'),rolesTitle.get('role3'));
+        await CommunityInstance.connect(accountOne).manageRole(rolesTitle.get('role3'),rolesTitle.get('role4'));
+        await CommunityInstance.connect(accountOne).manageRole(rolesTitle.get('role4'),rolesTitle.get('role5'));
+        await CommunityInstance.connect(accountOne).manageRole(rolesTitle.get('role5'),rolesTitle.get('role2'));
         
         // account2
-        await CommunityContractInstance.connect(accountOne).addMembers([accountTwo.address]);
-        await CommunityContractInstance.connect(accountOne).grantRoles([accountTwo.address], [rolesTitle.get('role2')]);
+        await CommunityInstance.connect(accountOne).addMembers([accountTwo.address]);
+        await CommunityInstance.connect(accountOne).grantRoles([accountTwo.address], [rolesTitle.get('role2')]);
         
         // check
-        rolesList = await CommunityContractInstance.connect(accountOne)["getRoles(address)"](accountTwo.address);
+        rolesList = await CommunityInstance.connect(accountOne)["getRoles(address)"](accountTwo.address);
         expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(true); 
         
         // account 3
-        await CommunityContractInstance.connect(accountTwo).addMembers([accountThree.address]);
-        await CommunityContractInstance.connect(accountTwo).grantRoles([accountThree.address], [rolesTitle.get('role3')]);
+        await CommunityInstance.connect(accountTwo).addMembers([accountThree.address]);
+        await CommunityInstance.connect(accountTwo).grantRoles([accountThree.address], [rolesTitle.get('role3')]);
         
         // account 4
-        await CommunityContractInstance.connect(accountThree).addMembers([accountFourth.address]);
-        await CommunityContractInstance.connect(accountThree).grantRoles([accountFourth.address], [rolesTitle.get('role4')]);
+        await CommunityInstance.connect(accountThree).addMembers([accountFourth.address]);
+        await CommunityInstance.connect(accountThree).grantRoles([accountFourth.address], [rolesTitle.get('role4')]);
         
         // account 5
-        await CommunityContractInstance.connect(accountFourth).addMembers([accountFive.address]);
-        await CommunityContractInstance.connect(accountFourth).grantRoles([accountFive.address], [rolesTitle.get('role5')]);
+        await CommunityInstance.connect(accountFourth).addMembers([accountFive.address]);
+        await CommunityInstance.connect(accountFourth).grantRoles([accountFive.address], [rolesTitle.get('role5')]);
         
         // account 5 remove account2 from role2
-        await CommunityContractInstance.connect(accountFive).revokeRoles([accountTwo.address], [rolesTitle.get('role2')]);
+        await CommunityInstance.connect(accountFive).revokeRoles([accountTwo.address], [rolesTitle.get('role2')]);
         
         // check again
-        rolesList = await CommunityContractInstance.connect(accountOne)["getRoles(address)"](accountTwo.address);
+        rolesList = await CommunityInstance.connect(accountOne)["getRoles(address)"](accountTwo.address);
         expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(false); 
     });
        
@@ -232,32 +232,32 @@ describe("CommunityContract tests", function () {
     
         // send ETH to Contract      
         await accountThree.sendTransaction({
-            to: CommunityContractInstance.address, 
+            to: CommunityInstance.address, 
             value: amountETHSendToContract
         });
 
-        const CommunityContractInstanceStartingBalance = (await ethers.provider.getBalance(CommunityContractInstance.address));
+        const CommunityInstanceStartingBalance = (await ethers.provider.getBalance(CommunityInstance.address));
         // create webx user
         // Adding
-        await CommunityContractInstance.connect(accountOne).addMembers([accountTen.address]);
-        await CommunityContractInstance.connect(accountOne).grantRoles(
+        await CommunityInstance.connect(accountOne).addMembers([accountTen.address]);
+        await CommunityInstance.connect(accountOne).grantRoles(
             [accountTen.address], 
             [rolesTitle.get('webx')]
         );
-        rolesList = (await CommunityContractInstance.connect(accountOne)["getRoles(address)"](accountTen.address));
+        rolesList = (await CommunityInstance.connect(accountOne)["getRoles(address)"](accountTen.address));
         expect(rolesList.includes(rolesTitle.get('webx'))).to.be.eq(true); 
         
         // create roles
-        await CommunityContractInstance.connect(accountOne).createRole(rolesTitle.get('role1'));
-        await CommunityContractInstance.connect(accountOne).createRole(rolesTitle.get('role2'));
-        await CommunityContractInstance.connect(accountOne).createRole(rolesTitle.get('role3'));
+        await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'));
+        await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role2'));
+        await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role3'));
     
         // generate messages and signatures
             
-        //let adminMsg = 'invite:'+CommunityContractInstance.address+':role1,role2,role3:GregMagarshak';
+        //let adminMsg = 'invite:'+CommunityInstance.address+':role1,role2,role3:GregMagarshak';
         let adminMsg = [
             'invite',
-            CommunityContractInstance.address,
+            CommunityInstance.address,
             [
                 rolesTitle.get('role1'),
                 rolesTitle.get('role2'),
@@ -297,35 +297,35 @@ console.log(r,s,v);
 //         const accountTenStartingBalance = (await web3.eth.getBalance(accountTen));
         
 //         // imitate invitePrepare and check it in system
-//         await CommunityContractInstance.invitePrepare(pSig,rpSig, {from: accountTen});
+//         await CommunityInstance.invitePrepare(pSig,rpSig, {from: accountTen});
 
-//         let invite = await CommunityContractInstance.inviteView(pSig, {from: accountTen});
+//         let invite = await CommunityInstance.inviteView(pSig, {from: accountTen});
 //         assert.isTrue(invite.exists, 'invite not found');
 //         assert.isTrue(invite.exists && invite.used==false, 'invite not used before');
 //         //console.log('(1)invite.gasCost=',invite.gasCost);
        
 //         // imitate inviteAccept
-//         await CommunityContractInstance.inviteAccept(adminMsg, pSig, recipientMsg, rpSig, {from: accountTen});
+//         await CommunityInstance.inviteAccept(adminMsg, pSig, recipientMsg, rpSig, {from: accountTen});
 
 //         const accountTenEndingBalance = (await web3.eth.getBalance(accountTen));
 
-//         const CommunityContractInstanceEndinggBalance = (await web3.eth.getBalance(CommunityContractInstance.address));
+//         const CommunityInstanceEndinggBalance = (await web3.eth.getBalance(CommunityInstance.address));
 //         const recipientEndingBalance = (await web3.eth.getBalance(accountTwo));
 
 //         // check roles of accountTwo
-//         rolesList = (await CommunityContractInstance.getRoles(accountTwo,{from: accountOne}));
+//         rolesList = (await CommunityInstance.getRoles(accountTwo,{from: accountOne}));
 //         assert.isTrue(rolesList.includes(rolesTitle.get('role1')), 'outside role1 role');
 //         assert.isTrue(rolesList.includes(rolesTitle.get('role2')), 'outside role2 role');
 //         assert.isTrue(rolesList.includes(rolesTitle.get('role3')), 'outside role3 role');
         
         
 
-//         // let rewardAmount = await CommunityContractInstance.getRewardAmount();
-//         // let replenishAmount = await CommunityContractInstance.getReplenishAmount();
+//         // let rewardAmount = await CommunityInstance.getRewardAmount();
+//         // let replenishAmount = await CommunityInstance.getReplenishAmount();
         
-//         // if (parseInt((BigNumber(CommunityContractInstanceStartingBalance).minus(BigNumber(rewardAmount))).toString(10))>0) {
+//         // if (parseInt((BigNumber(CommunityInstanceStartingBalance).minus(BigNumber(rewardAmount))).toString(10))>0) {
 //         //     assert.isTrue(
-//         //         parseInt((BigNumber(CommunityContractInstanceStartingBalance).minus(BigNumber(CommunityContractInstanceEndinggBalance))).toString(10))>=0, 
+//         //         parseInt((BigNumber(CommunityInstanceStartingBalance).minus(BigNumber(CommunityInstanceEndinggBalance))).toString(10))>=0, 
 //         //         "wrong Reward count"
 //         //     );
 //         // }
@@ -333,39 +333,39 @@ console.log(r,s,v);
         
         
 //         await truffleAssert.reverts(
-//             CommunityContractInstance.invitePrepare(pSig,rpSig, {from: accountTen}),
+//             CommunityInstance.invitePrepare(pSig,rpSig, {from: accountTen}),
 //             "Such signature is already exists"
 //         );
 
         
 //          await truffleAssert.reverts(
              
-//              CommunityContractInstance.inviteAccept(adminMsg, pSig, recipientMsg, rpSig, {from: accountTen}),
+//              CommunityInstance.inviteAccept(adminMsg, pSig, recipientMsg, rpSig, {from: accountTen}),
 //              "Such signature is already used"
 //          );
         
     
-//         assert.isTrue((await CommunityContractInstance.isInvited(accountOne, accountTwo)), 'does not store invited mapping');
-//         assert.isFalse((await CommunityContractInstance.isInvited(accountNine, accountTwo)), 'store wrong keys in invited mapping');
+//         assert.isTrue((await CommunityInstance.isInvited(accountOne, accountTwo)), 'does not store invited mapping');
+//         assert.isFalse((await CommunityInstance.isInvited(accountNine, accountTwo)), 'store wrong keys in invited mapping');
       
         
     });
     describe("tests", function () {
         beforeEach("deploying", async() => {
             
-            CommunityContractInstance = await CommunityContractFactory.deploy();
-            await CommunityContractInstance.connect(accountTen).init();
+            CommunityInstance = await CommunityFactory.deploy();
+            await CommunityInstance.connect(accountTen).init();
         });
         it('test using params as array', async () => {
 
             // create roles
-            await CommunityContractInstance.connect(accountTen).createRole(rolesTitle.get('role1'));
-            await CommunityContractInstance.connect(accountTen).createRole(rolesTitle.get('role2'));
-            await CommunityContractInstance.connect(accountTen).createRole(rolesTitle.get('role3'));
-            await CommunityContractInstance.connect(accountTen).createRole(rolesTitle.get('role4'));
+            await CommunityInstance.connect(accountTen).createRole(rolesTitle.get('role1'));
+            await CommunityInstance.connect(accountTen).createRole(rolesTitle.get('role2'));
+            await CommunityInstance.connect(accountTen).createRole(rolesTitle.get('role3'));
+            await CommunityInstance.connect(accountTen).createRole(rolesTitle.get('role4'));
 
             // Adding
-            await CommunityContractInstance.connect(accountTen).addMembers(
+            await CommunityInstance.connect(accountTen).addMembers(
                 [
                     accountOne.address,
                     accountTwo.address,
@@ -377,7 +377,7 @@ console.log(r,s,v);
                 ]
             );
 
-            await CommunityContractInstance.connect(accountTen).grantRoles(
+            await CommunityInstance.connect(accountTen).grantRoles(
                 [
                     accountOne.address,
                     accountTwo.address,
@@ -389,7 +389,7 @@ console.log(r,s,v);
                     rolesTitle.get('role3'),
                 ]
             );
-            await CommunityContractInstance.connect(accountTen).grantRoles(
+            await CommunityInstance.connect(accountTen).grantRoles(
                 [
                     accountFourth.address,
                     accountFive.address
@@ -399,7 +399,7 @@ console.log(r,s,v);
                     rolesTitle.get('role3')
                 ]
             );
-            await CommunityContractInstance.connect(accountTen).grantRoles(
+            await CommunityInstance.connect(accountTen).grantRoles(
                 [
                     accountSix.address,
                     accountSeven.address
@@ -413,43 +413,43 @@ console.log(r,s,v);
             ///// checking by Members
             var rolesList;
             // accountOne
-            rolesList = (await CommunityContractInstance.connect(accountTen)["getRoles(address)"](accountOne.address));
+            rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountOne.address));
             expect(rolesList.includes(rolesTitle.get('role1'))).to.be.eq(true); 
             expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(true); 
             expect(rolesList.includes(rolesTitle.get('role3'))).to.be.eq(true); 
             expect(rolesList.includes(rolesTitle.get('role4'))).to.be.eq(false); 
             // accountTwo
-            rolesList = (await CommunityContractInstance.connect(accountTen)["getRoles(address)"](accountTwo.address));
+            rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountTwo.address));
             expect(rolesList.includes(rolesTitle.get('role1'))).to.be.eq(true); 
             expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(true); 
             expect(rolesList.includes(rolesTitle.get('role3'))).to.be.eq(true); 
             expect(rolesList.includes(rolesTitle.get('role4'))).to.be.eq(false); 
             // accountThree
-            rolesList = (await CommunityContractInstance.connect(accountTen)["getRoles(address)"](accountThree.address));
+            rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountThree.address));
             expect(rolesList.includes(rolesTitle.get('role1'))).to.be.eq(true); 
             expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(true); 
             expect(rolesList.includes(rolesTitle.get('role3'))).to.be.eq(true); 
             expect(rolesList.includes(rolesTitle.get('role4'))).to.be.eq(false); 
             // accountFourth
-            rolesList = (await CommunityContractInstance.connect(accountTen)["getRoles(address)"](accountFourth.address));
+            rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountFourth.address));
             expect(rolesList.includes(rolesTitle.get('role1'))).to.be.eq(false); 
             expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(true); 
             expect(rolesList.includes(rolesTitle.get('role3'))).to.be.eq(true); 
             expect(rolesList.includes(rolesTitle.get('role4'))).to.be.eq(false); 
             // accountFive
-            rolesList = (await CommunityContractInstance.connect(accountTen)["getRoles(address)"](accountFive.address));
+            rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountFive.address));
             expect(rolesList.includes(rolesTitle.get('role1'))).to.be.eq(false); 
             expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(true); 
             expect(rolesList.includes(rolesTitle.get('role3'))).to.be.eq(true); 
             expect(rolesList.includes(rolesTitle.get('role4'))).to.be.eq(false); 
             // accountSix
-            rolesList = (await CommunityContractInstance.connect(accountTen)["getRoles(address)"](accountSix.address));
+            rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountSix.address));
             expect(rolesList.includes(rolesTitle.get('role1'))).to.be.eq(true); 
             expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(true); 
             expect(rolesList.includes(rolesTitle.get('role3'))).to.be.eq(false); 
             expect(rolesList.includes(rolesTitle.get('role4'))).to.be.eq(false); 
             // accountSeven
-            rolesList = (await CommunityContractInstance.connect(accountTen)["getRoles(address)"](accountSeven.address));
+            rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountSeven.address));
             expect(rolesList.includes(rolesTitle.get('role1'))).to.be.eq(true); 
             expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(true); 
             expect(rolesList.includes(rolesTitle.get('role3'))).to.be.eq(false); 
@@ -457,19 +457,19 @@ console.log(r,s,v);
 
             var memberCount;
             // role1
-            memberCount = (await CommunityContractInstance.connect(accountTen)["memberCount(string)"](rolesTitle.get('role1')));
+            memberCount = (await CommunityInstance.connect(accountTen)["memberCount(string)"](rolesTitle.get('role1')));
             expect(memberCount).to.be.eq(5);
             // role2
-            memberCount = (await CommunityContractInstance.connect(accountTen)["memberCount(string)"](rolesTitle.get('role2')));
+            memberCount = (await CommunityInstance.connect(accountTen)["memberCount(string)"](rolesTitle.get('role2')));
             expect(memberCount).to.be.eq(7);
             // role3
-            memberCount = (await CommunityContractInstance.connect(accountTen)["memberCount(string)"](rolesTitle.get('role3')));
+            memberCount = (await CommunityInstance.connect(accountTen)["memberCount(string)"](rolesTitle.get('role3')));
             expect(memberCount).to.be.eq(5);
             // role4
-            memberCount = (await CommunityContractInstance.connect(accountTen)["memberCount(string)"](rolesTitle.get('role4')));
+            memberCount = (await CommunityInstance.connect(accountTen)["memberCount(string)"](rolesTitle.get('role4')));
             expect(memberCount).to.be.eq(0);
             // all members
-            memberCount = (await CommunityContractInstance.connect(accountTen)["memberCount()"]());
+            memberCount = (await CommunityInstance.connect(accountTen)["memberCount()"]());
             expect(memberCount).to.be.eq(7);
 
         });

@@ -15,12 +15,9 @@ import "./IntercoinTrait.sol";
 
 import "./lib/PackedSet.sol";
 
-
-contract CommunityContract is Initializable/*, OwnableUpgradeable*/, ReentrancyGuardUpgradeable, IntercoinTrait, IERC721Upgradeable, IERC721MetadataUpgradeable {
+contract Community is Initializable/*, OwnableUpgradeable*/, ReentrancyGuardUpgradeable, IntercoinTrait, IERC721Upgradeable, IERC721MetadataUpgradeable {
     
     using PackedSet for PackedSet.Set;
-
-    //PackedSet.Set x;
 
     using StringUtils for *;
 
