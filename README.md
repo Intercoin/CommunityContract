@@ -13,11 +13,11 @@ There are 4 predefined roles:
 * `owners`
 * `admins`
 * `members`
-* `webx`
+* `relayers`
 
 Role `members` is starting role for any new accounts.
 Roles `owners` and `admins` can manage `members` and any newly created roles.
-Role `webx` is web servers X which can register member in community via invite by owners/admins or some who can manage.
+Role `relayers` is web servers X which can register member in community via invite by owners/admins or some who can manage.
 
 Contract can be used as external storage for getting list of memebers.
 
@@ -84,12 +84,12 @@ Once installed will be use methods:
 	</tr>
 	<tr>
 		<td><a href="#inviteprepare">invitePrepare</a></td>
-		<td>only "webx"</td>
+		<td>only "relayers"</td>
 		<td>storing signatures of invite</td>
 	</tr>
 	<tr>
 		<td><a href="#inviteaccept">inviteAccept</a></td>
-		<td>only "webx"</td>
+		<td>only "relayers"</td>
 		<td>accepting admin's invite</td>
 	</tr>
 	<tr>
@@ -239,7 +239,7 @@ name  | type | description
 --|--|--
 pSig|bytes|admin's signature
 rpSig|bytes|recipient's signature
-gasCost|uint256| stored gas which was spent by webX for invitePrepare(or and inviteAccepted) 
+gasCost|uint256| stored gas which was spent by relayers for invitePrepare(or and inviteAccepted) 
 reimbursed|ENUM(0,1,2)|ReimburseStatus (0-NONE,1-PENDING,2-DONE)
 used|bool| if true invite is already used
 exists|bool|if true invite is exist

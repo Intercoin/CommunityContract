@@ -62,8 +62,8 @@ contract Community is Initializable/*, OwnableUpgradeable*/, ReentrancyGuardUpgr
     bytes32 public constant DEFAULT_OWNERS_ROLE = 0x6f776e6572730000000000000000000000000000000000000000000000000000;
     bytes32 public constant DEFAULT_ADMINS_ROLE = 0x61646d696e730000000000000000000000000000000000000000000000000000;
     bytes32 public constant DEFAULT_MEMBERS_ROLE = 0x6d656d6265727300000000000000000000000000000000000000000000000000;
-    bytes32 public constant DEFAULT_WEBX_ROLE = 0x7765627800000000000000000000000000000000000000000000000000000000;
-    
+    bytes32 public constant DEFAULT_RELAYERS_ROLE = 0x72656c6179657273000000000000000000000000000000000000000000000000;
+
     enum ReimburseStatus{ NONE, PENDING, DONE }
     uint256 public constant REWARD_AMOUNT = 1000000000000000; // 0.001 * 1e18
     uint256 public constant REPLENISH_AMOUNT = 1000000000000000; // 0.001 * 1e18
@@ -380,17 +380,17 @@ mapping(address => ActionInfo[]) public revoked;
         _createRole(DEFAULT_OWNERS_ROLE);
         _createRole(DEFAULT_ADMINS_ROLE);
         _createRole(DEFAULT_MEMBERS_ROLE);
-        _createRole(DEFAULT_WEBX_ROLE);
+        _createRole(DEFAULT_RELAYERS_ROLE);
         _grantRole(msg.sender, DEFAULT_OWNERS_ROLE);
         _grantRole(msg.sender, DEFAULT_ADMINS_ROLE);
-        _grantRole(msg.sender, DEFAULT_WEBX_ROLE);
+        _grantRole(msg.sender, DEFAULT_RELAYERS_ROLE);
         //an exception from the rules. owners can manage owners role. 
         //means that can grant member to owner role and revoke it.
         _manageRole(DEFAULT_OWNERS_ROLE, DEFAULT_OWNERS_ROLE); 
         //---                                                                
         _manageRole(DEFAULT_OWNERS_ROLE, DEFAULT_ADMINS_ROLE);
         _manageRole(DEFAULT_ADMINS_ROLE, DEFAULT_MEMBERS_ROLE);
-        _manageRole(DEFAULT_ADMINS_ROLE, DEFAULT_WEBX_ROLE);
+        _manageRole(DEFAULT_ADMINS_ROLE, DEFAULT_RELAYERS_ROLE);
         //_manageRole(DEFAULT_MEMBERS_ROLE, DEFAULT_MEMBERS_ROLE);
     }
     
@@ -670,7 +670,7 @@ mapping(address => ActionInfo[]) public revoked;
         bytes memory rpSig
     ) 
         public 
-        ifTargetInRole(msg.sender, DEFAULT_WEBX_ROLE) 
+        ifTargetInRole(msg.sender, DEFAULT_RELAYERS_ROLE) 
         accummulateGasCost(pSig)
     {
         require(inviteSignatures[pSig].exists == false, "Such signature is already exists");
@@ -702,7 +702,7 @@ mapping(address => ActionInfo[]) public revoked;
         bytes memory rpSig
     )
         public 
-        ifTargetInRole(msg.sender, DEFAULT_WEBX_ROLE) 
+        ifTargetInRole(msg.sender, DEFAULT_RELAYERS_ROLE) 
         refundGasCost(pSig)
         nonReentrant()
     {
@@ -721,7 +721,7 @@ mapping(address => ActionInfo[]) public revoked;
             rpDataArr[0].parseAddr() != rpAddr || 
             dataArr[1].parseAddr() != address(this)
         ) {
-            revert('Signature are mismatch');
+            revert("Signature are mismatch");
         }
         
         bool isCanProceed = false;
@@ -911,7 +911,7 @@ mapping(address => ActionInfo[]) public revoked;
     }
     
     /**
-     * reward caller(webx)
+     * reward caller(relayers)
      */
     function _rewardCaller(
     ) 

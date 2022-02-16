@@ -47,7 +47,7 @@ describe("Community tests", function () {
       ['owners', 'owners'],
       ['admins', 'admins'],
       ['members', 'members'],
-      ['webx', 'webx'],
+      ['relayers', 'relayers'],
       ['role1', 'Role#1'],
       ['role2', 'Role#2'],
       ['role3', 'Role#3'],
@@ -237,15 +237,15 @@ describe("Community tests", function () {
         });
 
         const CommunityInstanceStartingBalance = (await ethers.provider.getBalance(CommunityInstance.address));
-        // create webx user
+        // create relayers user
         // Adding
         await CommunityInstance.connect(accountOne).addMembers([accountTen.address]);
         await CommunityInstance.connect(accountOne).grantRoles(
             [accountTen.address], 
-            [rolesTitle.get('webx')]
+            [rolesTitle.get('relayers')]
         );
         rolesList = (await CommunityInstance.connect(accountOne)["getRoles(address)"](accountTen.address));
-        expect(rolesList.includes(rolesTitle.get('webx'))).to.be.eq(true); 
+        expect(rolesList.includes(rolesTitle.get('relayers'))).to.be.eq(true); 
         
         // create roles
         await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'));
