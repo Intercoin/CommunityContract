@@ -1,0 +1,264 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.11;
+pragma experimental ABIEncoderV2;
+
+import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/IERC721MetadataUpgradeable.sol";
+
+import "./Community.sol";
+
+contract CommunityERC721 is Community, IERC721Upgradeable, IERC721MetadataUpgradeable {
+    using StringUtils for *;
+      
+    function setRoleURI(
+        string memory role,
+        string memory roleURI
+    ) 
+        public 
+        canManage(msg.sender, role.stringToBytes32())
+    {
+        _rolesIndices[_roles[role.stringToBytes32()]].roleURI = roleURI;
+    }
+
+    function setExtraURI(
+        string memory role,
+        string memory extraURI
+    )
+        public
+        ifTargetInRole(msg.sender, role.stringToBytes32())
+    {
+        _rolesIndices[_roles[role.stringToBytes32()]].extraURI[msg.sender] = extraURI;
+    }
+
+    /**
+    * @notice getting balance of owner address
+    * @param account user's address
+    * @custom:shortd part of ERC721
+    */
+    function balanceOf(
+        address account
+    ) 
+        external 
+        view 
+        override
+        returns (uint256 balance) 
+    {
+        
+        for (uint8 i = 1; i < rolesIndex; i++) {
+            if (_isTargetInRole(account, _rolesIndices[i].name)) {
+                balance += 1;
+            }
+        }
+    }
+
+    /**
+    * @notice getting owner of tokenId
+    * @param tokenId tokenId
+    * @custom:shortd part of ERC721
+    */
+    function ownerOf(
+        uint256 tokenId
+    ) 
+        external 
+        view 
+        override
+        returns (address owner) 
+    {
+        uint8 roleId = uint8(tokenId >> 160);
+        address w = address(uint160(tokenId - (roleId << 160)));
+        
+        owner = (_isTargetInRole(w, _rolesIndices[roleId].name)) ? w : address(0);
+
+    }
+
+    function operationReverted(
+    ) 
+        internal 
+        pure
+    {
+        revert("CommunityContract: NOT_AUTHORIZED");
+    }
+
+    /**
+    * @notice getting part of ERC721
+    * @custom:shortd part of ERC721
+    */
+    function safeTransferFrom(
+        address /*from*/,
+        address /*to*/,
+        uint256 /*tokenId*/
+    ) 
+        external 
+        pure
+        override
+    {
+        operationReverted();
+    }
+
+    /**
+    * @notice getting part of ERC721
+    * @custom:shortd part of ERC721
+    */
+    function transferFrom(
+        address /*from*/,
+        address /*to*/,
+        uint256 /*tokenId*/
+    ) 
+        external 
+        pure
+        override
+    {
+        operationReverted();
+    }
+    
+    /**
+    * @notice getting part of ERC721
+    * @custom:shortd part of ERC721
+    */
+    function approve(
+        address /*to*/, 
+        uint256 /*tokenId*/
+    )
+        external 
+        pure
+        override
+    {
+        operationReverted();
+    }
+
+    /**
+    * @notice getting part of ERC721
+    * @custom:shortd part of ERC721
+    */
+    function getApproved(
+        uint256/* tokenId*/
+    ) 
+        external
+        view 
+        override 
+        returns (address/* operator*/) 
+    {
+        operationReverted();
+    }
+
+    /**
+    * @notice getting part of ERC721
+    * @custom:shortd part of ERC721
+    */
+    function setApprovalForAll(
+        address /*operator*/, 
+        bool /*_approved*/
+    ) 
+        external 
+        pure
+        override
+    {
+        operationReverted();
+    }
+
+    /**
+    * @notice getting part of ERC721
+    * @custom:shortd part of ERC721
+    */
+    function isApprovedForAll(
+        address /*owner*/, 
+        address /*operator*/
+    ) 
+        external 
+        view 
+        override
+        returns (bool) 
+    {
+        operationReverted();
+    }
+
+    /**
+    * @notice getting part of ERC721
+    * @custom:shortd part of ERC721
+    */
+    function safeTransferFrom(
+        address /*from*/,
+        address /*to*/,
+        uint256 /*tokenId*/,
+        bytes calldata /*data*/
+    ) 
+        external 
+        pure
+        override
+    {
+        operationReverted();
+    }
+
+    /**
+    * @notice getting part of ERC721
+    * @custom:shortd part of ERC721
+    */
+    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
+        return
+            interfaceId == type(IERC721Upgradeable).interfaceId ||
+            interfaceId == type(IERC721MetadataUpgradeable).interfaceId ||
+            interfaceId == type(IERC165Upgradeable).interfaceId;
+    }
+
+    function supp()public pure returns (bytes32, bytes32, bytes32) {
+        return (
+            type(IERC721Upgradeable).interfaceId,
+            type(IERC721MetadataUpgradeable).interfaceId,
+            type(IERC165Upgradeable).interfaceId
+        );
+    }
+    
+    /**
+    * @notice getting part of ERC721
+    * @custom:shortd part of ERC721
+    * @return name 
+    */
+    function name(
+    ) 
+        external 
+        pure 
+        override 
+        returns (string memory) 
+    {
+        return "Community";
+    }
+
+    /**
+    * @notice getting part of ERC721
+    * @custom:shortd part of ERC721
+    * @return symbol 
+    */
+    function symbol(
+    ) 
+        external 
+        pure 
+        override 
+        returns (string memory)
+    {
+        return "Community";
+    }
+
+    /**
+    * @notice getting part of ERC721
+    * @param tokenId token ID
+    * @custom:shortd part of ERC721
+    * @return tokenuri
+    */
+    function tokenURI(uint256 tokenId) external view override returns (string memory)
+    {
+
+        //_rolesIndices[_roles[role.stringToBytes32()]].roleURI = roleURI;
+        uint8 roleId = uint8(tokenId >> 160);
+        address w = address(uint160(tokenId - (roleId << 160)));
+
+        bytes memory bytesExtraURI = bytes(_rolesIndices[roleId].extraURI[w]);
+
+        if (bytesExtraURI.length != 0) {
+            return _rolesIndices[roleId].extraURI[w];
+        } else {
+            return _rolesIndices[roleId].roleURI;
+        }
+        
+    }
+
+}

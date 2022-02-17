@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.11;
 pragma experimental ABIEncoderV2;
 //import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/IERC721MetadataUpgradeable.sol";
 
 import "./lib/ECDSAExt.sol";
 import "./lib/StringUtils.sol";
@@ -15,7 +13,7 @@ import "./IntercoinTrait.sol";
 
 import "./lib/PackedSet.sol";
 
-contract Community is Initializable/*, OwnableUpgradeable*/, ReentrancyGuardUpgradeable, IntercoinTrait, IERC721Upgradeable, IERC721MetadataUpgradeable {
+contract Community is Initializable/*, OwnableUpgradeable*/, ReentrancyGuardUpgradeable, IntercoinTrait {
     
     using PackedSet for PackedSet.Set;
 
@@ -39,7 +37,7 @@ contract Community is Initializable/*, OwnableUpgradeable*/, ReentrancyGuardUpgr
         bool exists;
     }
     
-    uint8 private rolesIndex;
+    uint8 internal rolesIndex;
     mapping (bytes32 => uint8) internal _roles;
     //mapping (uint256 => bytes32) internal _rolesIndices;
     mapping (address => PackedSet.Set) internal _rolesByMember;
@@ -49,7 +47,7 @@ contract Community is Initializable/*, OwnableUpgradeable*/, ReentrancyGuardUpgr
     struct Role {
         bytes32 name;
         string roleURI;
-        string extraURI;
+        mapping(address => string) extraURI;
         EnumerableSetUpgradeable.UintSet canManageRoles;
         EnumerableSetUpgradeable.AddressSet membersByRoles;
     }
@@ -58,14 +56,38 @@ contract Community is Initializable/*, OwnableUpgradeable*/, ReentrancyGuardUpgr
 
 
     mapping (bytes => inviteSignature) inviteSignatures;          
-    
+
+    /**
+    * @notice constant role name "owners" in bytes32
+    * @custom:shortd role name "owners" in bytes32
+    */
     bytes32 public constant DEFAULT_OWNERS_ROLE = 0x6f776e6572730000000000000000000000000000000000000000000000000000;
+    /**
+    * @notice constant role name "admins" in bytes32
+    * @custom:shortd role name "admins" in bytes32
+    */
     bytes32 public constant DEFAULT_ADMINS_ROLE = 0x61646d696e730000000000000000000000000000000000000000000000000000;
+    /**
+    * @notice constant role name "members" in bytes32
+    * @custom:shortd role name "members" in bytes32
+    */
     bytes32 public constant DEFAULT_MEMBERS_ROLE = 0x6d656d6265727300000000000000000000000000000000000000000000000000;
+    /**
+    * @notice constant role name "relayers" in bytes32
+    * @custom:shortd role name "relayers" in bytes32
+    */
     bytes32 public constant DEFAULT_RELAYERS_ROLE = 0x72656c6179657273000000000000000000000000000000000000000000000000;
 
     enum ReimburseStatus{ NONE, PENDING, DONE }
+    /**
+    * @notice constant reward that user-relayers will obtain
+    * @custom:shortd reward that user-relayers will obtain
+    */
     uint256 public constant REWARD_AMOUNT = 1000000000000000; // 0.001 * 1e18
+    /**
+    * @notice constant reward amount that user-recepient will replenish
+    * @custom:shortd reward amount that user-recepient will replenish
+    */
     uint256 public constant REPLENISH_AMOUNT = 1000000000000000; // 0.001 * 1e18
    
     //receiver => sender
@@ -73,29 +95,40 @@ contract Community is Initializable/*, OwnableUpgradeable*/, ReentrancyGuardUpgr
     //sender => receivers
     mapping(address => EnumerableSetUpgradeable.AddressSet) internal invited;
     
-
-
-// Please make grantedBy(uint160 recipient => struct ActionInfo) mapping, and save it when user grants role. (Difference with invitedBy is that invitedBy the user has to ACCEPT the invite while grantedBy doesn’t require recipient to accept).
-// And also make revokedBy same way.
-// Please refactor invited and invitedBy and to return struct ActionInfo also. Here is struct ActionInfo, it fits in ONE slot:
-struct ActionInfo {
-   address actor;
-   uint64 timestamp;
-   uint32 extra; // used for any other info, eg up to four role ids can be stored here !!!
-}
-//      sourceAddr 
-mapping(address => ActionInfo[]) public grantedBy;
-mapping(address => ActionInfo[]) public revokedBy;
-mapping(address => ActionInfo[]) public granted;
-mapping(address => ActionInfo[]) public revoked;
-
-
+    // Please make grantedBy(uint160 recipient => struct ActionInfo) mapping, and save it when user grants role. (Difference with invitedBy is that invitedBy the user has to ACCEPT the invite while grantedBy doesn’t require recipient to accept).
+    // And also make revokedBy same way.
+    // Please refactor invited and invitedBy and to return struct ActionInfo also. Here is struct ActionInfo, it fits in ONE slot:
+    struct ActionInfo {
+        address actor;
+        uint64 timestamp;
+        uint32 extra; // used for any other info, eg up to four role ids can be stored here !!!
+    }
     
+    /**
+    * @notice map users granted by
+    * @custom:shortd map users granted by
+    */
+    mapping(address => ActionInfo[]) public grantedBy;
+    /**
+    * @notice map users revoked by
+    * @custom:shortd map users revoked by
+    */
+    mapping(address => ActionInfo[]) public revokedBy;
+    /**
+    * @notice history of users granted
+    * @custom:shortd history of users granted
+    */
+    mapping(address => ActionInfo[]) public granted;
+    /**
+    * @notice history of users revoked
+    * @custom:shortd history of users revoked
+    */
+    mapping(address => ActionInfo[]) public revoked;
+
     event RoleCreated(bytes32 indexed role, address indexed sender);
     event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender);
     event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender);
     event RoleManaged(bytes32 indexed sourceRole, bytes32 indexed targetRole, address indexed sender);
-    
     event RoleAddedErrorMessage(address indexed sender, string msg);
     
     ///////////////////////////////////////////////////////////
@@ -103,7 +136,7 @@ mapping(address => ActionInfo[]) public revoked;
     ///////////////////////////////////////////////////////////
 
     /**
-     * does address belong to role
+     * @notice does address belong to role
      * @param target address
      * @param targetRole role name
      */
@@ -117,7 +150,7 @@ mapping(address => ActionInfo[]) public revoked;
     }
     
     /**
-     * is role can be managed by sender's roles?
+     * @notice is role can be managed by sender's roles?
      * @dev can addMembers/removeMembers/addMemberRole/removeMemberRole
      * @param sender sender
      * @param targetRole role that check to be managed by sender's roles
@@ -201,166 +234,12 @@ mapping(address => ActionInfo[]) public revoked;
         
     }
 
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-   function donateETH() public payable {} 
+    /**
+    * @notice one of the way to donate ETH to the contract in separate method. Second way is send directly `receive()`
+    * @custom:shortd one of the way to donate ETH to the contract in separate method. 
+    */
+    function donateETH() public payable {} 
     
-
-///////////////////////////////////////////////////////////
-//// virtual erc721 ////
-
-    function balanceOf(
-        address owner
-    ) 
-        external 
-        view 
-        override
-        returns (uint256 balance) 
-    {
-        for (uint8 i= 0; i < rolesIndex; i++) {
-            if (_isTargetInRole(owner, _rolesIndices[i].name)) {
-                balance += 1;
-            }
-        }
-    }
-
-    function ownerOf(
-        uint256 tokenId
-    ) 
-        external 
-        view 
-        override
-        returns (address owner) 
-    {
-        uint8 roleId = uint8(tokenId >> 160);
-        address w = address(uint160(tokenId - (roleId << 160)));
-        
-        owner = (_isTargetInRole(w, _rolesIndices[roleId].name)) ? w : address(0);
-
-    }
-
-    function operationReverted(
-    ) 
-        internal 
-        pure
-    {
-        revert("CommunityContract: NOT_AUTHORIZED");
-    }
-
-    function safeTransferFrom(
-        address /*from*/,
-        address /*to*/,
-        uint256 /*tokenId*/
-    ) 
-        external 
-        pure
-        override
-    {
-        operationReverted();
-    }
-
-    function transferFrom(
-        address /*from*/,
-        address /*to*/,
-        uint256 /*tokenId*/
-    ) 
-        external 
-        pure
-        override
-    {
-        operationReverted();
-    }
-    
-    function approve(
-        address /*to*/, 
-        uint256 /*tokenId*/
-    )
-        external 
-        pure
-        override
-    {
-        operationReverted();
-    }
-
-    function getApproved(
-        uint256 tokenId
-    ) 
-        external
-        view 
-        override 
-        returns (address operator) 
-    {
-
-    }
-
-    function setApprovalForAll(
-        address /*operator*/, 
-        bool /*_approved*/
-    ) 
-        external 
-        pure
-        override
-    {
-        operationReverted();
-    }
-
-    function isApprovedForAll(
-        address owner, 
-        address operator
-    ) 
-        external 
-        view 
-        override
-        returns (bool) 
-    {
-
-    }
-
-    function safeTransferFrom(
-        address /*from*/,
-        address /*to*/,
-        uint256 /*tokenId*/,
-        bytes calldata /*data*/
-    ) 
-        external 
-        pure
-        override
-    {
-        operationReverted();
-    }
-
-    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
-        return
-            interfaceId == type(IERC721Upgradeable).interfaceId ||
-            interfaceId == type(IERC721MetadataUpgradeable).interfaceId ||
-            interfaceId == type(IERC165Upgradeable).interfaceId;
-    }
-        
-    function name(
-    ) 
-        external 
-        pure 
-        override 
-        returns (string memory) 
-    {
-        return "Community";
-    }
-
-    
-    function symbol(
-    ) 
-        external 
-        pure 
-        override 
-        returns (string memory)
-    {
-        return "Community";
-    }
-
-    function tokenURI(uint256 tokenId) external view override returns (string memory)
-    {
-        return _rolesIndices[uint8(tokenId >> 160)].roleURI;
-    }
-///////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////
     /// public  section
@@ -508,10 +387,10 @@ mapping(address => ActionInfo[]) public revoked;
         //onlyOwner 
         ifTargetInRole(msg.sender, DEFAULT_OWNERS_ROLE) 
     {
-        require(_roles[role.stringToBytes32()] == 0, 'Such role is already exists');
+        require(_roles[role.stringToBytes32()] == 0, "Such role is already exists");
         
         // prevent creating role in CamelCases with admins and owners (Admins,ADMINS,ADminS)
-        require(_roles[role._toLower().stringToBytes32()] == 0, 'Such role is already exists');
+        require(_roles[role._toLower().stringToBytes32()] == 0, "Such role is already exists");
         
         require(rolesIndex < type(uint8).max -1, "Max amount of roles exceeded");
 
@@ -756,26 +635,7 @@ mapping(address => ActionInfo[]) public revoked;
         }
         
     }
-    
-    function setRoleURI(
-        string memory role,
-        string memory roleURI
-    ) 
-        public 
-        canManage(msg.sender, role.stringToBytes32())
-    {
-        _rolesIndices[_roles[role.stringToBytes32()]].roleURI = roleURI;
-    }
-
-    function setExtraURI(
-        string memory role,
-        string memory extraURI
-    )
-        public
-        ifTargetInRole(msg.sender, role.stringToBytes32())
-    {
-        _rolesIndices[_roles[role.stringToBytes32()]].extraURI = extraURI;
-    }
+  
     ///////////////////////////////////////////////////////////
     /// external section
     ///////////////////////////////////////////////////////////
@@ -788,13 +648,10 @@ mapping(address => ActionInfo[]) public revoked;
     ///////////////////////////////////////////////////////////
    
    
-    ///////////////////////////////////////////////////////////
-    /// private section
-    ///////////////////////////////////////////////////////////
     /**
      * @param role role name
      */
-    function _createRole(bytes32 role) private {
+    function _createRole(bytes32 role) internal {
        _roles[role] = rolesIndex;
        _rolesIndices[rolesIndex].name = role;
        rolesIndex += 1;
@@ -807,7 +664,7 @@ mapping(address => ActionInfo[]) public revoked;
      * @param sourceRole source role name
      * @param targetRole target role name
      */
-    function _manageRole(bytes32 sourceRole, bytes32 targetRole) private {
+    function _manageRole(bytes32 sourceRole, bytes32 targetRole) internal {
        require(_roles[sourceRole] != 0, "Source role does not exists");
        require(_roles[targetRole] != 0, "Source role does not exists");
        
@@ -821,7 +678,7 @@ mapping(address => ActionInfo[]) public revoked;
      * @param account account's address
      * @param targetRole role name
      */
-    function _grantRole(address account, bytes32 targetRole) private {
+    function _grantRole(address account, bytes32 targetRole) internal {
        _rolesByMember[account].add(_roles[targetRole]);
        _rolesIndices[_roles[targetRole]].membersByRoles.add(account);
        
@@ -844,7 +701,7 @@ mapping(address => ActionInfo[]) public revoked;
      * @param account account's address
      * @param targetRole role name
      */
-    function _revokeRole(address account, bytes32 targetRole) private {
+    function _revokeRole(address account, bytes32 targetRole) internal {
        _rolesByMember[account].remove(_roles[targetRole]);
        _rolesIndices[_roles[targetRole]].membersByRoles.remove(account);
        
@@ -862,11 +719,11 @@ mapping(address => ActionInfo[]) public revoked;
        emit RoleRevoked(targetRole, account, msg.sender);
     }
     
-    function _isTargetInRole(address target, bytes32 targetRole) private view returns(bool) {
+    function _isTargetInRole(address target, bytes32 targetRole) internal view returns(bool) {
         return _rolesByMember[target].contains(_roles[targetRole]);
     }
     
-    function _isCanManage(address sender, bytes32 targetRole) private view returns (bool) {
+    function _isCanManage(address sender, bytes32 targetRole) internal view returns (bool) {
      
         bool isCan = false;
         
@@ -887,6 +744,9 @@ mapping(address => ActionInfo[]) public revoked;
         return isCan;
     }
     
+    ///////////////////////////////////////////////////////////
+    /// private section
+    ///////////////////////////////////////////////////////////
     /**
      * @param p invite message of admin whom generate messageHash and signed it
      * @param pSig signature of admin whom generate invite and signed it

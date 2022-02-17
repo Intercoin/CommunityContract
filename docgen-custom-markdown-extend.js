@@ -1,0 +1,140 @@
+module.exports = function dataExtend() {
+    return {
+        
+        'contracts/Community.sol': {
+            'description': [
+                'Smart contract for managing community membership and roles.',
+                ''
+            ].join("<br>"),
+            'exclude': [
+                //'DEFAULT_OWNERS_ROLE', 'DEFAULT_ADMINS_ROLE', 'DEFAULT_MEMBERS_ROLE', 'DEFAULT_RELAYERS_ROLE', '',
+                // 'ADMIN_ROLE', 'DEFAULT_ADMIN_ROLE', 'REDEEM_ROLE', 'CIRCULATION_ROLE', 'CIRCULATION_DEFAULT', 
+                // 'authorizeOperator',
+                // 'decimals',
+                // 'defaultOperators',
+                // 'tokensReceived',
+                // 'supportsInterface',
+                
+                
+            ],
+            'fix': {
+            }
+        },
+        'contracts/CommunityERC721.sol': {
+            'description': [
+                'Extend Community Smart contract. Each role it\'s ERC721 token, URI can be set by user who can manage. Also any user who belong to role can set ExtraURI ',
+                ''
+            ].join("<br>"),
+            'exclude': [
+                //'DEFAULT_OWNERS_ROLE', 'DEFAULT_ADMINS_ROLE', 'DEFAULT_MEMBERS_ROLE', 'DEFAULT_RELAYERS_ROLE', '',
+                // 'ADMIN_ROLE', 'DEFAULT_ADMIN_ROLE', 'REDEEM_ROLE', 'CIRCULATION_ROLE', 'CIRCULATION_DEFAULT', 
+                // 'authorizeOperator',
+                // 'decimals',
+                // 'defaultOperators',
+                // 'tokensReceived',
+                // 'supportsInterface',
+                
+                
+            ],
+            'fix': {
+            }
+        }
+        
+        // 'contracts/CommunityToken.sol': {
+        //     'description': [
+        //         'This it ERC777 contract "CommunityTokens".',
+        //         'Providing a functionality to create StakingPool and way to redeem CommunityTokens from this pools where user can stake own tokens.'
+        //     ].join("<br>"),
+        //     //'constructor':{'custom:shortd': 'part of ERC20'},
+        //     'exclude': [
+        //         'ADMIN_ROLE', 'DEFAULT_ADMIN_ROLE', 'REDEEM_ROLE', 'CIRCULATION_ROLE', 'CIRCULATION_DEFAULT', 
+        //         'authorizeOperator',
+        //         'decimals',
+        //         'defaultOperators',
+        //         'tokensReceived',
+        //         'supportsInterface',
+        //     ],
+        //     'fix': {
+        //         'allowance': {'custom:shortd': 'part of ERC20'},
+        //         'approve': {'custom:shortd': 'part of ERC20'},
+        //         'balanceOf': {'custom:shortd': 'part of ERC777'},
+        //         'burn': {'custom:shortd': 'part of ERC777'},
+        //         'discountSensitivity': {'custom:shortd': 'view fraction of discount applied in redeem groups'},
+        //         'getInstance': {'custom:shortd': 'instances list'},
+        //         'getRoleAdmin': {'custom:shortd': 'returns the admin role that controls `role`.'},
+        //         'getRoleMember': {'custom:shortd': 'returns one of the accounts that have `role`'},
+        //         'getRoleMemberCount': {'custom:shortd': 'returns the number of accounts that have `role`'},
+        //         'grantRole': {'custom:shortd': 'grants `role` to `account`'},
+        //         'granularity': {'custom:shortd': 'part of ERC777'},
+        //         'hasRole': {'custom:shortd': 'returns `true` if `account` has been granted `role`'},
+        //         'hook': {'custom:shortd': 'view address of hook contract'},
+        //         'implementation': {'custom:shortd': 'view address of pool implementation'},
+        //         'instances': {'custom:shortd': 'public list of created instances'},
+        //         'isOperatorFor': {'custom:shortd': 'part of ERC777'},
+        //         'operatorBurn': {'custom:shortd': 'part of ERC777'},
+        //         'operatorSend': {'custom:shortd': 'part of ERC777'},
+        //         'name': {'custom:shortd': 'name of WalletToken'},
+        //         'owner': {'custom:shortd': 'contract factory\'s owner '},
+        //         'renounceOwnership': {'custom:calledby': 'owner', 'custom:shortd': 'leaves the contract without owner and owner role'},
+        //         'renounceRole': {'custom:calledby': 'owner','custom:shortd': 'revokes `role` from the calling account.'},
+        //         'revokeOperator': {'custom:shortd': 'part of ERC777'},
+        //         'revokeRole': {'custom:calledby': 'owner','custom:shortd': 'evokes `role` from `account`'},
+        //         'send': {'custom:shortd': 'part of ERC777'},
+        //         'symbol': {'custom:shortd': 'symbol of WalletToken'},
+        //         'totalSupply': {'custom:shortd': 'total amount of WalletToken'},
+        //         'transfer': {'custom:shortd': 'part of ERC777'},
+        //         'transferFrom': {'custom:shortd': 'part of ERC777'},
+        //         'transferOwnership': {'custom:shortd': 'transfer ownership contract to newOwner'},
+                
+        //     },
+        // },
+        // 'contracts/StakingPool.sol': {
+        //     'description': [
+        //         'This it ERC777 contract (pool).',
+        //         'Can be created by factory (StakingFactory contract).',
+        //         'Provide a functionality to buy and stake liquidity and getting in return CommunityTokens(See StakingFactory contract).'
+        //     ].join("<br>"),
+        //     'exclude': [
+        //         'authorizeOperator',
+        //         'decimals',
+        //         'defaultOperators',
+        //         'tokensReceived',
+        //         'supportsInterface',
+        //     ],
+        //     'fix': {
+        //         'allowance': {'custom:shortd': 'part of ERC20'},
+        //         'approve': {'custom:shortd': 'part of ERC20'},
+        //         'balanceOf': {'custom:shortd': 'part of ERC777'},
+        //         'burn': {'custom:shortd': 'part of ERC777'},
+        //         'granularity': {'custom:shortd': 'part of ERC777'},
+        //         'isOperatorFor': {'custom:shortd': 'part of ERC777'},
+        //         'name': {'custom:shortd': 'name of LP token'},
+        //         'operatorBurn': {'custom:shortd': 'part of ERC777'},
+        //         'operatorSend': {'custom:shortd': 'part of ERC777'},
+        //         'revokeOperator': {'custom:shortd': 'part of ERC777'},
+        //         'send': {'custom:shortd': 'part of ERC777'},
+        //         'symbol': {'custom:shortd': 'symbol of LP token'},
+        //         'totalSupply': {'custom:shortd': 'total amount of LP token'},
+        //         'transfer': {'custom:shortd': 'part of ERC777'},
+        //         'transferFrom': {'custom:shortd': 'part of ERC777'},
+                
+        //     }
+        // },
+        // 'contracts/StakingFactory.sol': {
+        //     'description': [
+        //         'This it factory contract.',
+        //         'Provide a functionality to create CommunityToken'
+        //     ].join("<br>"),
+        //     'exclude': [],
+        //     'fix': {
+        //         'getInstance': {'custom:shortd': 'instances list'},
+        //         'instances': {'custom:shortd': 'public list of created instances'},
+        //         'owner': {'custom:shortd': 'owner of staking contract. Part of `Ownable` contract'},
+        //         'renounceOwnership': {'custom:shortd': 'Part of `Ownable` contract'},
+        //       //  'stakingcontractimplementation': {'custom:shortd': 'CommunityTokens implementation address'},
+        //         //'stakingpoolimplementation': {'custom:shortd': 'StakingPool implementation address'},
+        //         'transferOwnership': {'custom:shortd': 'Part of `Ownable` contract'},
+        //     },
+        // },
+    };
+}

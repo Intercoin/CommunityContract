@@ -8,7 +8,10 @@ require("@nomiclabs/hardhat-web3")
 require("@nomiclabs/hardhat-etherscan")
 require("solidity-coverage")
 require("hardhat-gas-reporter")
-require('hardhat-docgen')
+//require("hardhat-docgen")
+require("@hardhat-docgen/core")
+//require("@hardhat-docgen/markdown")
+require("./docgen-custom-markdown")
 
 
 const kovanURL = `https://eth-kovan.alchemyapi.io/v2/${process.env.ALCHEMY_KOVAN}`
@@ -71,9 +74,10 @@ module.exports = {
     }
   },
   docgen: {
+    theme: '../../docgen-custom-markdown',
     path: './docs',
     clear: true,
-    runOnCompile: true,
+    runOnCompile: false,
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,
@@ -86,7 +90,7 @@ module.exports = {
   solidity: {
     compilers: [
         {
-          version: "0.8.10",
+          version: "0.8.11",
           settings: {
             optimizer: {
               enabled: true,
@@ -120,7 +124,7 @@ module.exports = {
   
     
   },
-
+  
   namedAccounts: {
     deployer: 0,
     },
