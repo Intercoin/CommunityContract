@@ -13,7 +13,7 @@ import "./IntercoinTrait.sol";
 
 import "./lib/PackedSet.sol";
 
-import "hardhat/console.sol";
+//import "hardhat/console.sol";
 
 contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuardUpgradeable, IntercoinTrait {
     
