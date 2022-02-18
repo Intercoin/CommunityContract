@@ -14,43 +14,42 @@ Once installed will be use methods:
 |<a href="#default_relayers_role">DEFAULT_RELAYERS_ROLE</a>|everyone||
 |<a href="#replenish_amount">REPLENISH_AMOUNT</a>|everyone||
 |<a href="#reward_amount">REWARD_AMOUNT</a>|everyone||
-|<a href="#addmembers">addMembers</a>|everyone||
+|<a href="#addmembers">addMembers</a>|everyone|Added participants to role members|
 |<a href="#approve">approve</a>|everyone|part of ERC721|
 |<a href="#balanceof">balanceOf</a>|everyone|part of ERC721|
-|<a href="#createrole">createRole</a>|everyone||
+|<a href="#createrole">createRole</a>|everyone|creating new role. can called owners role only|
 |<a href="#donateeth">donateETH</a>|everyone|one of the way to donate ETH to the contract in separate method. |
 |<a href="#getapproved">getApproved</a>|everyone|part of ERC721|
 |<a href="#getintercoinaddress">getIntercoinAddress</a>|everyone||
-|<a href="#getmembers">getMembers</a>|everyone||
-|<a href="#getmembers">getMembers</a>|everyone||
-|<a href="#getroles">getRoles</a>|everyone||
-|<a href="#getroles">getRoles</a>|everyone||
-|<a href="#grantroles">grantRoles</a>|everyone||
+|<a href="#getmembers">getMembers</a>|everyone|all members belong to Role|
+|<a href="#getmembers">getMembers</a>|everyone|`DEFAULT_MEMBERS_ROLE` members|
+|<a href="#getroles">getRoles</a>|everyone|all roles|
+|<a href="#getroles">getRoles</a>|everyone|member's roles|
+|<a href="#grantroles">grantRoles</a>|everyone|Added new Roles for members|
 |<a href="#granted">granted</a>|everyone||
 |<a href="#grantedby">grantedBy</a>|everyone||
 |<a href="#init">init</a>|everyone||
-|<a href="#inviteaccept">inviteAccept</a>|everyone||
-|<a href="#inviteprepare">invitePrepare</a>|everyone||
-|<a href="#inviteview">inviteView</a>|everyone||
+|<a href="#inviteaccept">inviteAccept</a>|everyone|accepting invite|
+|<a href="#inviteprepare">invitePrepare</a>|everyone|registering invite |
+|<a href="#inviteview">inviteView</a>|everyone|viewing invite by admin signature|
 |<a href="#invitedby">invitedBy</a>|everyone||
 |<a href="#isapprovedforall">isApprovedForAll</a>|everyone|part of ERC721|
-|<a href="#managerole">manageRole</a>|everyone||
-|<a href="#membercount">memberCount</a>|everyone||
-|<a href="#membercount">memberCount</a>|everyone||
+|<a href="#managerole">manageRole</a>|everyone|allow managing another role|
+|<a href="#membercount">memberCount</a>|everyone|all members count|
+|<a href="#membercount">memberCount</a>|everyone|count of members for role|
 |<a href="#ownerof">ownerOf</a>|everyone|part of ERC721|
-|<a href="#removemembers">removeMembers</a>|everyone||
-|<a href="#revokeroles">revokeRoles</a>|everyone||
+|<a href="#removemembers">removeMembers</a>|everyone|Removed participants from  role members|
+|<a href="#revokeroles">revokeRoles</a>|everyone|Removed Role for member|
 |<a href="#revoked">revoked</a>|everyone||
 |<a href="#revokedby">revokedBy</a>|everyone||
 |<a href="#safetransferfrom">safeTransferFrom</a>|everyone|part of ERC721|
 |<a href="#safetransferfrom">safeTransferFrom</a>|everyone|part of ERC721|
 |<a href="#setapprovalforall">setApprovalForAll</a>|everyone|part of ERC721|
-|<a href="#setextrauri">setExtraURI</a>|everyone||
+|<a href="#setextrauri">setExtraURI</a>|any who belong to role||
 |<a href="#setintercoinaddress">setIntercoinAddress</a>|everyone||
-|<a href="#setroleuri">setRoleURI</a>|everyone||
-|<a href="#supp">supp</a>|everyone||
+|<a href="#setroleuri">setRoleURI</a>|any who can manage this role|setting tokenURI for role|
 |<a href="#supportsinterface">supportsInterface</a>|everyone|part of ERC721|
-|<a href="#tokenuri">tokenURI</a>|everyone|part of ERC721|
+|<a href="#tokenuri">tokenURI</a>|everyone|getting tokenURI|
 |<a href="#transferfrom">transferFrom</a>|everyone|part of ERC721|
 ## *Events*
 ### Approval
@@ -150,7 +149,7 @@ Arguments
 ## *StateVariables*
 ### name
 
-> Notice: getting part of ERC721
+> Notice: getting name
 
 
 | **type** |
@@ -161,7 +160,7 @@ Arguments
 
 ### symbol
 
-> Notice: getting part of ERC721
+> Notice: getting symbol
 
 
 | **type** |
@@ -462,7 +461,9 @@ Arguments
 
 ### inviteAccept
 
-> Details: // ==P== // format is "<some string data>:<address of communityContract>:<array of rolenames (sep=',')>:<some string data>"         // invite:0x0A098Eda01Ce92ff4A4CCb7A4fFFb5A43EBC70DC:judges,guests,admins:GregMagarshak // ==R== // format is "<address of R wallet>:<name of user>" // 0x5B38Da6a701c568545dCfcB03FcB875f56beddC4:John Doe 
+> Notice: accepting invite
+
+> Details: @dev ==P==  format is "<some string data>:<address of communityContract>:<array of rolenames (sep=',')>:<some string data>"          invite:0x0A098Eda01Ce92ff4A4CCb7A4fFFb5A43EBC70DC:judges,guests,admins:GregMagarshak  ==R==  format is "<address of R wallet>:<name of user>"  0x5B38Da6a701c568545dCfcB03FcB875f56beddC4:John Doe  
 
 Arguments
 
@@ -477,6 +478,8 @@ Arguments
 
 ### invitePrepare
 
+> Notice: registering invite,. calling by relayers
+
 Arguments
 
 | **name** | **type** | **description** |
@@ -487,6 +490,8 @@ Arguments
 
 
 ### inviteView
+
+> Notice: viewing invite by admin signature
 
 Arguments
 
@@ -545,8 +550,8 @@ Arguments
 
 | **name** | **type** | **description** |
 |-|-|-|
-| sourceRole | string |  |
-| targetRole | string |  |
+| sourceRole | string | role which will manage targetRole |
+| targetRole | string | role will have been managed by sourceRole |
 
 
 
@@ -563,6 +568,8 @@ Outputs
 
 
 ### memberCount
+
+> Notice: count of members for that role
 
 Arguments
 
@@ -707,6 +714,8 @@ Arguments
 
 ### setExtraURI
 
+> Notice: setting extraURI for role.
+
 Arguments
 
 | **name** | **type** | **description** |
@@ -736,24 +745,14 @@ Outputs
 
 ### setRoleURI
 
+> Notice: setting tokenURI for role
+
 Arguments
 
 | **name** | **type** | **description** |
 |-|-|-|
-| role | string |  |
-| roleURI | string |  |
-
-
-
-### supp
-
-Outputs
-
-| **name** | **type** | **description** |
-|-|-|-|
-| -/- | bytes32 |  |
-| -/- | bytes32 |  |
-| -/- | bytes32 |  |
+| role | string | role name |
+| roleURI | string | token URI |
 
 
 
@@ -777,7 +776,7 @@ Outputs
 
 ### tokenURI
 
-> Notice: getting part of ERC721
+> Notice: getting tokenURI(part of ERC721)
 
 Arguments
 

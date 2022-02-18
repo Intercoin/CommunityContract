@@ -13,6 +13,8 @@ import "./IntercoinTrait.sol";
 
 import "./lib/PackedSet.sol";
 
+import "hardhat/console.sol";
+
 contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuardUpgradeable, IntercoinTrait {
     
     using PackedSet for PackedSet.Set;
@@ -249,7 +251,8 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     ///////////////////////////////////////////////////////////
     
     /**
-     * Added participants to role members
+     * @notice Added participants to role members
+     * @custom:shortd Added participants to role members
      * @param members participant's addresses
      */
     function addMembers(
@@ -267,7 +270,8 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     }
     
     /**
-     * Removed participants from  role members
+     * @notice Removed participants from  role members
+     * @custom:shortd Removed participants from  role members
      * @param members participant's addresses
      */
     function removeMembers(
@@ -285,7 +289,8 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     }
     
     /**
-     * Added new Roles for members
+     * @notice Added new Roles for members
+     * @custom:shortd Added new Roles for members
      * @param members participant's addresses
      * @param roles Roles name
      */
@@ -316,7 +321,8 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     }
     
     /**
-     * Removed Role for member
+     * @notice Removed Role for member
+     * @custom:shortd Removed Role for member
      * @param members participant's addresses
      * @param roles Roles name
      */
@@ -326,21 +332,24 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     ) 
         public 
     {
+
         uint256 lengthMembers = members.length;
         uint256 lenRoles = roles.length;
         uint256 i;
         uint256 j;
         bytes32 roleBytes32;
+
         for (i = 0; i < lengthMembers; i++) {
             if (!_isTargetInRole(members[i], DEFAULT_MEMBERS_ROLE)) {
                 revert(string(abi.encodePacked("Target account must be with role '",DEFAULT_MEMBERS_ROLE.bytes32ToString(),"'")));
             }
             for (j = 0; j < lenRoles; j++) {
+
                 roleBytes32 = roles[j].stringToBytes32();
                 if (roleBytes32 == DEFAULT_MEMBERS_ROLE) {
                     revert(string(abi.encodePacked("Can not remove role '",roles[j],"'")));
                 }
-                
+
                 if (!_isCanManage(msg.sender, roleBytes32)) {
                     revert(string(abi.encodePacked("Sender can not manage Members with role '",roles[j],"'")));
                 }
@@ -352,14 +361,14 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     }
     
     /**
-     * creating new role. can called owners role only
+     * @notice creating new role. can called owners role only
+     * @custom:shortd creating new role. can called owners role only
      * @param role role name
      */
     function createRole(
         string memory role
     ) 
         public 
-        //onlyOwner 
         ifTargetInRole(msg.sender, DEFAULT_OWNERS_ROLE) 
     {
         require(_roles[role.stringToBytes32()] == 0, "Such role is already exists");
@@ -379,14 +388,16 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     }
     
     /**
-     * allow account with sourceRole setup targetRole to another account with default role(members)
+     * @notice allow account with sourceRole setup targetRole to another account with default role(members)
+     * @custom:shortd allow managing another role
+     * @param sourceRole role which will manage targetRole
+     * @param targetRole role will have been managed by sourceRole
      */
     function manageRole(
         string memory sourceRole, 
         string memory targetRole
     ) 
         public 
-        //onlyOwner
         ifTargetInRole(msg.sender, DEFAULT_OWNERS_ROLE) 
     {
         
@@ -398,7 +409,8 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     }
     
     /**
-     * Returns all members belong to Role
+     * @notice Returns all members belong to Role
+     * @custom:shortd all members belong to Role
      * @param role role name
      * @return array of address 
      */
@@ -422,7 +434,8 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     }
     
     /**
-     * if call without params then returns all members belong to `DEFAULT_MEMBERS_ROLE`
+     * @notice if call without params then returns all members belong to `DEFAULT_MEMBERS_ROLE`
+     * @custom:shortd `DEFAULT_MEMBERS_ROLE` members
      * @return array of address 
      */
     function getMembers(
@@ -435,7 +448,8 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     }
     
     /**
-     * Returns all roles which member belong to
+     * @notice Returns all roles which member belong to
+     * @custom:shortd member's roles
      * @param member member's address
      * @return array of roles 
      */
@@ -457,7 +471,8 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     }
     
     /**
-     * if call without params then returns all existing roles 
+     * @notice if call without params then returns all existing roles 
+     * @custom:shortd all roles
      * @return array of roles 
      */
     function getRoles(
@@ -467,14 +482,17 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         returns(string[] memory)
     {
 
-        string[] memory l = new string[](rolesIndex);
-        for (uint8 i = 0; i < rolesIndex; i++) {
-            l[i] = _rolesIndices[i].name.bytes32ToString();
+        string[] memory l = new string[](rolesIndex-1);
+        // rolesIndex start from 1
+        for (uint8 i = 1; i < rolesIndex; i++) {
+            l[i-1] = _rolesIndices[i].name.bytes32ToString();
         }
         return l;
     }
     
     /**
+     * @notice count of members for that role
+     * @custom:shortd count of members for role
      * @param role role name
      * @return count of members for that role
      */
@@ -489,7 +507,8 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     }
         
     /**
-     * if call without params then returns count of all members with default role
+     * @notice if call without params then returns count of all members with default role
+     * @custom:shortd all members count
      * @return count of members
      */
     function memberCount(
@@ -502,6 +521,8 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     }
     
     /**
+     * @notice viewing invite by admin signature
+     * @custom:shortd viewing invite by admin signature
      * @param pSig signature of admin whom generate invite and signed it
      * @return structure inviteSignature
      */
@@ -516,6 +537,8 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     }
     
     /**
+     * @notice registering invite,. calling by relayers
+     * @custom:shortd registering invite 
      * @param pSig signature of admin whom generate invite and signed it
      * @param rpSig signature of recipient
      */
@@ -537,13 +560,14 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     
     /**
      * @dev
-     * // ==P==  
-     * // format is "<some string data>:<address of communityContract>:<array of rolenames (sep=',')>:<some string data>"          
-     * // invite:0x0A098Eda01Ce92ff4A4CCb7A4fFFb5A43EBC70DC:judges,guests,admins:GregMagarshak  
-     * // ==R==  
-     * // format is "<address of R wallet>:<name of user>"  
-     * // 0x5B38Da6a701c568545dCfcB03FcB875f56beddC4:John Doe  
-     * 
+     * @dev ==P==  
+     * @dev format is "<some string data>:<address of communityContract>:<array of rolenames (sep=',')>:<some string data>"          
+     * @dev invite:0x0A098Eda01Ce92ff4A4CCb7A4fFFb5A43EBC70DC:judges,guests,admins:GregMagarshak  
+     * @dev ==R==  
+     * @dev format is "<address of R wallet>:<name of user>"  
+     * @dev 0x5B38Da6a701c568545dCfcB03FcB875f56beddC4:John Doe  
+     * @notice accepting invite
+     * @custom:shortd accepting invite
      * @param p invite message of admin whom generate messageHash and signed it
      * @param pSig signature of admin whom generate invite and signed it
      * @param rp message of recipient whom generate messageHash and signed it

@@ -8,24 +8,30 @@ import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/IERC721Metad
 import "./CommunityBase.sol";
 import "./interfaces/ICommunityERC721.sol";
 
-
 contract CommunityERC721 is CommunityBase, IERC721Upgradeable, IERC721MetadataUpgradeable, ICommunityERC721 {
     using StringUtils for *;
 
     /**
-    * @notice getting part of ERC721
-    * @custom:shortd part of ERC721
+    * @notice getting name
+    * @custom:shortd ERC721'name
     * @return name 
     */
     string public name;
     
     /**
-    * @notice getting part of ERC721
-    * @custom:shortd part of ERC721
+    * @notice getting symbol
+    * @custom:shortd ERC721's symbol
     * @return symbol 
     */
     string public symbol;
 
+    /**
+    * @notice setting tokenURI for role
+    * @param role role name
+    * @param roleURI token URI
+    * @custom:shortd setting tokenURI for role
+    * @custom:calledby any who can manage this role
+    */
     function setRoleURI(
         string memory role,
         string memory roleURI
@@ -36,6 +42,10 @@ contract CommunityERC721 is CommunityBase, IERC721Upgradeable, IERC721MetadataUp
         _rolesIndices[_roles[role.stringToBytes32()]].roleURI = roleURI;
     }
 
+    /**
+    * @notice setting extraURI for role.
+    * @custom:calledby any who belong to role
+    */
     function setExtraURI(
         string memory role,
         string memory extraURI
@@ -87,6 +97,10 @@ contract CommunityERC721 is CommunityBase, IERC721Upgradeable, IERC721MetadataUp
 
     }
 
+    /**
+    * @notice 
+    * @custom:shortd 
+    */
     function operationReverted(
     ) 
         internal 
@@ -216,21 +230,19 @@ contract CommunityERC721 is CommunityBase, IERC721Upgradeable, IERC721MetadataUp
             interfaceId == type(IERC165Upgradeable).interfaceId;
     }
 
-    function supp()public pure returns (bytes32, bytes32, bytes32) {
-        return (
-            type(IERC721Upgradeable).interfaceId,
-            type(IERC721MetadataUpgradeable).interfaceId,
-            type(IERC165Upgradeable).interfaceId
-        );
-    }
-    
     /**
-    * @notice getting part of ERC721
+    * @notice getting tokenURI(part of ERC721)
+    * @custom:shortd getting tokenURI
     * @param tokenId token ID
-    * @custom:shortd part of ERC721
     * @return tokenuri
     */
-    function tokenURI(uint256 tokenId) external view override returns (string memory)
+    function tokenURI(
+        uint256 tokenId
+    ) 
+        external 
+        view 
+        override 
+        returns (string memory)
     {
 
         //_rolesIndices[_roles[role.stringToBytes32()]].roleURI = roleURI;

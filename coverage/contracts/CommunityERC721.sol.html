@@ -20,9 +20,9 @@
     </h1>
     <div class='clearfix'>
       <div class='fl pad1y space-right2'>
-        <span class="strong">96.3% </span>
+        <span class="strong">100% </span>
         <span class="quiet">Statements</span>
-        <span class='fraction'>26/27</span>
+        <span class='fraction'>26/26</span>
       </div>
       <div class='fl pad1y space-right2'>
         <span class="strong">100% </span>
@@ -30,14 +30,14 @@
         <span class='fraction'>4/4</span>
       </div>
       <div class='fl pad1y space-right2'>
-        <span class="strong">93.75% </span>
+        <span class="strong">100% </span>
         <span class="quiet">Functions</span>
-        <span class='fraction'>15/16</span>
+        <span class='fraction'>15/15</span>
       </div>
       <div class='fl pad1y space-right2'>
-        <span class="strong">96.3% </span>
+        <span class="strong">100% </span>
         <span class="quiet">Lines</span>
-        <span class='fraction'>26/27</span>
+        <span class='fraction'>26/26</span>
       </div>
     </div>
   </div>
@@ -309,7 +309,25 @@
 264
 265
 266
-267</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+267
+268
+269
+270
+271
+272
+273
+274
+275
+276
+277
+278
+279</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -345,6 +363,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -403,6 +425,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">7×</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -528,8 +554,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -585,24 +609,30 @@ import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/IERC721Metad
 import "./CommunityBase.sol";
 import "./interfaces/ICommunityERC721.sol";
 &nbsp;
-&nbsp;
 contract CommunityERC721 is CommunityBase, IERC721Upgradeable, IERC721MetadataUpgradeable, ICommunityERC721 {
     using StringUtils for *;
 &nbsp;
     /**
-    * @notice getting part of ERC721
-    * @custom:shortd part of ERC721
+    * @notice getting name
+    * @custom:shortd ERC721'name
     * @return name 
     */
     string public name;
     
     /**
-    * @notice getting part of ERC721
-    * @custom:shortd part of ERC721
+    * @notice getting symbol
+    * @custom:shortd ERC721's symbol
     * @return symbol 
     */
     string public symbol;
 &nbsp;
+    /**
+    * @notice setting tokenURI for role
+    * @param role role name
+    * @param roleURI token URI
+    * @custom:shortd setting tokenURI for role
+    * @custom:calledby any who can manage this role
+    */
     function setRoleURI(
         string memory role,
         string memory roleURI
@@ -613,6 +643,10 @@ contract CommunityERC721 is CommunityBase, IERC721Upgradeable, IERC721MetadataUp
         _rolesIndices[_roles[role.stringToBytes32()]].roleURI = roleURI;
     }
 &nbsp;
+    /**
+    * @notice setting extraURI for role.
+    * @custom:calledby any who belong to role
+    */
     function setExtraURI(
         string memory role,
         string memory extraURI
@@ -664,6 +698,10 @@ contract CommunityERC721 is CommunityBase, IERC721Upgradeable, IERC721MetadataUp
 &nbsp;
     }
 &nbsp;
+    /**
+    * @notice 
+    * @custom:shortd 
+    */
     function operationReverted(
     ) 
         internal 
@@ -793,21 +831,19 @@ contract CommunityERC721 is CommunityBase, IERC721Upgradeable, IERC721MetadataUp
             interfaceId == type(IERC165Upgradeable).interfaceId;
     }
 &nbsp;
-<span class="fstat-no" title="function not covered" >    function supp()public pure returns (bytes32, bytes32, bytes32) {</span>
-<span class="cstat-no" title="statement not covered" >        return (</span>
-            type(IERC721Upgradeable).interfaceId,
-            type(IERC721MetadataUpgradeable).interfaceId,
-            type(IERC165Upgradeable).interfaceId
-        );
-    }
-    
     /**
-    * @notice getting part of ERC721
+    * @notice getting tokenURI(part of ERC721)
+    * @custom:shortd getting tokenURI
     * @param tokenId token ID
-    * @custom:shortd part of ERC721
     * @return tokenuri
     */
-    function tokenURI(uint256 tokenId) external view override returns (string memory)
+    function tokenURI(
+        uint256 tokenId
+    ) 
+        external 
+        view 
+        override 
+        returns (string memory)
     {
 &nbsp;
         //_rolesIndices[_roles[role.stringToBytes32()]].roleURI = roleURI;
@@ -847,7 +883,7 @@ contract CommunityERC721 is CommunityBase, IERC721Upgradeable, IERC721MetadataUp
 </div><!-- /wrapper -->
 <div class='footer quiet pad2 space-top1 center small'>
   Code coverage
-  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Fri Feb 18 2022 14:26:06 GMT+0200 (Восточная Европа, стандартное время)
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Fri Feb 18 2022 22:37:20 GMT+0200 (Восточная Европа, стандартное время)
 </div>
 </div>
 <script src="../prettify.js"></script>

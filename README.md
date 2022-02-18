@@ -1,27 +1,41 @@
 # CommunityContract
-Smart contract for managing community membership and roles
+Smart contract for managing community membership and roles.   
+There are two versions: [Community](docs/contracts/Community.md) and [CommunityERC721](docs/contracts/CommunityERC721.md).   
+Community is a contract for managing community membership and roles.    
+CommunityERC721 - the same as Community but create NFT for each role. User can customize own NFT and specify ExtraURI    
 
-# Installation
-## Node
-`npm install @openzeppelin/contracts-ethereum-package`
+# Deploy Initial 
+Deployer will create two implementations and deploy CommunityFactory that produced Community and CommunityERC721.
 
 # Deploy
-when deploy it is no need to pass parameters in to constructor
+Any user can create own community by call method produce of CommunityFactory contract: [produce](docs/contracts/CommunityFactory.md#produce) and [produce(name, symbol)](docs/contracts/CommunityFactory.md#produce-1) respectively
 
 # Overview
-There are 4 predefined roles:
-* `owners`
-* `admins`
-* `members`
-* `relayers`
+There are 4 predefined roles:   
 
-Role `members` is starting role for any new accounts.
-Roles `owners` and `admins` can manage `members` and any newly created roles.
-Role `relayers` is web servers X which can register member in community via invite by owners/admins or some who can manage.
+role name| role index
+--|--
+`owners`|1
+`admins`|2
+`members`|3
+`relayers`|4
 
-Contract can be used as external storage for getting list of memebers.
 
-Once installed will be use methods:
+Role `members` is starting role for any new accounts.   
+Roles `owners` and `admins` can manage `members` and any newly created roles.   
+Role `relayers` is web servers X which can register member in community via invite by owners/admins or some who can manage.   
+Roles `owners` is a single role that can magage itself. means one owner can add(or remove) other owner.   
+   
+   
+Contract can be used as external storage for getting list of memebers.   
+   
+
+In cases with CommunityERC721 any user obtain NFT with tokenID = `(roleid <<160)+walletaddress`   
+Any who can manage certain role can setup tokenURI for this role by calling `setRoleURI` .  
+Also any member can setup personal URI for this role by calling `setExtraURI`.   
+
+Full methods for each contracts can be find here [Community](docs/contracts/Community.md) and here [CommunityERC721](docs/contracts/CommunityERC721.md)   
+Most usable method methods will be described below:
 
 <table>
 <thead>
@@ -43,28 +57,23 @@ Once installed will be use methods:
 		<td>removing exists members</td>
 	</tr>
 	<tr>
-		<td><a href="#addroles">addRoles</a></td>
+		<td><a href="#grantroles">grantRoles</a></td>
 		<td>Any role which manage "roles"</td>
 		<td>adding members to new "roles"</td>
 	</tr>
 	<tr>
-		<td><a href="#removeroles">removeRoles</a></td>
+		<td><a href="#revokeroles">revokeRoles</a></td>
 		<td>Any role which manage "roles"</td>
-		<td>removing members to new "roles". Revert if any roles can not be managed by sender</td>
-	</tr>
-	<tr>
-		<td><a href="#transferownership">transferOwnership</a></td>
-		<td>onlyOwner</td>
-		<td>overrode transferOwnership. New owner will get "owners" role</td>
+		<td>removing members from "roles". Revert if any roles can not be managed by sender</td>
 	</tr>
 	<tr>
 		<td><a href="#createrole">createRole</a></td>
-		<td>onlyOwner</td>
+		<td>only `owners`</td>
 		<td>Creating new role</td>
 	</tr>
 	<tr>
 		<td><a href="#managerole">manageRole</a></td>
-		<td>onlyOwner</td>
+		<td>only `owners`</td>
 		<td>allow account with "sourceRole" setup "targetRole" to another account with default role("members")</td>
 	</tr>
 	<tr>
@@ -97,26 +106,6 @@ Once installed will be use methods:
 		<td>anyone</td>
 		<td>Returns tuple of invite stored at contract</td>
 	</tr>
-	<tr>
-		<td><a href="#getsettings">getSettings</a></td>
-		<td>anyone</td>
-		<td>Returns title ico and ticket texts</td>
-	</tr>
-	<tr>
-		<td><a href="#setsettings">setSettings</a></td>
-		<td>owner</td>
-		<td>setup text string</td>
-	</tr>
-	<tr>
-		<td><a href="#isinvited">isInvited</a></td>
-		<td>anyone</td>
-		<td>Return true if recipient has been invited by sender</td>
-	</tr>
-	<tr>
-		<td><a href="#whoinvited">whoInvited</a></td>
-		<td>anyone</td>
-		<td>Return the address sender's invite who added recipent</td>
-	</tr>
 </tbody>
 </table>
 
@@ -138,7 +127,7 @@ name  | type | description
 --|--|--
 members|address[]| member's addresses 
 
-#### addRoles
+#### grantRoles
 adding members to new `roles`.  Can  be called any role which manage `roles`. Revert if any roles can not be managed by sender
 
 Params:
@@ -147,7 +136,7 @@ name  | type | description
 members|address[]| member's address    
 roles|string[]| names of roles
 
-#### removeRoles
+#### revokeRoles
 removing members to new `roles`.  Can  be called any role which manage `roles`. Revert if any roles can not be managed by sender
 
 Params:
@@ -156,16 +145,8 @@ name  | type | description
 members|address[]| member's address    
 roles|string[]| names of roles
 
-####   transferOwnership
-overrode transferOwnership. New owner will get `owners` role
-
-Params:
-name  | type | description
---|--|--
-newOwner|address | new owner's address 
-
 #### createRole
-Creating new role. Сan called onlyOwner
+Creating new role. Сan called `owners`
 
 Params:
 name  | type | description
@@ -173,7 +154,7 @@ name  | type | description
 role|string| name of role
 
 #### manageRole
-allow account with `sourceRole` setup `targetRole` to another account with default role(`members`). Сan called onlyOwner.
+allow account with `sourceRole` setup `targetRole` to another account with default role(`members`). Сan called only by `owners`.
 
 Params:
 name  | type | description
@@ -243,43 +224,6 @@ gasCost|uint256| stored gas which was spent by relayers for invitePrepare(or and
 reimbursed|ENUM(0,1,2)|ReimburseStatus (0-NONE,1-PENDING,2-DONE)
 used|bool| if true invite is already used
 exists|bool|if true invite is exist
-
-#### setSettings	
-setup text strings
-
-Params:
-name  | type | description | example
---|--|--|--
-title|string|title|Lorem ipsum
-ico|tuple|source of image in base64|["data:image/png;base64","iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAIAAACRXR/mAAAB..."]
-ticker|string|ticker|Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
-
-#### getSettings
-return saved string data
-
-Return:
-name  | type | description
---|--|--
-title|string|title
-ico|tuple|source of image in base64
-ticker|string|ticker
-	
-#### isInvited
-return true if recipient has been invited by sender
-
-Params:
-name  | type | description
---|--|--
-sender|address|who invited
-recipient|address|who been invited
-
-#### whoInvited
-Return the address sender's invite who added recipient
-
-Params:
-name  | type | description
---|--|--
-recipient|address|who been invited
 
 
 ## Example to use

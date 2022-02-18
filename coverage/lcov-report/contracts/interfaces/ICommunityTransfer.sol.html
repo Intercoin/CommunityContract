@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-    <title>Code coverage report for contracts\interfaces\IIntercoinTrait.sol</title>
+    <title>Code coverage report for contracts\interfaces\ICommunityTransfer.sol</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../../prettify.css" />
     <link rel="stylesheet" href="../../base.css" />
@@ -16,7 +16,7 @@
 <div class='wrapper'>
   <div class='pad1'>
     <h1>
-      <a href="../../index.html">all files</a> / <a href="index.html">contracts/interfaces/</a> IIntercoinTrait.sol
+      <a href="../../index.html">all files</a> / <a href="index.html">contracts/interfaces/</a> ICommunityTransfer.sol
     </h1>
     <div class='clearfix'>
       <div class='fl pad1y space-right2'>
@@ -51,7 +51,9 @@
 6
 7
 8
-9</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+9
+10</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -62,11 +64,12 @@
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.11;
 &nbsp;
-interface IIntercoinTrait {
-    
-    function setIntercoinAddress(address addr) external returns(bool);
-    function getIntercoinAddress() external view returns (address);
-    
+/**
+* @title interface helps to transfer owners from factory to sender that produce instance
+*/
+interface ICommunityTransfer {
+    function addMembers(address[] memory members) external;
+    function grantRoles(address[] memory members, string[] memory roles) external;
 }</pre></td></tr>
 </table></pre>
 <div class='push'></div><!-- for sticky footer -->

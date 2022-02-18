@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.11;
+pragma solidity ^0.8.11;
 
 import "@openzeppelin/contracts/proxy/Clones.sol";
+import "./interfaces/ICommunityTransfer.sol";
 import "./interfaces/ICommunity.sol";
 import "./interfaces/ICommunityERC721.sol";
-interface Im {
-    function addMembers(address[] memory members) external;
-    function grantRoles(address[] memory members, string[] memory roles) external;
-}
+
 contract CommunityFactory {
     using Clones for address;
 
@@ -134,8 +132,8 @@ contract CommunityFactory {
         r[1] = "admins";
         r[2] = "relayers";
 
-        Im(instance).addMembers(s);
-        Im(instance).grantRoles(s, r);
+        ICommunityTransfer(instance).addMembers(s);
+        ICommunityTransfer(instance).grantRoles(s, r);
 
     }
 }

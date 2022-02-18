@@ -8,24 +8,24 @@ Once installed will be use methods:
 
 | **method name** | **called by** | **description** |
 |-|-|-|
-|<a href="#addmembers">addMembers</a>|everyone||
-|<a href="#createrole">createRole</a>|everyone||
+|<a href="#addmembers">addMembers</a>|everyone|Added participants to role members|
+|<a href="#createrole">createRole</a>|everyone|creating new role. can called owners role only|
 |<a href="#donateeth">donateETH</a>|everyone|one of the way to donate ETH to the contract in separate method. |
 |<a href="#getintercoinaddress">getIntercoinAddress</a>|everyone||
-|<a href="#getmembers">getMembers</a>|everyone||
-|<a href="#getmembers">getMembers</a>|everyone||
-|<a href="#getroles">getRoles</a>|everyone||
-|<a href="#getroles">getRoles</a>|everyone||
-|<a href="#grantroles">grantRoles</a>|everyone||
-|<a href="#inviteaccept">inviteAccept</a>|everyone||
-|<a href="#inviteprepare">invitePrepare</a>|everyone||
-|<a href="#inviteview">inviteView</a>|everyone||
+|<a href="#getmembers">getMembers</a>|everyone|all members belong to Role|
+|<a href="#getmembers">getMembers</a>|everyone|`DEFAULT_MEMBERS_ROLE` members|
+|<a href="#getroles">getRoles</a>|everyone|all roles|
+|<a href="#getroles">getRoles</a>|everyone|member's roles|
+|<a href="#grantroles">grantRoles</a>|everyone|Added new Roles for members|
+|<a href="#inviteaccept">inviteAccept</a>|everyone|accepting invite|
+|<a href="#inviteprepare">invitePrepare</a>|everyone|registering invite |
+|<a href="#inviteview">inviteView</a>|everyone|viewing invite by admin signature|
 |<a href="#invitedby">invitedBy</a>|everyone||
-|<a href="#managerole">manageRole</a>|everyone||
-|<a href="#membercount">memberCount</a>|everyone||
-|<a href="#membercount">memberCount</a>|everyone||
-|<a href="#removemembers">removeMembers</a>|everyone||
-|<a href="#revokeroles">revokeRoles</a>|everyone||
+|<a href="#managerole">manageRole</a>|everyone|allow managing another role|
+|<a href="#membercount">memberCount</a>|everyone|all members count|
+|<a href="#membercount">memberCount</a>|everyone|count of members for role|
+|<a href="#removemembers">removeMembers</a>|everyone|Removed participants from  role members|
+|<a href="#revokeroles">revokeRoles</a>|everyone|Removed Role for member|
 |<a href="#setintercoinaddress">setIntercoinAddress</a>|everyone||
 ## *Events*
 ### RoleAddedErrorMessage
@@ -351,7 +351,9 @@ Arguments
 
 ### inviteAccept
 
-> Details: // ==P== // format is "<some string data>:<address of communityContract>:<array of rolenames (sep=',')>:<some string data>"         // invite:0x0A098Eda01Ce92ff4A4CCb7A4fFFb5A43EBC70DC:judges,guests,admins:GregMagarshak // ==R== // format is "<address of R wallet>:<name of user>" // 0x5B38Da6a701c568545dCfcB03FcB875f56beddC4:John Doe 
+> Notice: accepting invite
+
+> Details: @dev ==P==  format is "<some string data>:<address of communityContract>:<array of rolenames (sep=',')>:<some string data>"          invite:0x0A098Eda01Ce92ff4A4CCb7A4fFFb5A43EBC70DC:judges,guests,admins:GregMagarshak  ==R==  format is "<address of R wallet>:<name of user>"  0x5B38Da6a701c568545dCfcB03FcB875f56beddC4:John Doe  
 
 Arguments
 
@@ -366,6 +368,8 @@ Arguments
 
 ### invitePrepare
 
+> Notice: registering invite,. calling by relayers
+
 Arguments
 
 | **name** | **type** | **description** |
@@ -376,6 +380,8 @@ Arguments
 
 
 ### inviteView
+
+> Notice: viewing invite by admin signature
 
 Arguments
 
@@ -415,8 +421,8 @@ Arguments
 
 | **name** | **type** | **description** |
 |-|-|-|
-| sourceRole | string |  |
-| targetRole | string |  |
+| sourceRole | string | role which will manage targetRole |
+| targetRole | string | role will have been managed by sourceRole |
 
 
 
@@ -433,6 +439,8 @@ Outputs
 
 
 ### memberCount
+
+> Notice: count of members for that role
 
 Arguments
 

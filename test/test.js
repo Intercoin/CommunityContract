@@ -8,7 +8,8 @@ const ZERO = BigNumber.from('0');
 const ONE = BigNumber.from('1');
 const TWO = BigNumber.from('2');
 const THREE = BigNumber.from('3');
-const FOUR = BigNumber.from('3');
+const FOUR = BigNumber.from('4');
+const FIVE = BigNumber.from('5');
 const SEVEN = BigNumber.from('7');
 const TEN = BigNumber.from('10');
 const HUNDRED = BigNumber.from('100');
@@ -21,7 +22,7 @@ const ONE_ETH = ethers.utils.parseEther('1');
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const DEAD_ADDRESS = '0x000000000000000000000000000000000000dEaD';
 
-describe("CommunityERC721 tests", function () {
+describe("Community", function () {
     const accounts = waffle.provider.getWallets();
     
     // Setup accounts.
@@ -36,6 +37,7 @@ describe("CommunityERC721 tests", function () {
     const accountEight = accounts[7];
     const accountNine = accounts[8];
     const accountTen = accounts[9];
+    const relayer = accounts[9];
     const accountEleven = accounts[10];
     const accountTwelwe = accounts[11];
     
@@ -112,7 +114,7 @@ describe("CommunityERC721 tests", function () {
             expect(rolesList.includes(rolesTitle.get('members'))).to.be.eq(true); // outside members role
         });
         
-        it('can remove member', async () => {
+        it("can remove member", async () => {
             
             var rolesList;
 
@@ -126,7 +128,7 @@ describe("CommunityERC721 tests", function () {
         });
         
         
-        it('can create new role', async () => {
+        it("can create new role", async () => {
             await expect(CommunityInstance.connect(accountThree).createRole(rolesTitle.get('role1'))).to.be.revertedWith("Target account must be with role '" +rolesTitle.get('owners')+"''");
             await expect(CommunityInstance.connect(accountOne).createRole(rolesTitle.get('owners'))).to.be.revertedWith("Such role is already exists");
             await expect(CommunityInstance.connect(accountOne).createRole(rolesTitle.get('admins'))).to.be.revertedWith("Such role is already exists");
@@ -137,8 +139,93 @@ describe("CommunityERC721 tests", function () {
             await expect(CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'))).to.be.revertedWith("Such role is already exists");
             
         });
-        
-        it('can manage role', async () => {
+
+        it("can view all roles", async () => {
+            
+            var rolesList = (await CommunityInstance.connect(accountOne)["getRoles()"]());
+            
+            // here it will be only internal roles
+
+            let rolesExists =[
+                rolesTitle.get('owners'),
+                rolesTitle.get('admins'),
+                rolesTitle.get('members'),
+                rolesTitle.get('relayers')
+            ];
+
+            let rolesNotExists =[
+                rolesTitle.get('role1'),
+                rolesTitle.get('role2'),
+                rolesTitle.get('role3'),
+                rolesTitle.get('role4')
+            ];
+
+            rolesExists.forEach((value, key, map) => {
+                 expect(rolesList.includes(value)).to.be.eq(true);
+            });
+
+            rolesNotExists.forEach((value, key, map) => {
+                 expect(rolesList.includes(value)).to.be.eq(false);
+            })
+
+            await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'));
+
+            rolesList = (await CommunityInstance.connect(accountOne)["getRoles()"]());
+            (
+                rolesExists.concat(
+                    [rolesTitle.get('role1')]
+                )
+            ).forEach((value, key, map) => {
+                 expect(rolesList.includes(value)).to.be.eq(true);
+            })
+
+            
+        });
+
+        it("can view all members in role", async () => {
+            // create roles
+            await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'));
+            await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role2'));
+            //add member
+            await CommunityInstance.connect(accountOne).addMembers([
+                accountTwo.address,
+                accountThree.address,
+                accountFourth.address,
+                accountFive.address,
+                accountSix.address,
+                accountSeven.address
+            ]);
+            // add member to role
+            await CommunityInstance.connect(accountOne).grantRoles([
+                accountTwo.address,
+                accountThree.address,
+                accountFourth.address,
+                accountFive.address,
+                accountSix.address
+            ], [rolesTitle.get('role1')]);
+            await CommunityInstance.connect(accountOne).grantRoles([
+                accountFive.address,
+                accountSix.address,
+                accountSeven.address
+            ], [rolesTitle.get('role2')]);
+
+            let allMembers = await CommunityInstance.connect(accountOne)["getMembers()"]();
+            expect(allMembers.length).to.be.eq(SEVEN); // accounts - One,Two,Three,Four,Five,Six,Seven
+
+            let allMembersInMemebers = await CommunityInstance.connect(accountOne)["getMembers(string)"](rolesTitle.get('members'));
+            expect(allMembersInMemebers.length).to.be.eq(SEVEN);
+            expect(allMembersInMemebers.length).to.be.eq(allMembers.length);
+
+            let allMembersInRole1 = await CommunityInstance.connect(accountOne)["getMembers(string)"](rolesTitle.get('role1'));
+            expect(allMembersInRole1.length).to.be.eq(FIVE); // accounts - Two,Three,Four,Five,Six
+
+            let allMembersInRole2 = await CommunityInstance.connect(accountOne)["getMembers(string)"](rolesTitle.get('role2'));
+            expect(allMembersInRole2.length).to.be.eq(THREE); // accounts - Five,Six,Seven
+
+
+        }); 
+
+        it("can manage role", async () => {
             
             // create two roles
             await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'));
@@ -157,11 +244,15 @@ describe("CommunityERC721 tests", function () {
                 CommunityInstance.connect(accountOne).manageRole(rolesTitle.get('role1'),rolesTitle.get('role4'))
             ).to.be.revertedWith("Source role does not exists");
             
+            
             // manage role
             await CommunityInstance.connect(accountOne).manageRole(rolesTitle.get('role1'),rolesTitle.get('role2'));
             //add member
             await CommunityInstance.connect(accountOne).addMembers([accountTwo.address]);
 
+            await expect(
+                CommunityInstance.connect(accountThree).grantRoles([accountTwo.address], [rolesTitle.get('role1')])
+            ).to.be.revertedWith("Sender can not manage Members with role '" +rolesTitle.get('role1')+"'");
             // added member to none-exists member
             await expect(
                 CommunityInstance.connect(accountOne).grantRoles([accountThree.address], [rolesTitle.get('role1')])
@@ -183,20 +274,33 @@ describe("CommunityERC721 tests", function () {
 
         });
         
-        it('can remove account from role', async () => {
+        it("can remove account from role", async () => {
 
             var rolesList;
             
             await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'));
+            await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role2'));
+
             //add member
             await CommunityInstance.connect(accountOne).addMembers([accountTwo.address]);
+            await CommunityInstance.connect(accountOne).addMembers([accountThree.address]);
             // add member to role
             await CommunityInstance.connect(accountOne).grantRoles([accountTwo.address], [rolesTitle.get('role1')]);
+            await CommunityInstance.connect(accountOne).grantRoles([accountThree.address], [rolesTitle.get('role2')]);
             
             // check that accountTwo got `get('role1')`
             rolesList = (await CommunityInstance.connect(accountOne)["getRoles(address)"](accountTwo.address));
             expect(rolesList.includes(rolesTitle.get('role1'))).to.be.eq(true); // 'outside role'
             
+            await expect(
+                CommunityInstance.connect(accountThree).revokeRoles([accountFourth.address], [rolesTitle.get('role1')])
+            ).to.be.revertedWith("Target account must be with role '" +rolesTitle.get('members')+"'");
+
+            await expect(
+                CommunityInstance.connect(accountThree).revokeRoles([accountTwo.address], [rolesTitle.get('role1')])
+            ).to.be.revertedWith("Sender can not manage Members with role '" +rolesTitle.get('role1')+"'");
+
+
             // remove
             await CommunityInstance.connect(accountOne).revokeRoles([accountTwo.address], [rolesTitle.get('role1')]);
             // check removing
@@ -207,10 +311,22 @@ describe("CommunityERC721 tests", function () {
             await expect(
                 CommunityInstance.connect(accountOne).revokeRoles([accountTwo.address], [rolesTitle.get('members')])
             ).to.be.revertedWith("Can not remove role '" +rolesTitle.get('members')+"'");
-                
+
+            
         });
+
+        it("shouldnt manage owners role by none owners", async () => {
+            await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'));
+            await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role2'));
+
+            await CommunityInstance.connect(accountOne).manageRole(rolesTitle.get('role1'),rolesTitle.get('role2'));
+
+            await expect(
+                CommunityInstance.connect(accountOne).manageRole(rolesTitle.get('role2'),rolesTitle.get('owners'))
+            ).to.be.revertedWith("targetRole can not be '" +rolesTitle.get('owners')+"'");
+        }); 
         
-        it('possible to grant with cycle. ', async () => {
+        it("possible to grant with cycle.", async () => {
             
             // create roles
             await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role2'));
@@ -251,113 +367,9 @@ describe("CommunityERC721 tests", function () {
             expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(false); 
         });
         
-        it('invites test', async () => {   
-
-
-            let privatekey1 = accountOne._signingKey()["privateKey"];
-            let privatekey2 = accountTwo._signingKey()["privateKey"];
-
-            var rolesList;
-        
-            const price = ethers.utils.parseEther('1');
-            const amountETHSendToContract = price.mul(TWO); // 2ETH
-            
-        
-            // send ETH to Contract      
-            await accountThree.sendTransaction({
-                to: CommunityInstance.address, 
-                value: amountETHSendToContract
-            });
-
-            const CommunityInstanceStartingBalance = (await ethers.provider.getBalance(CommunityInstance.address));
-            // create relayers user
-            // Adding
-            await CommunityInstance.connect(accountOne).addMembers([accountTen.address]);
-            await CommunityInstance.connect(accountOne).grantRoles(
-                [accountTen.address], 
-                [rolesTitle.get('relayers')]
-            );
-            rolesList = (await CommunityInstance.connect(accountOne)["getRoles(address)"](accountTen.address));
-            expect(rolesList.includes(rolesTitle.get('relayers'))).to.be.eq(true); 
-            
-            // create roles
-            await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'));
-            await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role2'));
-            await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role3'));
-        
-            // generate messages and signatures
-                
-            //let adminMsg = 'invite:'+CommunityInstance.address+':role1,role2,role3:GregMagarshak';
-            let adminMsg = [
-                'invite',
-                CommunityInstance.address,
-                [
-                    rolesTitle.get('role1'),
-                    rolesTitle.get('role2'),
-                    rolesTitle.get('role3')
-                ].join(','),
-                'GregMagarshak'
-                ].join(':');;
-            let recipientMsg = ''+accountTwo.address+':John Doe';
-            
-            let pSig = await accountOne.signMessage(adminMsg);
-
-            let rpSig = await accountTwo.signMessage(recipientMsg);
-
-            const recipientStartingBalance = (await ethers.provider.getBalance(accountTwo.address));
-            const accountTenStartingBalance = (await ethers.provider.getBalance(accountTen.address));
-
-            // imitate invitePrepare and check it in system
-            await CommunityInstance.connect(accountTen).invitePrepare(pSig,rpSig);
-
-            let invite = await CommunityInstance.connect(accountTen).inviteView(pSig);
-            expect(invite.exists).to.be.true; // 'invite not found';
-            expect(invite.exists && invite.used==false).to.be.true; // 'invite not used before'
-            //console.log('(1)invite.gasCost=',invite.gasCost);
-        
-            // imitate inviteAccept
-            await CommunityInstance.connect(accountTen).inviteAccept(adminMsg, pSig, recipientMsg, rpSig);
-
-            const accountTenEndingBalance = await ethers.provider.getBalance(accountTen.address);
-            const recipientEndingBalance = await ethers.provider.getBalance(accountTwo.address);
-            const CommunityInstanceEndingBalance = (await ethers.provider.getBalance(CommunityInstance.address));
-            
-            // check roles of accountTwo
-            rolesList = await CommunityInstance.connect(accountOne)["getRoles(address)"](accountTwo.address);
-            expect(rolesList.includes(rolesTitle.get('role1'))).to.be.eq(true); 
-            expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(true); 
-            expect(rolesList.includes(rolesTitle.get('role3'))).to.be.eq(true); 
-            
-
-            let rewardAmount = await CommunityInstance.REWARD_AMOUNT();
-            let replenishAmount = await CommunityInstance.REPLENISH_AMOUNT();
-            
-            // if (parseInt((BigNumber(CommunityInstanceStartingBalance).minus(BigNumber(rewardAmount))).toString(10))>0) {
-            //     assert.isTrue(
-            //         parseInt((BigNumber(CommunityInstanceStartingBalance).minus(BigNumber(CommunityInstanceEndinggBalance))).toString(10))>=0, 
-            //         "wrong Reward count"
-            //     );
-            // }
-
-            expect(recipientEndingBalance.sub(recipientStartingBalance)).to.be.eq(replenishAmount); // "wrong replenishAmount"
-            
-            await expect(
-                CommunityInstance.connect(accountTen).invitePrepare(pSig,rpSig)
-            ).to.be.revertedWith("Such signature is already exists");
-            
-            await expect(
-                CommunityInstance.connect(accountTen).inviteAccept(adminMsg, pSig, recipientMsg, rpSig)
-            ).to.be.revertedWith("Such signature is already used");
-            
-            await expect(await CommunityInstance.invitedBy(accountTwo.address)).to.be.eq(accountOne.address); //'does not store invited mapping'
-            await expect(await CommunityInstance.invitedBy(accountTwo.address)).not.to.be.eq(accountNine.address); //'store wrong keys in invited mapping'
-            
-        
-            
-        });
 
         
-        it('test using params as array', async () => {
+        it("test using params as array", async () => {
 
             // create roles
             await CommunityInstance.connect(owner).createRole(rolesTitle.get('role1'));
@@ -474,6 +486,241 @@ describe("CommunityERC721 tests", function () {
             expect(memberCount).to.be.eq(7);
 
         });
+
+        describe("invites", function () {
+            var privatekey1, 
+            privatekey2,
+            CommunityInstanceStartingBalance
+            ;
+            beforeEach("deploying", async() => {
+                privatekey1 = accountOne._signingKey()["privateKey"];
+                privatekey2 = accountTwo._signingKey()["privateKey"];
+               
+                const price = ethers.utils.parseEther('1');
+                const amountETHSendToContract = price.mul(TWO); // 2ETH
+            
+                // send ETH to Contract      
+                await accountThree.sendTransaction({
+                    to: CommunityInstance.address, 
+                    value: amountETHSendToContract
+                });
+
+                const CommunityInstanceStartingBalance = (await ethers.provider.getBalance(CommunityInstance.address));
+
+                // create relayers user
+                // Adding
+                await CommunityInstance.connect(accountOne).addMembers([accountTen.address]);
+                await CommunityInstance.connect(accountOne).grantRoles(
+                    [relayer.address], 
+                    [rolesTitle.get('relayers')]
+                );
+
+                
+                // create roles
+                await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'));
+                await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role2'));
+                await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role3'));
+        
+            });
+            it("signatures mismatch (recipient address not equal)", async () => {   
+                let adminMsg = [
+                    'invite',
+                    CommunityInstance.address,
+                    [
+                        rolesTitle.get('role1'),
+                        rolesTitle.get('role2'),
+                        rolesTitle.get('role3')
+                    ].join(','),
+                    'GregMagarshak'
+                    ].join(':');;
+                let recipientMsg = ''+accountNine.address+':John Doe';
+                
+                let pSig = await accountThree.signMessage(adminMsg);
+
+                let rpSig = await accountTwo.signMessage(recipientMsg);
+
+                // imitate invitePrepare and check it in system
+                await CommunityInstance.connect(relayer).invitePrepare(pSig,rpSig);
+
+                // imitate inviteAccept
+                await expect(
+                    CommunityInstance.connect(relayer).inviteAccept(adminMsg, pSig, recipientMsg, rpSig)
+                ).to.be.revertedWith("Signature are mismatch");
+
+            });
+
+            it("signatures mismatch (contract address not equal)", async () => {   
+                let adminMsg = [
+                    'invite',
+                    accountThree.address,
+                    [
+                        rolesTitle.get('role1'),
+                        rolesTitle.get('role2'),
+                        rolesTitle.get('role3')
+                    ].join(','),
+                    'GregMagarshak'
+                    ].join(':');;
+                let recipientMsg = ''+accountTwo.address+':John Doe';
+                
+                let pSig = await accountThree.signMessage(adminMsg);
+
+                let rpSig = await accountTwo.signMessage(recipientMsg);
+
+                // imitate invitePrepare and check it in system
+                await CommunityInstance.connect(relayer).invitePrepare(pSig,rpSig);
+
+                // imitate inviteAccept
+                await expect(
+                    CommunityInstance.connect(relayer).inviteAccept(adminMsg, pSig, recipientMsg, rpSig)
+                ).to.be.revertedWith("Signature are mismatch");
+
+            });
+
+            it("invites by admins which cant add any role from list", async () => {   
+                let adminMsg = [
+                    'invite',
+                    CommunityInstance.address,
+                    [
+                        rolesTitle.get('role1'),
+                        rolesTitle.get('role2'),
+                        rolesTitle.get('role3')
+                    ].join(','),
+                    'GregMagarshak'
+                    ].join(':');;
+                let recipientMsg = ''+accountTwo.address+':John Doe';
+                
+                let pSig = await accountThree.signMessage(adminMsg);
+
+                let rpSig = await accountTwo.signMessage(recipientMsg);
+
+                // imitate invitePrepare and check it in system
+                await CommunityInstance.connect(relayer).invitePrepare(pSig,rpSig);
+
+                // imitate inviteAccept
+                await expect(
+                    CommunityInstance.connect(relayer).inviteAccept(adminMsg, pSig, recipientMsg, rpSig)
+                ).to.be.revertedWith("Can not add no one role");
+
+            }); 
+
+            it("invites by admins which cant add role (1 of 2)", async () => {   
+                let adminMsg = [
+                    'invite',
+                    CommunityInstance.address,
+                    [
+                        rolesTitle.get('role1'),
+                        rolesTitle.get('role2')
+                    ].join(','),
+                    'GregMagarshak'
+                    ].join(':');
+                
+                await CommunityInstance.connect(owner).addMembers([accountThree.address]);
+                await CommunityInstance.connect(owner).grantRoles(
+                    [accountThree.address], 
+                    [rolesTitle.get('role3')]
+                );
+                await CommunityInstance.connect(owner).manageRole(rolesTitle.get('role3'),rolesTitle.get('role2'));
+
+
+                let recipientMsg = ''+accountTwo.address+':John Doe';
+                
+                let pSig = await accountThree.signMessage(adminMsg);
+
+                let rpSig = await accountTwo.signMessage(recipientMsg);
+
+                // imitate invitePrepare and check it in system
+                await CommunityInstance.connect(relayer).invitePrepare(pSig,rpSig);
+
+                // imitate inviteAccept
+                await CommunityInstance.connect(relayer).inviteAccept(adminMsg, pSig, recipientMsg, rpSig)
+                
+                // check roles of accountTwo
+                rolesList = await CommunityInstance.connect(owner)["getRoles(address)"](accountTwo.address);
+                expect(rolesList.includes(rolesTitle.get('role1'))).to.be.eq(false); 
+                expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(true); 
+
+            }); 
+
+            it("invites test", async () => {   
+
+                var rolesList;
+            
+                rolesList = (await CommunityInstance.connect(owner)["getRoles(address)"](relayer.address));
+                expect(rolesList.includes(rolesTitle.get('relayers'))).to.be.eq(true); 
+
+                
+                // generate messages and signatures
+                    
+                //let adminMsg = 'invite:'+CommunityInstance.address+':role1,role2,role3:GregMagarshak';
+                let adminMsg = [
+                    'invite',
+                    CommunityInstance.address,
+                    [
+                        rolesTitle.get('role1'),
+                        rolesTitle.get('role2'),
+                        rolesTitle.get('role3')
+                    ].join(','),
+                    'GregMagarshak'
+                    ].join(':');;
+                let recipientMsg = ''+accountTwo.address+':John Doe';
+                
+                let pSig = await owner.signMessage(adminMsg);
+
+                let rpSig = await accountTwo.signMessage(recipientMsg);
+
+                const recipientStartingBalance = (await ethers.provider.getBalance(accountTwo.address));
+                const relayerStartingBalance = (await ethers.provider.getBalance(relayer.address));
+
+                // imitate invitePrepare and check it in system
+                await CommunityInstance.connect(relayer).invitePrepare(pSig,rpSig);
+
+                let invite = await CommunityInstance.connect(relayer).inviteView(pSig);
+                expect(invite.exists).to.be.true; // 'invite not found';
+                expect(invite.exists && invite.used==false).to.be.true; // 'invite not used before'
+                //console.log('(1)invite.gasCost=',invite.gasCost);
+            
+                // imitate inviteAccept
+                await CommunityInstance.connect(relayer).inviteAccept(adminMsg, pSig, recipientMsg, rpSig);
+
+                const relayerEndingBalance = await ethers.provider.getBalance(relayer.address);
+                const recipientEndingBalance = await ethers.provider.getBalance(accountTwo.address);
+                const CommunityInstanceEndingBalance = (await ethers.provider.getBalance(CommunityInstance.address));
+                
+                // check roles of accountTwo
+                rolesList = await CommunityInstance.connect(owner)["getRoles(address)"](accountTwo.address);
+                expect(rolesList.includes(rolesTitle.get('role1'))).to.be.eq(true); 
+                expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(true); 
+                expect(rolesList.includes(rolesTitle.get('role3'))).to.be.eq(true); 
+                
+
+                let rewardAmount = await CommunityInstance.REWARD_AMOUNT();
+                let replenishAmount = await CommunityInstance.REPLENISH_AMOUNT();
+                
+                // if (parseInt((BigNumber(CommunityInstanceStartingBalance).minus(BigNumber(rewardAmount))).toString(10))>0) {
+                //     assert.isTrue(
+                //         parseInt((BigNumber(CommunityInstanceStartingBalance).minus(BigNumber(CommunityInstanceEndinggBalance))).toString(10))>=0, 
+                //         "wrong Reward count"
+                //     );
+                // }
+
+                expect(recipientEndingBalance.sub(recipientStartingBalance)).to.be.eq(replenishAmount); // "wrong replenishAmount"
+                
+                await expect(
+                    CommunityInstance.connect(relayer).invitePrepare(pSig,rpSig)
+                ).to.be.revertedWith("Such signature is already exists");
+                
+                await expect(
+                    CommunityInstance.connect(relayer).inviteAccept(adminMsg, pSig, recipientMsg, rpSig)
+                ).to.be.revertedWith("Such signature is already used");
+                
+                await expect(await CommunityInstance.invitedBy(accountTwo.address)).to.be.eq(owner.address); //'does not store invited mapping'
+                await expect(await CommunityInstance.invitedBy(accountTwo.address)).not.to.be.eq(accountNine.address); //'store wrong keys in invited mapping'
+                
+            
+                
+            });
+        });
+
 
     });
 
