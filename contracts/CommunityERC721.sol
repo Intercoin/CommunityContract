@@ -5,11 +5,27 @@ pragma experimental ABIEncoderV2;
 import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/IERC721MetadataUpgradeable.sol";
 
-import "./Community.sol";
+import "./CommunityBase.sol";
+import "./interfaces/ICommunityERC721.sol";
 
-contract CommunityERC721 is Community, IERC721Upgradeable, IERC721MetadataUpgradeable {
+
+contract CommunityERC721 is CommunityBase, IERC721Upgradeable, IERC721MetadataUpgradeable, ICommunityERC721 {
     using StringUtils for *;
-      
+
+    /**
+    * @notice getting part of ERC721
+    * @custom:shortd part of ERC721
+    * @return name 
+    */
+    string public name;
+    
+    /**
+    * @notice getting part of ERC721
+    * @custom:shortd part of ERC721
+    * @return symbol 
+    */
+    string public symbol;
+
     function setRoleURI(
         string memory role,
         string memory roleURI
@@ -210,36 +226,6 @@ contract CommunityERC721 is Community, IERC721Upgradeable, IERC721MetadataUpgrad
     
     /**
     * @notice getting part of ERC721
-    * @custom:shortd part of ERC721
-    * @return name 
-    */
-    function name(
-    ) 
-        external 
-        pure 
-        override 
-        returns (string memory) 
-    {
-        return "Community";
-    }
-
-    /**
-    * @notice getting part of ERC721
-    * @custom:shortd part of ERC721
-    * @return symbol 
-    */
-    function symbol(
-    ) 
-        external 
-        pure 
-        override 
-        returns (string memory)
-    {
-        return "Community";
-    }
-
-    /**
-    * @notice getting part of ERC721
     * @param tokenId token ID
     * @custom:shortd part of ERC721
     * @return tokenuri
@@ -259,6 +245,23 @@ contract CommunityERC721 is Community, IERC721Upgradeable, IERC721MetadataUpgrad
             return _rolesIndices[roleId].roleURI;
         }
         
+    }
+
+    /**
+    * @param name_ erc721 name
+    * @param symbol_ erc721 symbol
+    */
+    function init(
+        string memory name_, 
+        string memory symbol_
+    ) 
+        external 
+        initializer 
+    {
+        name = name_;
+        symbol = symbol_;
+
+        __CommunityBase_init();
     }
 
 }
