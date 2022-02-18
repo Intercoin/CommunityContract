@@ -13,7 +13,7 @@ import "./IntercoinTrait.sol";
 
 import "./lib/PackedSet.sol";
 
-abstract contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuardUpgradeable, IntercoinTrait {
+contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuardUpgradeable, IntercoinTrait {
     
     using PackedSet for PackedSet.Set;
 
@@ -58,23 +58,26 @@ abstract contract CommunityBase is Initializable/*, OwnableUpgradeable*/, Reentr
     mapping (bytes => inviteSignature) inviteSignatures;          
 
     /**
-    * @notice constant role name "owners" in bytes32
     * @custom:shortd role name "owners" in bytes32
+    * @notice constant role name "owners" in bytes32
     */
     bytes32 public constant DEFAULT_OWNERS_ROLE = 0x6f776e6572730000000000000000000000000000000000000000000000000000;
+
     /**
-    * @notice constant role name "admins" in bytes32
     * @custom:shortd role name "admins" in bytes32
+    * @notice constant role name "admins" in bytes32
     */
     bytes32 public constant DEFAULT_ADMINS_ROLE = 0x61646d696e730000000000000000000000000000000000000000000000000000;
+
     /**
-    * @notice constant role name "members" in bytes32
     * @custom:shortd role name "members" in bytes32
+    * @notice constant role name "members" in bytes32
     */
     bytes32 public constant DEFAULT_MEMBERS_ROLE = 0x6d656d6265727300000000000000000000000000000000000000000000000000;
+
     /**
-    * @notice constant role name "relayers" in bytes32
     * @custom:shortd role name "relayers" in bytes32
+    * @notice constant role name "relayers" in bytes32
     */
     bytes32 public constant DEFAULT_RELAYERS_ROLE = 0x72656c6179657273000000000000000000000000000000000000000000000000;
 
@@ -534,12 +537,12 @@ abstract contract CommunityBase is Initializable/*, OwnableUpgradeable*/, Reentr
     
     /**
      * @dev
-     * // ==P==
-     * // format is "<some string data>:<address of communityContract>:<array of rolenames (sep=',')>:<some string data>"        
-     * // invite:0x0A098Eda01Ce92ff4A4CCb7A4fFFb5A43EBC70DC:judges,guests,admins:GregMagarshak
-     * // ==R==
-     * // format is "<address of R wallet>:<name of user>"
-     * // 0x5B38Da6a701c568545dCfcB03FcB875f56beddC4:John Doe
+     * // ==P==  
+     * // format is "<some string data>:<address of communityContract>:<array of rolenames (sep=',')>:<some string data>"          
+     * // invite:0x0A098Eda01Ce92ff4A4CCb7A4fFFb5A43EBC70DC:judges,guests,admins:GregMagarshak  
+     * // ==R==  
+     * // format is "<address of R wallet>:<name of user>"  
+     * // 0x5B38Da6a701c568545dCfcB03FcB875f56beddC4:John Doe  
      * 
      * @param p invite message of admin whom generate messageHash and signed it
      * @param pSig signature of admin whom generate invite and signed it
