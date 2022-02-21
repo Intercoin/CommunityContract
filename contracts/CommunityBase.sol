@@ -686,7 +686,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
             timestamp: uint64(block.timestamp),
             extra: uint32(_roles[targetRole])
        }));
-       grantedBy[msg.sender].push(ActionInfo({
+       granted[msg.sender].push(ActionInfo({
             actor: account,
             timestamp: uint64(block.timestamp),
             extra: uint32(_roles[targetRole])
