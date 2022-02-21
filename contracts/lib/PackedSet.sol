@@ -30,14 +30,14 @@ library PackedSet {
         // where 0xffff, 0x1111, 0x3333 it's 65535,4369,13107 respectively,  with indexes 0,1,2
         mapping(uint256 => uint256) list;
 
-        uint256 sizeAmount;
+        uint256 size;
 
     }
   
     function _push(Set storage _set, uint256 value) private returns (bool ret) {
         (,ret) = _contains(_set, value);
         if (!ret) {
-            _update(_set, _set.sizeAmount, value);
+            _update(_set, _set.size, value);
             ret = !ret;
         }
         return ret;
@@ -47,13 +47,13 @@ library PackedSet {
         //uint256 key;
         (uint256 key, bool ret) = _contains(_set, value);
         if (ret) {
-            uint256 lastKey = _set.sizeAmount-1;
+            uint256 lastKey = _set.size-1;
             uint256 lastVal = _get(_set, lastKey);
 
             _update(_set, key, lastVal);
 
             _update(_set, lastKey, 0);
-            _set.sizeAmount -= 1;
+            _set.size -= 1;
             
             return true;
         } else {
@@ -74,13 +74,13 @@ library PackedSet {
     }
 
      /**
-     * @dev Returns true if the value is in the set. O(sizeAmount + maxSizeInUint256).
+     * @dev Returns true if the value is in the set. O(size + maxSizeInUint256).
      */
     function _contains(Set storage _set, uint256 value) private view returns (uint256, bool) {
         uint256 maxSizeInUint256 = 2**pow;
         uint256 bitOffset;
 
-        for (uint256 i=0; i < _set.sizeAmount; i++) {
+        for (uint256 i=0; i < _set.size; i++) {
             for (uint256 j=0; j < maxSizeInUint256; j++) {
                 bitOffset = (256-(uint256(j)*powMaxVal));
                 if (value == uint256( (_set.list[i] & (( ((2**(256/(2**pow)))-1) )<<bitOffset))>>bitOffset)) {
@@ -105,7 +105,7 @@ library PackedSet {
 
         _set.list[mapId] = (mapVal & zeroMask | valueMask);
 
-        _set.sizeAmount += 1;
+        _set.size += 1;
     }
 
     function get(Set storage _set, uint256 key) internal view returns (uint16 ret) {
@@ -125,7 +125,7 @@ library PackedSet {
     }
 
     function length(Set storage _set) internal view returns (uint256) {
-        return _set.sizeAmount;
+        return _set.size;
     }
     
     // function getZeroSlot(Set storage _set) internal view returns(uint256) {
