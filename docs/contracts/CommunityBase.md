@@ -8,7 +8,7 @@ Once installed will be use methods:
 
 | **method name** | **called by** | **description** |
 |-|-|-|
-|<a href="#addmembers">addMembers</a>|everyone|Added participants to role members|
+|<a href="#addmembers">addMembers</a>|owners|Added participants to role members|
 |<a href="#createrole">createRole</a>|everyone|creating new role. can called owners role only|
 |<a href="#donateeth">donateETH</a>|everyone|one of the way to donate ETH to the contract in separate method. |
 |<a href="#getintercoinaddress">getIntercoinAddress</a>|everyone||
@@ -24,7 +24,7 @@ Once installed will be use methods:
 |<a href="#managerole">manageRole</a>|everyone|allow managing another role|
 |<a href="#membercount">memberCount</a>|everyone|all members count|
 |<a href="#membercount">memberCount</a>|everyone|count of members for role|
-|<a href="#removemembers">removeMembers</a>|everyone|Removed participants from  role members|
+|<a href="#removemembers">removeMembers</a>|owners|Removed participants from  role members|
 |<a href="#revokeroles">revokeRoles</a>|everyone|Removed Role for member|
 |<a href="#setintercoinaddress">setIntercoinAddress</a>|everyone||
 ## *Events*

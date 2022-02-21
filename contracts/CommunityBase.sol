@@ -253,12 +253,14 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     /**
      * @notice Added participants to role members
      * @custom:shortd Added participants to role members
+     * @custom:calledby owners
      * @param members participant's addresses
      */
     function addMembers(
         address[] memory members
     )
-        canManage(msg.sender, DEFAULT_MEMBERS_ROLE)
+        //canManage(msg.sender, DEFAULT_MEMBERS_ROLE)
+        ifTargetInRole(msg.sender, DEFAULT_OWNERS_ROLE)
         public 
     {
         
@@ -272,12 +274,14 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     /**
      * @notice Removed participants from  role members
      * @custom:shortd Removed participants from  role members
+     * @custom:calledby owners
      * @param members participant's addresses
      */
     function removeMembers(
         address[] memory members
     )
-        canManage(msg.sender, DEFAULT_MEMBERS_ROLE)
+        //canManage(msg.sender, DEFAULT_MEMBERS_ROLE)
+        ifTargetInRole(msg.sender, DEFAULT_OWNERS_ROLE)
         public 
     {
         uint256 len = members.length;

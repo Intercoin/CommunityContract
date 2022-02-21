@@ -231,7 +231,7 @@ describe("Community", function () {
             await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'));
             await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role2'));
             
-            // ownbale check
+            // ownable check
             await expect(
                 CommunityInstance.connect(accountThree).manageRole(rolesTitle.get('role1'),rolesTitle.get('role2'))
             ).to.be.revertedWith("Target account must be with role '" +rolesTitle.get('owners')+"'");
@@ -266,8 +266,8 @@ describe("Community", function () {
             
             await CommunityInstance.connect(accountOne).grantRoles([accountTwo.address], [rolesTitle.get('role1')]);
 
-            //add member by accountTwo
-            await CommunityInstance.connect(accountTwo).addMembers([accountFourth.address]);
+            //add member 
+            await CommunityInstance.connect(accountOne).addMembers([accountFourth.address]);
 
             //add role2 to accountFourth by accountTwo
             await CommunityInstance.connect(accountTwo).grantRoles([accountFourth.address], [rolesTitle.get('role2')]);
@@ -348,15 +348,15 @@ describe("Community", function () {
             expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(true); 
             
             // account 3
-            await CommunityInstance.connect(accountTwo).addMembers([accountThree.address]);
+            await CommunityInstance.connect(accountOne).addMembers([accountThree.address]);
             await CommunityInstance.connect(accountTwo).grantRoles([accountThree.address], [rolesTitle.get('role3')]);
             
             // account 4
-            await CommunityInstance.connect(accountThree).addMembers([accountFourth.address]);
+            await CommunityInstance.connect(accountOne).addMembers([accountFourth.address]);
             await CommunityInstance.connect(accountThree).grantRoles([accountFourth.address], [rolesTitle.get('role4')]);
             
             // account 5
-            await CommunityInstance.connect(accountFourth).addMembers([accountFive.address]);
+            await CommunityInstance.connect(accountOne).addMembers([accountFive.address]);
             await CommunityInstance.connect(accountFourth).grantRoles([accountFive.address], [rolesTitle.get('role5')]);
             
             // account 5 remove account2 from role2

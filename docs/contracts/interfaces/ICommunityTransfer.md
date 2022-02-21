@@ -1,6 +1,8 @@
-# Im
+# ICommunityTransfer
 
-contracts/CommunityFactory.sol
+contracts/interfaces/ICommunityTransfer.sol
+
+> Title: interface helps to transfer owners from factory to sender that produce instance
 
 # Overview
 
