@@ -8,9 +8,10 @@ Once installed will be use methods:
 
 | **method name** | **called by** | **description** |
 |-|-|-|
+|<a href="#ethdonate">ETHDonate</a>|everyone|one of the way to donate ETH to the contract in separate method. |
+|<a href="#ethwithdraw">ETHWithdraw</a>|owners|the way to withdraw ETH from the contract.|
 |<a href="#addmembers">addMembers</a>|owners|Added participants to role members|
 |<a href="#createrole">createRole</a>|everyone|creating new role. can called owners role only|
-|<a href="#donateeth">donateETH</a>|everyone|one of the way to donate ETH to the contract in separate method. |
 |<a href="#getintercoinaddress">getIntercoinAddress</a>|everyone||
 |<a href="#getmembers">getMembers</a>|everyone|all members belong to Role|
 |<a href="#getmembers">getMembers</a>|everyone|`DEFAULT_MEMBERS_ROLE` members|
@@ -234,6 +235,18 @@ Arguments
 
 
 ## *Functions*
+### ETHDonate
+
+> Notice: one of the way to donate ETH to the contract in separate method. Second way is send directly `receive()`
+
+
+
+### ETHWithdraw
+
+> Notice: the way to withdraw ETH from the contract. called by owners only 
+
+
+
 ### addMembers
 
 > Notice: Added participants to role members
@@ -255,12 +268,6 @@ Arguments
 | **name** | **type** | **description** |
 |-|-|-|
 | role | string | role name |
-
-
-
-### donateETH
-
-> Notice: one of the way to donate ETH to the contract in separate method. Second way is send directly `receive()`
 
 
 

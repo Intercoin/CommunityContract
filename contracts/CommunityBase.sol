@@ -239,17 +239,29 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         
     }
 
+    ///////////////////////////////////////////////////////////
+    /// public  section
+    ///////////////////////////////////////////////////////////
+
     /**
     * @notice one of the way to donate ETH to the contract in separate method. Second way is send directly `receive()`
     * @custom:shortd one of the way to donate ETH to the contract in separate method. 
     */
-    function donateETH() public payable {} 
-    
+    function ETHDonate() public payable {} 
 
-    ///////////////////////////////////////////////////////////
-    /// public  section
-    ///////////////////////////////////////////////////////////
-    
+    /**
+    * @notice the way to withdraw ETH from the contract. called by owners only 
+    * @custom:shortd the way to withdraw ETH from the contract.
+    * @custom:calledby owners
+    */
+    function ETHWithdraw(
+    ) 
+        public 
+        ifTargetInRole(msg.sender, DEFAULT_OWNERS_ROLE)
+        nonReentrant()
+    {
+        payable(msg.sender).transfer(address(this).balance);
+    } 
     /**
      * @notice Added participants to role members
      * @custom:shortd Added participants to role members

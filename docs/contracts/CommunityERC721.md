@@ -12,15 +12,15 @@ Once installed will be use methods:
 |<a href="#default_members_role">DEFAULT_MEMBERS_ROLE</a>|everyone||
 |<a href="#default_owners_role">DEFAULT_OWNERS_ROLE</a>|everyone||
 |<a href="#default_relayers_role">DEFAULT_RELAYERS_ROLE</a>|everyone||
+|<a href="#ethdonate">ETHDonate</a>|everyone|one of the way to donate ETH to the contract in separate method. |
+|<a href="#ethwithdraw">ETHWithdraw</a>|owners|the way to withdraw ETH from the contract.|
 |<a href="#replenish_amount">REPLENISH_AMOUNT</a>|everyone||
 |<a href="#reward_amount">REWARD_AMOUNT</a>|everyone||
 |<a href="#addmembers">addMembers</a>|owners|Added participants to role members|
 |<a href="#approve">approve</a>|everyone|part of ERC721|
 |<a href="#balanceof">balanceOf</a>|everyone|part of ERC721|
 |<a href="#createrole">createRole</a>|everyone|creating new role. can called owners role only|
-|<a href="#donateeth">donateETH</a>|everyone|one of the way to donate ETH to the contract in separate method. |
 |<a href="#getapproved">getApproved</a>|everyone|part of ERC721|
-|<a href="#getintercoinaddress">getIntercoinAddress</a>|everyone||
 |<a href="#getmembers">getMembers</a>|everyone|all members belong to Role|
 |<a href="#getmembers">getMembers</a>|everyone|`DEFAULT_MEMBERS_ROLE` members|
 |<a href="#getroles">getRoles</a>|everyone|all roles|
@@ -218,6 +218,18 @@ Outputs
 
 
 
+### ETHDonate
+
+> Notice: one of the way to donate ETH to the contract in separate method. Second way is send directly `receive()`
+
+
+
+### ETHWithdraw
+
+> Notice: the way to withdraw ETH from the contract. called by owners only 
+
+
+
 ### REPLENISH_AMOUNT
 
 > Notice: constant reward amount that user-recepient will replenish
@@ -297,12 +309,6 @@ Arguments
 
 
 
-### donateETH
-
-> Notice: one of the way to donate ETH to the contract in separate method. Second way is send directly `receive()`
-
-
-
 ### getApproved
 
 > Notice: getting part of ERC721
@@ -312,18 +318,6 @@ Arguments
 | **name** | **type** | **description** |
 |-|-|-|
 | -/- | uint256 |  |
-
-Outputs
-
-| **name** | **type** | **description** |
-|-|-|-|
-| -/- | address |  |
-
-
-
-### getIntercoinAddress
-
-> Notice: got stored intercoin address
 
 Outputs
 

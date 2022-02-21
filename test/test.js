@@ -99,6 +99,42 @@ describe("Community", function () {
 
         });
 
+        it("can donate/withdraw ETH", async () => {
+            const price = ethers.utils.parseEther('1');
+            const amountETHSendToContract = price.mul(TWO); // 2ETH
+        
+            let balanceBeforeAll = (await ethers.provider.getBalance(CommunityInstance.address));
+
+            // send ETH to Contract      
+            await CommunityInstance.connect(accountThree).ETHDonate({value: amountETHSendToContract});
+
+            let balanceAfterDonate = (await ethers.provider.getBalance(CommunityInstance.address));
+
+            await expect(
+                CommunityInstance.connect(accountThree).ETHWithdraw()
+            ).to.be.revertedWith("Target account must be with role '" +rolesTitle.get('owners')+"'");
+
+            let balanceOwnerBefore =  (await ethers.provider.getBalance(owner.address));
+            let tx = await CommunityInstance.connect(owner).ETHWithdraw();
+            let balanceOwnerAfterWithdraw = (await ethers.provider.getBalance(owner.address));
+            let balanceAfterWithdraw = (await ethers.provider.getBalance(CommunityInstance.address));
+
+            expect(balanceBeforeAll).to.be.eq(ZERO);
+            expect(balanceAfterDonate).to.be.eq(amountETHSendToContract);
+            expect(balanceAfterWithdraw).to.be.eq(ZERO);
+            expect(balanceOwnerAfterWithdraw).to.be.gt(balanceOwnerBefore);
+
+            let txReceipt = await ethers.provider.getTransactionReceipt(tx.hash);
+            let transactionFee = BigNumber.from(txReceipt.cumulativeGasUsed).mul(
+                                    BigNumber.from(txReceipt.effectiveGasPrice)
+                                );
+            expect(
+                balanceOwnerAfterWithdraw.sub(balanceOwnerBefore).add(transactionFee)
+            ).to.be.eq(amountETHSendToContract); // transaction fee is paid by the contract
+
+        });
+
+
         it("creator must be owner and admin", async () => {
             
             var rolesList = (await CommunityInstance.connect(owner)["getRoles(address)"](owner.address));
@@ -129,7 +165,7 @@ describe("Community", function () {
         
         
         it("can create new role", async () => {
-            await expect(CommunityInstance.connect(accountThree).createRole(rolesTitle.get('role1'))).to.be.revertedWith("Target account must be with role '" +rolesTitle.get('owners')+"''");
+            await expect(CommunityInstance.connect(accountThree).createRole(rolesTitle.get('role1'))).to.be.revertedWith("Target account must be with role '" +rolesTitle.get('owners')+"'");
             await expect(CommunityInstance.connect(accountOne).createRole(rolesTitle.get('owners'))).to.be.revertedWith("Such role is already exists");
             await expect(CommunityInstance.connect(accountOne).createRole(rolesTitle.get('admins'))).to.be.revertedWith("Such role is already exists");
             await expect(CommunityInstance.connect(accountOne).createRole(rolesTitle.get('members'))).to.be.revertedWith("Such role is already exists");
