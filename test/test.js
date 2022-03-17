@@ -404,124 +404,168 @@ describe("Community", function () {
         });
         
 
+        describe("test using params as array", function () {
+            beforeEach("prepare", async() => {
+                
+                // create roles
+                await CommunityInstance.connect(owner).createRole(rolesTitle.get('role1'));
+                await CommunityInstance.connect(owner).createRole(rolesTitle.get('role2'));
+                await CommunityInstance.connect(owner).createRole(rolesTitle.get('role3'));
+                await CommunityInstance.connect(owner).createRole(rolesTitle.get('role4'));
+
+                // Adding
+                await CommunityInstance.connect(owner).addMembers(
+                    [
+                        accountOne.address,
+                        accountTwo.address,
+                        accountThree.address,
+                        accountFourth.address,
+                        accountFive.address,
+                        accountSix.address,
+                        accountSeven.address
+                    ]
+                );
+
+                await CommunityInstance.connect(owner).grantRoles(
+                    [
+                        accountOne.address,
+                        accountTwo.address,
+                        accountThree.address
+                    ], 
+                    [
+                        rolesTitle.get('role1'),
+                        rolesTitle.get('role2'),
+                        rolesTitle.get('role3'),
+                    ]
+                );
+                await CommunityInstance.connect(owner).grantRoles(
+                    [
+                        accountFourth.address,
+                        accountFive.address
+                    ], 
+                    [
+                        rolesTitle.get('role2'),
+                        rolesTitle.get('role3')
+                    ]
+                );
+                await CommunityInstance.connect(owner).grantRoles(
+                    [
+                        accountSix.address,
+                        accountSeven.address
+                    ], 
+                    [
+                        rolesTitle.get('role1'),
+                        rolesTitle.get('role2')
+                    ]
+                );
+
+            }); 
+
+            it("check getRoles(address)", async () => {
+
+                
+                ///// checking by Members
+                var rolesList;
+                // accountOne
+                rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountOne.address));
+                expect(rolesList.includes(rolesTitle.get('role1'))).to.be.eq(true); 
+                expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(true); 
+                expect(rolesList.includes(rolesTitle.get('role3'))).to.be.eq(true); 
+                expect(rolesList.includes(rolesTitle.get('role4'))).to.be.eq(false); 
+                // accountTwo
+                rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountTwo.address));
+                expect(rolesList.includes(rolesTitle.get('role1'))).to.be.eq(true); 
+                expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(true); 
+                expect(rolesList.includes(rolesTitle.get('role3'))).to.be.eq(true); 
+                expect(rolesList.includes(rolesTitle.get('role4'))).to.be.eq(false); 
+                // accountThree
+                rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountThree.address));
+                expect(rolesList.includes(rolesTitle.get('role1'))).to.be.eq(true); 
+                expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(true); 
+                expect(rolesList.includes(rolesTitle.get('role3'))).to.be.eq(true); 
+                expect(rolesList.includes(rolesTitle.get('role4'))).to.be.eq(false); 
+                // accountFourth
+                rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountFourth.address));
+                expect(rolesList.includes(rolesTitle.get('role1'))).to.be.eq(false); 
+                expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(true); 
+                expect(rolesList.includes(rolesTitle.get('role3'))).to.be.eq(true); 
+                expect(rolesList.includes(rolesTitle.get('role4'))).to.be.eq(false); 
+                // accountFive
+                rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountFive.address));
+                expect(rolesList.includes(rolesTitle.get('role1'))).to.be.eq(false); 
+                expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(true); 
+                expect(rolesList.includes(rolesTitle.get('role3'))).to.be.eq(true); 
+                expect(rolesList.includes(rolesTitle.get('role4'))).to.be.eq(false); 
+                // accountSix
+                rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountSix.address));
+                expect(rolesList.includes(rolesTitle.get('role1'))).to.be.eq(true); 
+                expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(true); 
+                expect(rolesList.includes(rolesTitle.get('role3'))).to.be.eq(false); 
+                expect(rolesList.includes(rolesTitle.get('role4'))).to.be.eq(false); 
+                // accountSeven
+                rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountSeven.address));
+                expect(rolesList.includes(rolesTitle.get('role1'))).to.be.eq(true); 
+                expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(true); 
+                expect(rolesList.includes(rolesTitle.get('role3'))).to.be.eq(false); 
+                expect(rolesList.includes(rolesTitle.get('role4'))).to.be.eq(false); 
+
+            });
+
+            it("check getRoles(address[])", async () => {
+                let rolesList;
+
+                rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address[])"]([accountTwo.address, accountThree.address]));
+                expect(rolesList.includes(rolesTitle.get('role1'))).to.be.eq(true); 
+                expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(true); 
+                expect(rolesList.includes(rolesTitle.get('role3'))).to.be.eq(true); 
+                expect(rolesList.includes(rolesTitle.get('role4'))).to.be.eq(false); 
+
+                // 6 + (twice)internal role "members"
+                expect(rolesList.length).to.be.eq(8);
+                
+                rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address[])"]([accountThree.address, accountFive.address]));
+                expect(rolesList.includes(rolesTitle.get('role1'))).to.be.eq(true); 
+                expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(true); 
+                expect(rolesList.includes(rolesTitle.get('role3'))).to.be.eq(true); 
+                expect(rolesList.includes(rolesTitle.get('role4'))).to.be.eq(false); 
+
+                // 5 + (twice)internal role "members"
+                expect(rolesList.length).to.be.eq(7);
+            });
+
+            it("check memberCount(string)", async () => {
+                let memberCount;
+                // role1
+                memberCount = (await CommunityInstance.connect(accountTen)["memberCount(string)"](rolesTitle.get('role1')));
+                expect(memberCount).to.be.eq(5);
+                // role2
+                memberCount = (await CommunityInstance.connect(accountTen)["memberCount(string)"](rolesTitle.get('role2')));
+                expect(memberCount).to.be.eq(7);
+                // role3
+                memberCount = (await CommunityInstance.connect(accountTen)["memberCount(string)"](rolesTitle.get('role3')));
+                expect(memberCount).to.be.eq(5);
+                // role4
+                memberCount = (await CommunityInstance.connect(accountTen)["memberCount(string)"](rolesTitle.get('role4')));
+                expect(memberCount).to.be.eq(0);
+            });
+
+            it("check memberCount()", async () => {
+                let memberCount = (await CommunityInstance.connect(accountTen)["memberCount()"]());
+                expect(memberCount).to.be.eq(7);
+            });
+
+            it("check getMembers(address[])", async () => {
+                let allMembersInRole1AndRole2 = await CommunityInstance.connect(accountTen)["getMembers(string[])"]([rolesTitle.get('role1'), rolesTitle.get('role2')]);
+
+                // accounts in role1 - One, Two,Three, Six, Seven
+                // accounts in role2 - One, Two,Three, Fourth, Five, Six, Seven
+                expect(allMembersInRole1AndRole2.length).to.be.eq(12); 
+                
+            });
+            
+        }); 
         
-        it("test using params as array", async () => {
-
-            // create roles
-            await CommunityInstance.connect(owner).createRole(rolesTitle.get('role1'));
-            await CommunityInstance.connect(owner).createRole(rolesTitle.get('role2'));
-            await CommunityInstance.connect(owner).createRole(rolesTitle.get('role3'));
-            await CommunityInstance.connect(owner).createRole(rolesTitle.get('role4'));
-
-            // Adding
-            await CommunityInstance.connect(owner).addMembers(
-                [
-                    accountOne.address,
-                    accountTwo.address,
-                    accountThree.address,
-                    accountFourth.address,
-                    accountFive.address,
-                    accountSix.address,
-                    accountSeven.address
-                ]
-            );
-
-            await CommunityInstance.connect(owner).grantRoles(
-                [
-                    accountOne.address,
-                    accountTwo.address,
-                    accountThree.address
-                ], 
-                [
-                    rolesTitle.get('role1'),
-                    rolesTitle.get('role2'),
-                    rolesTitle.get('role3'),
-                ]
-            );
-            await CommunityInstance.connect(owner).grantRoles(
-                [
-                    accountFourth.address,
-                    accountFive.address
-                ], 
-                [
-                    rolesTitle.get('role2'),
-                    rolesTitle.get('role3')
-                ]
-            );
-            await CommunityInstance.connect(owner).grantRoles(
-                [
-                    accountSix.address,
-                    accountSeven.address
-                ], 
-                [
-                    rolesTitle.get('role1'),
-                    rolesTitle.get('role2')
-                ]
-            );
-
-            ///// checking by Members
-            var rolesList;
-            // accountOne
-            rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountOne.address));
-            expect(rolesList.includes(rolesTitle.get('role1'))).to.be.eq(true); 
-            expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(true); 
-            expect(rolesList.includes(rolesTitle.get('role3'))).to.be.eq(true); 
-            expect(rolesList.includes(rolesTitle.get('role4'))).to.be.eq(false); 
-            // accountTwo
-            rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountTwo.address));
-            expect(rolesList.includes(rolesTitle.get('role1'))).to.be.eq(true); 
-            expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(true); 
-            expect(rolesList.includes(rolesTitle.get('role3'))).to.be.eq(true); 
-            expect(rolesList.includes(rolesTitle.get('role4'))).to.be.eq(false); 
-            // accountThree
-            rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountThree.address));
-            expect(rolesList.includes(rolesTitle.get('role1'))).to.be.eq(true); 
-            expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(true); 
-            expect(rolesList.includes(rolesTitle.get('role3'))).to.be.eq(true); 
-            expect(rolesList.includes(rolesTitle.get('role4'))).to.be.eq(false); 
-            // accountFourth
-            rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountFourth.address));
-            expect(rolesList.includes(rolesTitle.get('role1'))).to.be.eq(false); 
-            expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(true); 
-            expect(rolesList.includes(rolesTitle.get('role3'))).to.be.eq(true); 
-            expect(rolesList.includes(rolesTitle.get('role4'))).to.be.eq(false); 
-            // accountFive
-            rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountFive.address));
-            expect(rolesList.includes(rolesTitle.get('role1'))).to.be.eq(false); 
-            expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(true); 
-            expect(rolesList.includes(rolesTitle.get('role3'))).to.be.eq(true); 
-            expect(rolesList.includes(rolesTitle.get('role4'))).to.be.eq(false); 
-            // accountSix
-            rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountSix.address));
-            expect(rolesList.includes(rolesTitle.get('role1'))).to.be.eq(true); 
-            expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(true); 
-            expect(rolesList.includes(rolesTitle.get('role3'))).to.be.eq(false); 
-            expect(rolesList.includes(rolesTitle.get('role4'))).to.be.eq(false); 
-            // accountSeven
-            rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountSeven.address));
-            expect(rolesList.includes(rolesTitle.get('role1'))).to.be.eq(true); 
-            expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(true); 
-            expect(rolesList.includes(rolesTitle.get('role3'))).to.be.eq(false); 
-            expect(rolesList.includes(rolesTitle.get('role4'))).to.be.eq(false); 
-
-            var memberCount;
-            // role1
-            memberCount = (await CommunityInstance.connect(accountTen)["memberCount(string)"](rolesTitle.get('role1')));
-            expect(memberCount).to.be.eq(5);
-            // role2
-            memberCount = (await CommunityInstance.connect(accountTen)["memberCount(string)"](rolesTitle.get('role2')));
-            expect(memberCount).to.be.eq(7);
-            // role3
-            memberCount = (await CommunityInstance.connect(accountTen)["memberCount(string)"](rolesTitle.get('role3')));
-            expect(memberCount).to.be.eq(5);
-            // role4
-            memberCount = (await CommunityInstance.connect(accountTen)["memberCount(string)"](rolesTitle.get('role4')));
-            expect(memberCount).to.be.eq(0);
-            // all members
-            memberCount = (await CommunityInstance.connect(accountTen)["memberCount()"]());
-            expect(memberCount).to.be.eq(7);
-
-        });
+        
 
         describe("invites", function () {
             var privatekey1, 

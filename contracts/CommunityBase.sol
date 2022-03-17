@@ -423,7 +423,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         
         _manageRole(sourceRole.stringToBytes32(), targetRole.stringToBytes32());
     }
-    
+
     /**
      * @notice Returns all members belong to Role
      * @custom:shortd all members belong to Role
@@ -450,6 +450,60 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     }
     
     /**
+     * @dev can be duplicate items in output. see https://github.com/Intercoin/CommunityContract/issues/4#issuecomment-1049797389
+     * @notice Returns all members belong to Role
+     * @custom:shortd all members belong to Role
+     * @param roles array of roles name
+     * @return l array of address 
+     */
+    function getMembers(
+        string[] memory roles
+    ) 
+        public 
+        view
+        returns(address[] memory l)
+    {
+        if (roles.length == 0) {
+            l = new address[](0);
+        } else {
+            
+            bytes32 roleBytes32;
+            uint8 roleIndex;
+            uint256 len;
+            uint256 tmplen;
+
+            for (uint256 j = 0; j < roles.length; j++) {
+                roleBytes32 = roles[j].stringToBytes32();
+                roleIndex = _roles[roleBytes32];
+
+                tmplen = _rolesIndices[roleIndex].membersByRoles.length();
+                len += tmplen;
+            }
+
+            l = new address[](len);
+            
+            uint256 ilen;
+            for (uint256 j = 0; j < roles.length; j++) {
+                uint256 i;
+
+                roleBytes32 = roles[j].stringToBytes32();
+                roleIndex = _roles[roleBytes32];
+
+                tmplen = _rolesIndices[roleIndex].membersByRoles.length();
+
+                for (i = 0; i < tmplen; i++) {
+                    l[ilen] = _rolesIndices[roleIndex].membersByRoles.at(i);
+                    ilen += 1;
+                }
+            }
+
+        }
+
+        return l;
+       
+    }
+    
+    /**
      * @notice if call without params then returns all members belong to `DEFAULT_MEMBERS_ROLE`
      * @custom:shortd `DEFAULT_MEMBERS_ROLE` members
      * @return array of address 
@@ -461,6 +515,46 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         returns(address[] memory)
     {
         return getMembers(DEFAULT_MEMBERS_ROLE.bytes32ToString());
+    }
+    
+    /**
+     * @dev can be duplicate items in output. see https://github.com/Intercoin/CommunityContract/issues/4#issuecomment-1049797389
+     * @notice Returns all roles which member belong to
+     * @custom:shortd member's roles
+     * @param members member's addresses
+     * @return l array of roles 
+     */
+    function getRoles(
+        address[] memory members
+    ) 
+        public 
+        view
+        returns(string[] memory l)
+    {
+
+        uint256 len;
+        uint256 tmplen;
+
+            for (uint256 j = 0; j < members.length; j++) {
+                tmplen = _rolesByMember[members[j]].length();
+                len += tmplen;
+            }
+
+            l = new string[](len);
+            
+            uint256 ilen;
+            for (uint256 j = 0; j < members.length; j++) {
+                uint256 i;
+
+                tmplen = _rolesByMember[members[j]].length();
+
+                for (i = 0; i < tmplen; i++) {
+                    l[ilen] = _rolesIndices[uint8(_rolesByMember[members[j]].get(i))].name.bytes32ToString();
+                    ilen += 1;
+                }
+            }
+
+        return l;
     }
     
     /**
@@ -485,8 +579,9 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         }
         return l;
     }
-    
+
     /**
+     * @dev can be duplicate items in output. see https://github.com/Intercoin/CommunityContract/issues/4#issuecomment-1049797389
      * @notice if call without params then returns all existing roles 
      * @custom:shortd all roles
      * @return array of roles 

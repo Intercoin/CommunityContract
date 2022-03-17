@@ -22,8 +22,10 @@ Once installed will be use methods:
 |<a href="#createrole">createRole</a>|everyone|creating new role. can called owners role only|
 |<a href="#getapproved">getApproved</a>|everyone|part of ERC721|
 |<a href="#getmembers">getMembers</a>|everyone|all members belong to Role|
+|<a href="#getmembers">getMembers</a>|everyone|all members belong to Role|
 |<a href="#getmembers">getMembers</a>|everyone|`DEFAULT_MEMBERS_ROLE` members|
 |<a href="#getroles">getRoles</a>|everyone|all roles|
+|<a href="#getroles">getRoles</a>|everyone|member's roles|
 |<a href="#getroles">getRoles</a>|everyone|member's roles|
 |<a href="#grantroles">grantRoles</a>|everyone|Added new Roles for members|
 |<a href="#granted">granted</a>|everyone||
@@ -331,6 +333,26 @@ Outputs
 
 > Notice: Returns all members belong to Role
 
+> Details: can be duplicate items in output. see https://github.com/Intercoin/CommunityContract/issues/4#issuecomment-1049797389
+
+Arguments
+
+| **name** | **type** | **description** |
+|-|-|-|
+| roles | string[] | array of roles name |
+
+Outputs
+
+| **name** | **type** | **description** |
+|-|-|-|
+| l | address[] | array of address  |
+
+
+
+### getMembers
+
+> Notice: Returns all members belong to Role
+
 Arguments
 
 | **name** | **type** | **description** |
@@ -361,11 +383,33 @@ Outputs
 
 > Notice: if call without params then returns all existing roles 
 
+> Details: can be duplicate items in output. see https://github.com/Intercoin/CommunityContract/issues/4#issuecomment-1049797389
+
 Outputs
 
 | **name** | **type** | **description** |
 |-|-|-|
 | -/- | string[] | array of roles  |
+
+
+
+### getRoles
+
+> Notice: Returns all roles which member belong to
+
+> Details: can be duplicate items in output. see https://github.com/Intercoin/CommunityContract/issues/4#issuecomment-1049797389
+
+Arguments
+
+| **name** | **type** | **description** |
+|-|-|-|
+| members | address[] | member's addresses |
+
+Outputs
+
+| **name** | **type** | **description** |
+|-|-|-|
+| l | string[] | array of roles  |
 
 
 
