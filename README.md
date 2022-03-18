@@ -227,18 +227,18 @@ exists|bool|if true invite is exist
 
 
 ## Example to use
-1.	add several users to role 'contest-users'
-	* owner create new role 'contest-users' by calling method `createRole('contest-users')`
+1.	add several users to role 'contest/judges'
+	* owner create new role 'contest/judges' by calling method `createRole('contest/judges')`
 	* owner (or some1 who can call `addMembers`) added users by calling method `addMembers(['<address>'])`
-	* owner (or some1 who can manage role 'contest-users') added role to member by calling `addRoles(['<address>'],['contest-users'])`
-	* now any1 who want view members of 'contest-users' can call method `getMembers(['contest-users'])` 
-2. create sub-admins who can add several users to role 'escrow-users'
-	*	owner create new role 'sub-admins' by calling method `createRole('sub-admins')`
+	* owner (or some1 who can manage role 'contest/judges') added role to member by calling `addRoles(['<address>'],['contest/judges'])`
+	* now any1 who want view members of 'contest/judges' can call method `getMembers(['contest/judges'])` 
+2. create contest/admins who can add several users to role 'escrow-users'
+	*	owner create new role 'contest/admins' by calling method `createRole('contest/admins')`
 	*	owner create new role 'escrow-users' by calling method `createRole('escrow-users')`
-	*   owner allow role 'sub-admins' manage role 'escrow-users'  by calling `manageRole('sub-admins','escrow-users')`
+	*   owner allow role 'contest/admins' manage role 'escrow-users'  by calling `manageRole('contest/admins','escrow-users')`
 	* owner added sub-admin 
 		* call `addMembers(['<subadmin address>'])`
-		* add role to sub-admin by calling `addRoles(['<subadmin  address>'],['sub-admins'])`
+		* add role to sub-admin by calling `addRoles(['<subadmin  address>'],['contest/admins'])`
 	* now sub-admin can added new escrow users
 		* call `addMembers(['<address1>','<address2>','<address3>'])`
 		* add role to user by calling `addRoles(['<address1>','<address2>','<address3>'],['escrow-users'])`
