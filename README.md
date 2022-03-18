@@ -227,42 +227,5 @@ exists|bool|if true invite is exist
 
 
 ## Example to use
-1.	add several users to role 'contest/judges'
-	* owner create new role 'contest/judges' by calling method `createRole('contest/judges')`
-	* owner (or some1 who can call `addMembers`) added users by calling method `addMembers(['<address>'])`
-	* owner (or some1 who can manage role 'contest/judges') added role to member by calling `addRoles(['<address>'],['contest/judges'])`
-	* now any1 who want view members of 'contest/judges' can call method `getMembers(['contest/judges'])` 
-2. create contest/admins who can add several users to role 'escrow-users'
-	*	owner create new role 'contest/admins' by calling method `createRole('contest/admins')`
-	*	owner create new role 'escrow-users' by calling method `createRole('escrow-users')`
-	*   owner allow role 'contest/admins' manage role 'escrow-users'  by calling `manageRole('contest/admins','escrow-users')`
-	* owner added sub-admin 
-		* call `addMembers(['<subadmin address>'])`
-		* add role to sub-admin by calling `addRoles(['<subadmin  address>'],['contest/admins'])`
-	* now sub-admin can added new escrow users
-		* call `addMembers(['<address1>','<address2>','<address3>'])`
-		* add role to user by calling `addRoles(['<address1>','<address2>','<address3>'],['escrow-users'])`
-	* now any1 who want view members of 'escrow-users' can call method `getMembers(['escrow-users'])` 
-3. how view which roles has user
-	*	call `getRoles(['<user address>'])`
-4. add user via invite (described in [issue](https://github.com/Intercoin/CommunityContract/issues/1))	
-	* owner or admin who can add role 
-		* generate message with format `<some string data>:<address of communityContract>:<array of rolenames (sep=',')>:<some string data>`. for example `AAAAA:0x0A098Eda01Ce92ff4A4CCb7A4fFFb5A43EBC70DC:judges,guests:BBBBBB`
-		* sign message with own private key
-		* so got message(`p`), messageHash(`pHash`), signature(`sSig`)
-		* send `p` and `sSig` to recipeint (and maybe address of communityContract)
-	* recipient 
-		* generate own message with format `<address of R wallet>:<some string data>`. for example `0x5B38Da6a701c568545dCfcB03FcB875f56beddC4:John Doe`
-		* so got message(`rp`), messageHash(`rpHash`), signature(`rSig`)
-		* send `sSig` and `rSig` to X  (and maybe address of communityContract)
-	* X call method invitePrepare(`sSig`,`rSig`) at communityContract
-	* Recipient 
-		* check that invite was added in communityContract by calling method inviteView(`sSig`). Signature `rSig` must match.
-		* send `p`,`sSig`,`rp`,`rSig` to X  (and maybe address of communityContract)
-	* X call method inviteAccept(`p`,`sSig`,`rp`,`rSig`) at communityContract
-	* if all ok X will reimburced gas for this two transactions and Recipient will become a roles `judges,guests`
-	* also 
-		* X will get reward for using system. contract will send `REWARD_AMOUNT` eth. REWARD_AMOUNT is constant 0.001 eth.
-		* Recipient will get replenish. contract will send `REPLENISH_AMOUNT` eth. REPLENISH_AMOUNT is constant 0.001 eth.
+visit [wiki](https://github.com/Intercoin/CommunityContract/wiki/Example-to-use)
 	
-		
