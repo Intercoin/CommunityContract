@@ -615,16 +615,16 @@ describe("Community", function () {
                     ].join(':');;
                 let recipientMsg = ''+accountNine.address+':John Doe';
                 
-                let pSig = await accountThree.signMessage(adminMsg);
+                let sSig = await accountThree.signMessage(adminMsg);
 
-                let rpSig = await accountTwo.signMessage(recipientMsg);
+                let rSig = await accountTwo.signMessage(recipientMsg);
 
                 // imitate invitePrepare and check it in system
-                await CommunityInstance.connect(relayer).invitePrepare(pSig,rpSig);
+                await CommunityInstance.connect(relayer).invitePrepare(sSig,rSig);
 
                 // imitate inviteAccept
                 await expect(
-                    CommunityInstance.connect(relayer).inviteAccept(adminMsg, pSig, recipientMsg, rpSig)
+                    CommunityInstance.connect(relayer).inviteAccept(adminMsg, sSig, recipientMsg, rSig)
                 ).to.be.revertedWith("Signature are mismatch");
 
             });
@@ -642,16 +642,16 @@ describe("Community", function () {
                     ].join(':');;
                 let recipientMsg = ''+accountTwo.address+':John Doe';
                 
-                let pSig = await accountThree.signMessage(adminMsg);
+                let sSig = await accountThree.signMessage(adminMsg);
 
-                let rpSig = await accountTwo.signMessage(recipientMsg);
+                let rSig = await accountTwo.signMessage(recipientMsg);
 
                 // imitate invitePrepare and check it in system
-                await CommunityInstance.connect(relayer).invitePrepare(pSig,rpSig);
+                await CommunityInstance.connect(relayer).invitePrepare(sSig,rSig);
 
                 // imitate inviteAccept
                 await expect(
-                    CommunityInstance.connect(relayer).inviteAccept(adminMsg, pSig, recipientMsg, rpSig)
+                    CommunityInstance.connect(relayer).inviteAccept(adminMsg, sSig, recipientMsg, rSig)
                 ).to.be.revertedWith("Signature are mismatch");
 
             });
@@ -669,16 +669,16 @@ describe("Community", function () {
                     ].join(':');;
                 let recipientMsg = ''+accountTwo.address+':John Doe';
                 
-                let pSig = await accountThree.signMessage(adminMsg);
+                let sSig = await accountThree.signMessage(adminMsg);
 
-                let rpSig = await accountTwo.signMessage(recipientMsg);
+                let rSig = await accountTwo.signMessage(recipientMsg);
 
                 // imitate invitePrepare and check it in system
-                await CommunityInstance.connect(relayer).invitePrepare(pSig,rpSig);
+                await CommunityInstance.connect(relayer).invitePrepare(sSig,rSig);
 
                 // imitate inviteAccept
                 await expect(
-                    CommunityInstance.connect(relayer).inviteAccept(adminMsg, pSig, recipientMsg, rpSig)
+                    CommunityInstance.connect(relayer).inviteAccept(adminMsg, sSig, recipientMsg, rSig)
                 ).to.be.revertedWith("Can not add no one role");
 
             }); 
@@ -704,15 +704,15 @@ describe("Community", function () {
 
                 let recipientMsg = ''+accountTwo.address+':John Doe';
                 
-                let pSig = await accountThree.signMessage(adminMsg);
+                let sSig = await accountThree.signMessage(adminMsg);
 
-                let rpSig = await accountTwo.signMessage(recipientMsg);
+                let rSig = await accountTwo.signMessage(recipientMsg);
 
                 // imitate invitePrepare and check it in system
-                await CommunityInstance.connect(relayer).invitePrepare(pSig,rpSig);
+                await CommunityInstance.connect(relayer).invitePrepare(sSig,rSig);
 
                 // imitate inviteAccept
-                await CommunityInstance.connect(relayer).inviteAccept(adminMsg, pSig, recipientMsg, rpSig)
+                await CommunityInstance.connect(relayer).inviteAccept(adminMsg, sSig, recipientMsg, rSig)
                 
                 // check roles of accountTwo
                 rolesList = await CommunityInstance.connect(owner)["getRoles(address)"](accountTwo.address);
@@ -744,23 +744,23 @@ describe("Community", function () {
                     ].join(':');;
                 let recipientMsg = ''+accountTwo.address+':John Doe';
                 
-                let pSig = await owner.signMessage(adminMsg);
+                let sSig = await owner.signMessage(adminMsg);
 
-                let rpSig = await accountTwo.signMessage(recipientMsg);
+                let rSig = await accountTwo.signMessage(recipientMsg);
 
                 const recipientStartingBalance = (await ethers.provider.getBalance(accountTwo.address));
                 const relayerStartingBalance = (await ethers.provider.getBalance(relayer.address));
 
                 // imitate invitePrepare and check it in system
-                await CommunityInstance.connect(relayer).invitePrepare(pSig,rpSig);
+                await CommunityInstance.connect(relayer).invitePrepare(sSig,rSig);
 
-                let invite = await CommunityInstance.connect(relayer).inviteView(pSig);
+                let invite = await CommunityInstance.connect(relayer).inviteView(sSig);
                 expect(invite.exists).to.be.true; // 'invite not found';
                 expect(invite.exists && invite.used==false).to.be.true; // 'invite not used before'
                 //console.log('(1)invite.gasCost=',invite.gasCost);
             
                 // imitate inviteAccept
-                await CommunityInstance.connect(relayer).inviteAccept(adminMsg, pSig, recipientMsg, rpSig);
+                await CommunityInstance.connect(relayer).inviteAccept(adminMsg, sSig, recipientMsg, rSig);
 
                 const relayerEndingBalance = await ethers.provider.getBalance(relayer.address);
                 const recipientEndingBalance = await ethers.provider.getBalance(accountTwo.address);
@@ -786,11 +786,11 @@ describe("Community", function () {
                 expect(recipientEndingBalance.sub(recipientStartingBalance)).to.be.eq(replenishAmount); // "wrong replenishAmount"
                 
                 await expect(
-                    CommunityInstance.connect(relayer).invitePrepare(pSig,rpSig)
+                    CommunityInstance.connect(relayer).invitePrepare(sSig,rSig)
                 ).to.be.revertedWith("Such signature is already exists");
                 
                 await expect(
-                    CommunityInstance.connect(relayer).inviteAccept(adminMsg, pSig, recipientMsg, rpSig)
+                    CommunityInstance.connect(relayer).inviteAccept(adminMsg, sSig, recipientMsg, rSig)
                 ).to.be.revertedWith("Such signature is already used");
                 
                 await expect(await CommunityInstance.invitedBy(accountTwo.address)).to.be.eq(owner.address); //'does not store invited mapping'

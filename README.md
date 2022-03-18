@@ -192,8 +192,8 @@ Storing signatures of invite
 Params:
 name  | type | description
 --|--|--
-pSig|bytes|admin's signature
-rpSig|bytes|recipient's signature
+sSig|bytes|admin's signature
+rSig|bytes|recipient's signature
 
 #### inviteAccept
 Accepting admin's invite
@@ -202,9 +202,9 @@ Params:
 name  | type | description
 --|--|--
 p|string|admin's message which will be signed
-pSig|bytes|admin's signature
+sSig|bytes|admin's signature
 rp|string|recipient's message which will be signed
-rpSig|bytes|recipient's signature
+rSig|bytes|recipient's signature
 
 #### inviteView
 Returns tuple of invite stored at contract
@@ -212,14 +212,14 @@ Returns tuple of invite stored at contract
 Params:
 name  | type | description
 --|--|--
-pSig|bytes|admin's signature
+sSig|bytes|admin's signature
 
 
 Return Tuple:
 name  | type | description
 --|--|--
-pSig|bytes|admin's signature
-rpSig|bytes|recipient's signature
+sSig|bytes|admin's signature
+rSig|bytes|recipient's signature
 gasCost|uint256| stored gas which was spent by relayers for invitePrepare(or and inviteAccepted) 
 reimbursed|ENUM(0,1,2)|ReimburseStatus (0-NONE,1-PENDING,2-DONE)
 used|bool| if true invite is already used
@@ -249,17 +249,17 @@ exists|bool|if true invite is exist
 	* owner or admin who can add role 
 		* generate message with format `<some string data>:<address of communityContract>:<array of rolenames (sep=',')>:<some string data>`. for example `AAAAA:0x0A098Eda01Ce92ff4A4CCb7A4fFFb5A43EBC70DC:judges,guests:BBBBBB`
 		* sign message with own private key
-		* so got message(`p`), messageHash(`pHash`), signature(`pSig`)
-		* send `p` and `pSig` to recipeint (and maybe address of communityContract)
+		* so got message(`p`), messageHash(`pHash`), signature(`sSig`)
+		* send `p` and `sSig` to recipeint (and maybe address of communityContract)
 	* recipient 
 		* generate own message with format `<address of R wallet>:<some string data>`. for example `0x5B38Da6a701c568545dCfcB03FcB875f56beddC4:John Doe`
-		* so got message(`rp`), messageHash(`rpHash`), signature(`rpSig`)
-		* send `pSig` and `rpSig` to X  (and maybe address of communityContract)
-	* X call method invitePrepare(`pSig`,`rpSig`) at communityContract
+		* so got message(`rp`), messageHash(`rpHash`), signature(`rSig`)
+		* send `sSig` and `rSig` to X  (and maybe address of communityContract)
+	* X call method invitePrepare(`sSig`,`rSig`) at communityContract
 	* Recipient 
-		* check that invite was added in communityContract by calling method inviteView(`pSig`). Signature `rpSig` must match.
-		* send `p`,`pSig`,`rp`,`rpSig` to X  (and maybe address of communityContract)
-	* X call method inviteAccept(`p`,`pSig`,`rp`,`rpSig`) at communityContract
+		* check that invite was added in communityContract by calling method inviteView(`sSig`). Signature `rSig` must match.
+		* send `p`,`sSig`,`rp`,`rSig` to X  (and maybe address of communityContract)
+	* X call method inviteAccept(`p`,`sSig`,`rp`,`rSig`) at communityContract
 	* if all ok X will reimburced gas for this two transactions and Recipient will become a roles `judges,guests`
 	* also 
 		* X will get reward for using system. contract will send `REWARD_AMOUNT` eth. REWARD_AMOUNT is constant 0.001 eth.

@@ -31,8 +31,8 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     using AddressUpgradeable for address;
 
     struct inviteSignature {
-        bytes pSig;
-        bytes rpSig;
+        bytes sSig;
+        bytes rSig;
         uint256 gasCost;
         ReimburseStatus reimbursed;
         bool used;
@@ -173,9 +173,9 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     }
     
     /**
-     * @param pSig signature of admin whom generate invite and signed it
+     * @param sSig signature of admin whom generate invite and signed it
      */
-    modifier accummulateGasCost(bytes memory pSig)
+    modifier accummulateGasCost(bytes memory sSig)
     {
         uint remainingGasStart = gasleft();
 
@@ -189,13 +189,13 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         // Possibly need to check max gasprice and usedGas here to limit possibility for abuse.
         uint gasCost = usedGas * tx.gasprice;
         // accummulate refund gas cost
-        inviteSignatures[pSig].gasCost = inviteSignatures[pSig].gasCost.add(gasCost);
+        inviteSignatures[sSig].gasCost = inviteSignatures[sSig].gasCost.add(gasCost);
     }
 
     /**
-     * @param pSig signature of admin whom generate invite and signed it
+     * @param sSig signature of admin whom generate invite and signed it
      */
-    modifier refundGasCost(bytes memory pSig)
+    modifier refundGasCost(bytes memory sSig)
     {
         uint remainingGasStart = gasleft();
 
@@ -203,7 +203,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         
         uint gasCost;
         
-        if (inviteSignatures[pSig].reimbursed == ReimburseStatus.NONE) {
+        if (inviteSignatures[sSig].reimbursed == ReimburseStatus.NONE) {
             uint remainingGasEnd = gasleft();
             uint usedGas = remainingGasStart - remainingGasEnd;
 
@@ -213,27 +213,27 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
             // Possibly need to check max gasprice and usedGas here to limit possibility for abuse.
             gasCost = usedGas * tx.gasprice;
 
-            inviteSignatures[pSig].gasCost = inviteSignatures[pSig].gasCost.add(gasCost);
+            inviteSignatures[sSig].gasCost = inviteSignatures[sSig].gasCost.add(gasCost);
         } else {
             
         }
         // Refund gas cost
-        gasCost = inviteSignatures[pSig].gasCost;
+        gasCost = inviteSignatures[sSig].gasCost;
 
         if (
             (gasCost <= address(this).balance) && 
             (
-            inviteSignatures[pSig].reimbursed == ReimburseStatus.NONE ||
-            inviteSignatures[pSig].reimbursed == ReimburseStatus.PENDING
+            inviteSignatures[sSig].reimbursed == ReimburseStatus.NONE ||
+            inviteSignatures[sSig].reimbursed == ReimburseStatus.PENDING
             )
         ) {
-            inviteSignatures[pSig].reimbursed = ReimburseStatus.DONE;
-            //payable (inviteSignatures[pSig].caller).transfer(gasCost);
+            inviteSignatures[sSig].reimbursed = ReimburseStatus.DONE;
+            //payable (inviteSignatures[sSig].caller).transfer(gasCost);
            
             payable(msg.sender).transfer(gasCost);
 
         } else {
-            inviteSignatures[pSig].reimbursed = ReimburseStatus.PENDING;
+            inviteSignatures[sSig].reimbursed = ReimburseStatus.PENDING;
         }
         
         
@@ -634,39 +634,39 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     /**
      * @notice viewing invite by admin signature
      * @custom:shortd viewing invite by admin signature
-     * @param pSig signature of admin whom generate invite and signed it
+     * @param sSig signature of admin whom generate invite and signed it
      * @return structure inviteSignature
      */
     function inviteView(
-        bytes memory pSig
+        bytes memory sSig
     ) 
         public 
         view
         returns(inviteSignature memory)
     {
-        return inviteSignatures[pSig];
+        return inviteSignatures[sSig];
     }
     
     /**
      * @notice registering invite,. calling by relayers
      * @custom:shortd registering invite 
-     * @param pSig signature of admin whom generate invite and signed it
-     * @param rpSig signature of recipient
+     * @param sSig signature of admin whom generate invite and signed it
+     * @param rSig signature of recipient
      */
     function invitePrepare(
-        bytes memory pSig, 
-        bytes memory rpSig
+        bytes memory sSig, 
+        bytes memory rSig
     ) 
         public 
         ifTargetInRole(msg.sender, DEFAULT_RELAYERS_ROLE) 
-        accummulateGasCost(pSig)
+        accummulateGasCost(sSig)
     {
-        require(inviteSignatures[pSig].exists == false, "Such signature is already exists");
-        inviteSignatures[pSig].pSig = pSig;
-        inviteSignatures[pSig].rpSig = rpSig;
-        inviteSignatures[pSig].reimbursed = ReimburseStatus.NONE;
-        inviteSignatures[pSig].used = false;
-        inviteSignatures[pSig].exists = true;
+        require(inviteSignatures[sSig].exists == false, "Such signature is already exists");
+        inviteSignatures[sSig].sSig= sSig;
+        inviteSignatures[sSig].rSig = rSig;
+        inviteSignatures[sSig].reimbursed = ReimburseStatus.NONE;
+        inviteSignatures[sSig].used = false;
+        inviteSignatures[sSig].exists = true;
     }
     
     /**
@@ -680,24 +680,24 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
      * @notice accepting invite
      * @custom:shortd accepting invite
      * @param p invite message of admin whom generate messageHash and signed it
-     * @param pSig signature of admin whom generate invite and signed it
+     * @param sSig signature of admin whom generate invite and signed it
      * @param rp message of recipient whom generate messageHash and signed it
-     * @param rpSig signature of recipient
+     * @param rSig signature of recipient
      */
     function inviteAccept(
         string memory p, 
-        bytes memory pSig, 
+        bytes memory sSig, 
         string memory rp, 
-        bytes memory rpSig
+        bytes memory rSig
     )
         public 
         ifTargetInRole(msg.sender, DEFAULT_RELAYERS_ROLE) 
-        refundGasCost(pSig)
+        refundGasCost(sSig)
         nonReentrant()
     {
-        require(inviteSignatures[pSig].used == false, "Such signature is already used");
+        require(inviteSignatures[sSig].used == false, "Such signature is already used");
 
-        (address pAddr, address rpAddr) = _recoverAddresses(p, pSig, rp, rpSig);
+        (address pAddr, address rpAddr) = _recoverAddresses(p, sSig, rp, rSig);
        
         string[] memory dataArr = p.slice(":");
         string[] memory rolesArr = dataArr[2].slice(",");
@@ -706,7 +706,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         if (
             pAddr == address(0) || 
             rpAddr == address(0) || 
-            keccak256(abi.encode(inviteSignatures[pSig].rpSig)) != keccak256(abi.encode(rpSig)) ||
+            keccak256(abi.encode(inviteSignatures[sSig].rSig)) != keccak256(abi.encode(rSig)) ||
             rpDataArr[0].parseAddr() != rpAddr || 
             dataArr[1].parseAddr() != address(this)
         ) {
@@ -732,7 +732,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         }
         
         if (isCanProceed == true) {
-            inviteSignatures[pSig].used = true;
+            inviteSignatures[sSig].used = true;
             
             invitedBy[rpAddr] = pAddr;
             invited[pAddr].add(rpAddr);
@@ -882,15 +882,15 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     ///////////////////////////////////////////////////////////
     /**
      * @param p invite message of admin whom generate messageHash and signed it
-     * @param pSig signature of admin whom generate invite and signed it
+     * @param sSig signature of admin whom generate invite and signed it
      * @param rp message of recipient whom generate messageHash and signed it
-     * @param rpSig signature of recipient
+     * @param rSig signature of recipient
      */
     function _recoverAddresses(
         string memory p, 
-        bytes memory pSig, 
+        bytes memory sSig, 
         string memory rp, 
-        bytes memory rpSig
+        bytes memory rSig
     ) 
         private 
         pure
@@ -898,8 +898,8 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     {
         bytes32 pHash = p.recreateMessageHash();
         bytes32 rpHash = rp.recreateMessageHash();
-        address pAddr = pHash.recover(pSig);
-        address rpAddr = rpHash.recover(rpSig);
+        address pAddr = pHash.recover(sSig);
+        address rpAddr = rpHash.recover(rSig);
         return (pAddr, rpAddr);
     }
     
