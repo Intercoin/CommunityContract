@@ -38,6 +38,7 @@ library PackedSet {
         (,ret) = _contains(_set, value);
         if (!ret) {
             _update(_set, _set.size, value);
+            _set.size += 1;
             ret = !ret;
         }
         return ret;
@@ -105,7 +106,6 @@ library PackedSet {
 
         _set.list[mapId] = (mapVal & zeroMask | valueMask);
 
-        _set.size += 1;
     }
 
     function get(Set storage _set, uint256 key) internal view returns (uint16 ret) {
