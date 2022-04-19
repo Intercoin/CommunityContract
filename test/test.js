@@ -53,6 +53,7 @@ describe("Community", function () {
       ['role3', 'Role#3'],
       ['role4', 'Role#4'],
       ['role5', 'Role#5'],
+      ['role6', 'Role#6'],
       ['cc_admins', 'AdMiNs']
     ]);
 
@@ -66,7 +67,8 @@ describe("Community", function () {
       ['role3', 7],
       ['role4', 9],
       ['role5', 10],
-      ['cc_admins', 11]
+      ['role6', 11],
+      ['cc_admins', 12]
     ]);
     var CommunityFactory;
 
@@ -403,7 +405,7 @@ describe("Community", function () {
             expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(false); 
         });
 
-        it.only("check amount of roles after revoke(empty strings)", async () => {
+        it("check amount of roles after revoke(empty strings)", async () => {
             await CommunityInstance.connect(owner).createRole(rolesTitle.get('role1'));
             await CommunityInstance.connect(owner).addMembers([accountFive.address]);
             await CommunityInstance.connect(owner).grantRoles([accountFive.address],[rolesTitle.get('role1')]);
@@ -414,6 +416,63 @@ describe("Community", function () {
             expect(rolesList.length).to.be.eq(ONE); // members
 
         });
+
+        it("check amount of roles after revoke(empty strings)::more roles", async () => {
+            await CommunityInstance.connect(owner).createRole(rolesTitle.get('role1'));
+            await CommunityInstance.connect(owner).createRole(rolesTitle.get('role2'));
+            await CommunityInstance.connect(owner).createRole(rolesTitle.get('role3'));
+            await CommunityInstance.connect(owner).createRole(rolesTitle.get('role4'));
+            await CommunityInstance.connect(owner).createRole(rolesTitle.get('role5'));
+            await CommunityInstance.connect(owner).createRole(rolesTitle.get('role6'));
+
+            await CommunityInstance.connect(owner).addMembers([accountFive.address]);
+            await CommunityInstance.connect(owner).grantRoles([accountFive.address],[rolesTitle.get('role1')]);
+            await CommunityInstance.connect(owner).revokeRoles([accountFive.address],[rolesTitle.get('role1')]);
+            await CommunityInstance.connect(owner).grantRoles([accountFive.address],[rolesTitle.get('role2')]);
+            await CommunityInstance.connect(owner).revokeRoles([accountFive.address],[rolesTitle.get('role2')]);
+            await CommunityInstance.connect(owner).grantRoles([accountFive.address],[rolesTitle.get('role3')]);
+            await CommunityInstance.connect(owner).revokeRoles([accountFive.address],[rolesTitle.get('role3')]);
+            await CommunityInstance.connect(owner).grantRoles([accountFive.address],[rolesTitle.get('role4')]);
+            await CommunityInstance.connect(owner).grantRoles([accountFive.address],[rolesTitle.get('role5')]);
+            await CommunityInstance.connect(owner).revokeRoles([accountFive.address],[rolesTitle.get('role5')]);
+            await CommunityInstance.connect(owner).revokeRoles([accountFive.address],[rolesTitle.get('role4')]);
+            var rolesList;
+
+            rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountFive.address));
+            expect(rolesList.length).to.be.eq(ONE); // members
+
+            await CommunityInstance.connect(owner).grantRoles(
+                [accountFive.address,accountFive.address],
+                [rolesTitle.get('role1'),rolesTitle.get('role2')]
+            );
+            await CommunityInstance.connect(owner).grantRoles(
+                [accountFive.address,accountFive.address],
+                [rolesTitle.get('role3'),rolesTitle.get('role4')]
+            );
+            await CommunityInstance.connect(owner).grantRoles(
+                [accountFive.address,accountFive.address],
+                [rolesTitle.get('role5'),rolesTitle.get('role6')]
+            );
+            rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountFive.address));
+            expect(rolesList.length).to.be.eq(SEVEN); // members,role#1,role#2,role#3,role#4,role#5,role#6
+
+            await CommunityInstance.connect(owner).revokeRoles(
+                [accountFive.address,accountFive.address],
+                [rolesTitle.get('role6'),rolesTitle.get('role1')]
+            );
+            await CommunityInstance.connect(owner).revokeRoles(
+                [accountFive.address,accountFive.address],
+                [rolesTitle.get('role2'),rolesTitle.get('role3')]
+            );
+            await CommunityInstance.connect(owner).revokeRoles(
+                [accountFive.address,accountFive.address],
+                [rolesTitle.get('role4'),rolesTitle.get('role5')]
+            );
+
+            rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountFive.address));
+            expect(rolesList.length).to.be.eq(ONE); // members
+        });
+
         describe("test using params as array", function () {
             beforeEach("prepare", async() => {
                 
