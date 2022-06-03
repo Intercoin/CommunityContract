@@ -745,6 +745,43 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         }
         
     }
+
+    /**
+     * @notice is member has role
+     * @custom:shortd checking is member belong to role
+     * @param account user address
+     * @param rolename role name
+     * @return bool 
+     */
+    function isMemberHasRole(
+        address account, 
+        string memory rolename
+    ) 
+        public 
+        view 
+        returns(bool) 
+    {
+
+        //require(_roles[rolename.stringToBytes32()] != 0, "Such role does not exists");
+
+        return _rolesByMember[account].contains(_roles[rolename.stringToBytes32()]);
+
+    }
+
+     function ttt(
+        address account, 
+        string memory rolename
+    ) 
+        public 
+        view 
+        returns(uint256) 
+    {
+
+        //require(_roles[rolename.stringToBytes32()] != 0, "Such role does not exists");
+
+        return _roles[rolename.stringToBytes32()];
+
+    }
   
     ///////////////////////////////////////////////////////////
     /// external section
