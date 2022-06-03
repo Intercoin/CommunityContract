@@ -244,7 +244,6 @@ contract CommunityERC721 is CommunityBase, IERC721Upgradeable, IERC721MetadataUp
         override 
         returns (string memory)
     {
-
         //_rolesIndices[_roles[role.stringToBytes32()]].roleURI = roleURI;
         uint8 roleId = uint8(tokenId >> 160);
         address w = address(uint160(tokenId - (roleId << 160)));

@@ -147,10 +147,20 @@ describe("Community", function () {
         
         it("can add member", async () => {
             
+            expect(
+                await CommunityInstance.isMemberHasRole(accountTwo.address, rolesTitle.get('members'))
+            ).to.be.false;
+
             await CommunityInstance.addMembers([accountTwo.address]);
             var rolesList = (await CommunityInstance.connect(owner)["getRoles(address)"](accountTwo.address));
+
             expect(rolesList.includes(rolesTitle.get('members'))).to.be.eq(true); // outside members role
+
+            expect(
+                await CommunityInstance.isMemberHasRole(accountTwo.address, rolesTitle.get('members'))
+            ).to.be.true;
         });
+
         
         it("can remove member", async () => {
             
