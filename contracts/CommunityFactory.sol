@@ -60,10 +60,12 @@ contract CommunityFactory {
     ////////////////////////////////////////////////////////////////////////
 
     /**
+    * @param hook address of contract implemented ICommunityHook interface. Can be address(0)
     * @return instance address of created instance `Community`
     * @custom:shortd creation Community instance
     */
     function produce(
+        address hook
     ) 
         public 
         returns (address instance) 
@@ -73,19 +75,21 @@ contract CommunityFactory {
 
         _produce(instance);
 
-        ICommunity(instance).init();
+        ICommunity(instance).init(hook);
         
         _postProduce(instance);
     }
 
 
     /**
+    * @param hook address of contract implemented ICommunityHook interface. Can be address(0)
     * @param name erc721 name
     * @param symbol erc721 symbol
     * @return instance address of created instance `CommunityERC721`
     * @custom:shortd creation CommunityERC721 instance
     */
     function produce(
+        address hook,
         string memory name,
         string memory symbol
     ) 
@@ -97,7 +101,7 @@ contract CommunityFactory {
 
         _produce(instance);
 
-        ICommunityERC721(instance).init(name, symbol);
+        ICommunityERC721(instance).init(hook, name, symbol);
         
         _postProduce(instance);
         

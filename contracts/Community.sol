@@ -14,9 +14,10 @@ contract Community is CommunityBase, ICommunity {
 
     /**
      * @dev creates three default roles and manage relations between it
+     * @param hook address of contract which implement ICommunityHookInterface
      */
-    function init() external initializer {
-        __CommunityBase_init();
+    function init(address hook) external initializer {
+        __CommunityBase_init(hook);
         
     }
     

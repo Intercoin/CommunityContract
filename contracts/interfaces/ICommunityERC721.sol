@@ -3,6 +3,6 @@ pragma solidity ^0.8.11;
 
 interface ICommunityERC721 {
     
-    function init(string memory name, string memory symbol) external;
+    function init(address hook, string memory name, string memory symbol) external;
     
 }

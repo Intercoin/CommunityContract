@@ -259,10 +259,12 @@ contract CommunityERC721 is CommunityBase, IERC721Upgradeable, IERC721MetadataUp
     }
 
     /**
+    * @param hook address of contract implemented ICommunityHook interface. Can be address(0)
     * @param name_ erc721 name
     * @param symbol_ erc721 symbol
     */
     function init(
+        address hook,
         string memory name_, 
         string memory symbol_
     ) 
@@ -272,7 +274,7 @@ contract CommunityERC721 is CommunityBase, IERC721Upgradeable, IERC721MetadataUp
         name = name_;
         symbol = symbol_;
 
-        __CommunityBase_init();
+        __CommunityBase_init(hook);
     }
 
 }
