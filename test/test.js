@@ -22,6 +22,8 @@ const ONE_ETH = ethers.utils.parseEther('1');
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const DEAD_ADDRESS = '0x000000000000000000000000000000000000dEaD';
 
+const NO_HOOK = ZERO_ADDRESS;
+
 describe("Community", function () {
     const accounts = waffle.provider.getWallets();
     
@@ -84,6 +86,140 @@ describe("Community", function () {
 
     });
 
+    describe("Community Hooks tests", function () {
+         
+        it("shouldn't setup hook with invalid interface", async () => {
+            
+            const CommunityHookF = await ethers.getContractFactory("CommunityHookNoMethods");
+            communityHook = await CommunityHookF.deploy();
+
+            await expect(
+                CommunityFactory.connect(owner)["produce(address)"](communityHook.address)
+            ).to.be.revertedWith("wrong interface");
+            // error happens when trying to setup roles for sender
+
+        }); 
+
+        describe("valid hook", function () {
+            var CommunityInstance;
+            var communityHook;
+            beforeEach("deploying", async() => {
+                const CommunityHookF = await ethers.getContractFactory("CommunityHook");
+                communityHook = await CommunityHookF.deploy();
+                let tx,rc,event,instance,instancesCount;
+                //
+                tx = await CommunityFactory.connect(owner)["produce(address)"](communityHook.address);
+                rc = await tx.wait(); // 0ms, as tx is already confirmed
+                event = rc.events.find(event => event.event === 'InstanceCreated');
+                [instance, instancesCount] = event.args;
+                CommunityInstance = await ethers.getContractAt("Community",instance);
+            }); 
+
+            it("while grantRole", async () => {
+
+                await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'));
+                const executedCountBefore = await communityHook.roleGrantedExecuted();
+
+                //add member
+                await CommunityInstance.connect(accountOne).addMembers([accountTwo.address]);
+
+                //grant role
+                await CommunityInstance.connect(accountOne).grantRoles([accountTwo.address], [rolesTitle.get('role1')]);
+
+                const executedCountAfter = await communityHook.roleGrantedExecuted();
+
+                // grant to members(while factory produce)
+                // grant to owners/relayers/admins(grantRoles)
+                // note that while producing instace via factory and factory still left in roles owners/admins/relayers and members
+                expect(executedCountBefore).to.be.eq(FOUR);
+
+                expect(executedCountAfter.sub(executedCountBefore)).to.be.eq(TWO); // grant to members(addMembers), grant to role1(grantRoles)
+            }); 
+
+            it("while revokeRole", async () => {
+                
+                await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'));
+                const executedCountBefore = await communityHook.roleRevokedExecuted();
+
+                //add member
+                await CommunityInstance.connect(accountOne).addMembers([accountTwo.address]);
+                //grant role
+                await CommunityInstance.connect(accountOne).grantRoles([accountTwo.address], [rolesTitle.get('role1')]);
+                //revoke role
+                await CommunityInstance.connect(accountOne).revokeRoles([accountTwo.address], [rolesTitle.get('role1')]);
+
+
+                const executedCountAfter = await communityHook.roleRevokedExecuted();
+                expect(executedCountBefore).to.be.eq(ZERO);
+                expect(executedCountAfter).to.be.eq(ONE);
+            }); 
+            
+            it("while createRole", async () => {
+
+                const executedCountBefore = await communityHook.roleCreatedExecuted();
+                await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'));
+                const executedCountAfter = await communityHook.roleCreatedExecuted();
+
+                expect(executedCountBefore).to.be.eq(ZERO);
+                expect(executedCountAfter).to.be.eq(ONE);
+                
+                await expect(CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'))).to.be.revertedWith("Such role is already exists");
+
+            }); 
+        });
+
+        describe("invalid hook(methods reverted)", function () {
+            var CommunityInstance;
+            var communityHook;
+            beforeEach("deploying", async() => {
+                const CommunityHookF = await ethers.getContractFactory("CommunityHookBad");
+                communityHook = await CommunityHookF.deploy();
+                let tx,rc,event,instance,instancesCount;
+                //
+                tx = await CommunityFactory.connect(owner)["produce(address)"](communityHook.address);
+                rc = await tx.wait(); // 0ms, as tx is already confirmed
+                event = rc.events.find(event => event.event === 'InstanceCreated');
+                [instance, instancesCount] = event.args;
+                CommunityInstance = await ethers.getContractAt("Community",instance);
+            }); 
+            it("while grantRole", async () => {
+
+                await communityHook.set(true, false, false);
+
+                await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'))
+                // role granted 
+                
+
+                //when adding member we grant role members to him
+                await expect(
+                    CommunityInstance.connect(accountOne).addMembers([accountTwo.address])
+                ).to.be.revertedWith("error in granted hook");
+
+                
+
+            }); 
+
+            it("while revokeRole", async () => {
+                await communityHook.set(false, true, false);
+                await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'));
+                
+                //add member
+                await CommunityInstance.connect(accountOne).addMembers([accountTwo.address]);
+                //grant role
+                await CommunityInstance.connect(accountOne).grantRoles([accountTwo.address], [rolesTitle.get('role1')]);
+                //revoke role
+                await expect(CommunityInstance.connect(accountOne).revokeRoles([accountTwo.address], [rolesTitle.get('role1')])).to.be.revertedWith("error in revoked hook");
+
+            }); 
+            
+            it("while createRole", async () => {
+                await communityHook.set(false, false, true);
+                await expect(CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'))).to.be.revertedWith("error in created hook");
+
+            }); 
+        }); 
+
+    });
 
     describe("Community tests", function () {
     
@@ -93,7 +229,7 @@ describe("Community", function () {
 
             let tx,rc,event,instance,instancesCount;
             //
-            tx = await CommunityFactory.connect(owner)["produce()"]();
+            tx = await CommunityFactory.connect(owner)["produce(address)"](NO_HOOK);
             rc = await tx.wait(); // 0ms, as tx is already confirmed
             event = rc.events.find(event => event.event === 'InstanceCreated');
             [instance, instancesCount] = event.args;
@@ -643,8 +779,6 @@ describe("Community", function () {
             });
             
         }); 
-        
-        
 
         describe("invites", function () {
             var privatekey1, 
@@ -891,7 +1025,7 @@ describe("Community", function () {
             
             let tx,rc,event,instance,instancesCount;
             //
-            tx = await CommunityFactory.connect(accountTen)["produce(string,string)"]("Community", "Community");
+            tx = await CommunityFactory.connect(accountTen)["produce(address,string,string)"](NO_HOOK, "Community", "Community");
             rc = await tx.wait(); // 0ms, as tx is already confirmed
             event = rc.events.find(event => event.event === 'InstanceCreated');
             [instance, instancesCount] = event.args;

@@ -13,6 +13,8 @@ import "./IntercoinTrait.sol";
 
 import "./lib/PackedSet.sol";
 
+import "./interfaces/ICommunityHook.sol";
+
 //import "hardhat/console.sol";
 
 contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuardUpgradeable, IntercoinTrait {
@@ -45,6 +47,8 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     mapping (address => PackedSet.Set) internal _rolesByMember;
     //mapping (bytes32 => EnumerableSetUpgradeable.AddressSet) internal _membersByRoles;
     //mapping (uint256 => EnumerableSetUpgradeable.UintSet) internal _canManageRoles;
+
+    address public hook;
 
     struct Role {
         bytes32 name;
@@ -767,21 +771,6 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         return _rolesByMember[account].contains(_roles[rolename.stringToBytes32()]);
 
     }
-
-     function ttt(
-        address account, 
-        string memory rolename
-    ) 
-        public 
-        view 
-        returns(uint256) 
-    {
-
-        //require(_roles[rolename.stringToBytes32()] != 0, "Such role does not exists");
-
-        return _roles[rolename.stringToBytes32()];
-
-    }
   
     ///////////////////////////////////////////////////////////
     /// external section
@@ -799,11 +788,18 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
      * @param role role name
      */
     function _createRole(bytes32 role) internal {
-       _roles[role] = rolesIndex;
-       _rolesIndices[rolesIndex].name = role;
-       rolesIndex += 1;
+        _roles[role] = rolesIndex;
+        _rolesIndices[rolesIndex].name = role;
+        rolesIndex += 1;
        
-       emit RoleCreated(role, msg.sender);
+        if (hook != address(0)) {            
+            try ICommunityHook(hook).supportsInterface(type(ICommunityHook).interfaceId) returns (bool success) {
+                ICommunityHook(hook).roleCreated(role, rolesIndex);
+            } catch {
+                revert("wrong interface");
+            }
+        }
+        emit RoleCreated(role, msg.sender);
     }
    
     /**
@@ -812,12 +808,12 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
      * @param targetRole target role name
      */
     function _manageRole(bytes32 sourceRole, bytes32 targetRole) internal {
-       require(_roles[sourceRole] != 0, "Source role does not exists");
-       require(_roles[targetRole] != 0, "Source role does not exists");
+        require(_roles[sourceRole] != 0, "Source role does not exists");
+        require(_roles[targetRole] != 0, "Source role does not exists");
        
-       _rolesIndices[_roles[sourceRole]].canManageRoles.add(_roles[targetRole]);
+        _rolesIndices[_roles[sourceRole]].canManageRoles.add(_roles[targetRole]);
        
-       emit RoleManaged(sourceRole, targetRole, msg.sender);
+        emit RoleManaged(sourceRole, targetRole, msg.sender);
     }
     
     /**
@@ -829,18 +825,25 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
        _rolesByMember[account].add(_roles[targetRole]);
        _rolesIndices[_roles[targetRole]].membersByRoles.add(account);
        
-       grantedBy[account].push(ActionInfo({
+        grantedBy[account].push(ActionInfo({
             actor: msg.sender,
             timestamp: uint64(block.timestamp),
             extra: uint32(_roles[targetRole])
-       }));
-       granted[msg.sender].push(ActionInfo({
+        }));
+        granted[msg.sender].push(ActionInfo({
             actor: account,
             timestamp: uint64(block.timestamp),
             extra: uint32(_roles[targetRole])
-       }));
+        }));
        
-       emit RoleGranted(targetRole, account, msg.sender);
+        if (hook != address(0)) {
+            try ICommunityHook(hook).supportsInterface(type(ICommunityHook).interfaceId) returns (bool success) {
+                ICommunityHook(hook).roleGranted(targetRole, _roles[targetRole], account);
+            } catch {
+                revert("wrong interface");
+            }
+        }
+        emit RoleGranted(targetRole, account, msg.sender);
     }
     
     /**
@@ -849,21 +852,28 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
      * @param targetRole role name
      */
     function _revokeRole(address account, bytes32 targetRole) internal {
-       _rolesByMember[account].remove(_roles[targetRole]);
-       _rolesIndices[_roles[targetRole]].membersByRoles.remove(account);
+        _rolesByMember[account].remove(_roles[targetRole]);
+        _rolesIndices[_roles[targetRole]].membersByRoles.remove(account);
        
-       revokedBy[account].push(ActionInfo({
+        revokedBy[account].push(ActionInfo({
             actor: msg.sender,
             timestamp: uint64(block.timestamp),
             extra: uint32(_roles[targetRole])
-       }));
-       revoked[msg.sender].push(ActionInfo({
+        }));
+        revoked[msg.sender].push(ActionInfo({
             actor: account,
             timestamp: uint64(block.timestamp),
             extra: uint32(_roles[targetRole])
-       }));
+        }));
 
-       emit RoleRevoked(targetRole, account, msg.sender);
+        if (hook != address(0)) {
+            try ICommunityHook(hook).supportsInterface(type(ICommunityHook).interfaceId) returns (bool success) {
+                ICommunityHook(hook).roleRevoked(targetRole, _roles[targetRole], account);
+            } catch {
+                revert("wrong interface");
+            }
+        }
+        emit RoleRevoked(targetRole, account, msg.sender);
     }
     
     function _isTargetInRole(address target, bytes32 targetRole) internal view returns(bool) {
@@ -891,7 +901,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         return isCan;
     }
 
-    function __CommunityBase_init() internal onlyInitializing {
+    function __CommunityBase_init(address hook_) internal onlyInitializing {
 
         __ReentrancyGuard_init();
         
@@ -912,6 +922,10 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         _manageRole(DEFAULT_ADMINS_ROLE, DEFAULT_MEMBERS_ROLE);
         _manageRole(DEFAULT_ADMINS_ROLE, DEFAULT_RELAYERS_ROLE);
         //_manageRole(DEFAULT_MEMBERS_ROLE, DEFAULT_MEMBERS_ROLE);
+
+        // avoiding hook's trigger for built-in roles(owners/admins/members/relayers)
+        // so define hook address in the end
+        hook = hook_;
     }
 
     ///////////////////////////////////////////////////////////
