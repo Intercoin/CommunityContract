@@ -204,7 +204,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         
         uint gasCost;
         
-        if (inviteSignatures[sSig].reimbursed != ReimburseStatus.NONE) {
+        if (inviteSignatures[sSig].reimbursed == ReimburseStatus.NONE) {
             uint remainingGasEnd = gasleft();
             uint usedGas = remainingGasStart - remainingGasEnd;
 
