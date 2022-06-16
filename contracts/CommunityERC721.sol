@@ -39,7 +39,7 @@ contract CommunityERC721 is CommunityBase, IERC721Upgradeable, IERC721MetadataUp
         public 
         canManage(msg.sender, role.stringToBytes32())
     {
-        _rolesIndices[_roles[role.stringToBytes32()]].roleURI = roleURI;
+        _rolesByIndex[_roles[role.stringToBytes32()]].roleURI = roleURI;
     }
 
     /**
@@ -53,7 +53,7 @@ contract CommunityERC721 is CommunityBase, IERC721Upgradeable, IERC721MetadataUp
         public
         ifTargetInRole(msg.sender, role.stringToBytes32())
     {
-        _rolesIndices[_roles[role.stringToBytes32()]].extraURI[msg.sender] = extraURI;
+        _rolesByIndex[_roles[role.stringToBytes32()]].extraURI[msg.sender] = extraURI;
     }
 
     /**
@@ -70,8 +70,8 @@ contract CommunityERC721 is CommunityBase, IERC721Upgradeable, IERC721MetadataUp
         returns (uint256 balance) 
     {
         
-        for (uint8 i = 1; i < rolesIndex; i++) {
-            if (_isTargetInRole(account, _rolesIndices[i].name)) {
+        for (uint8 i = 1; i < rolesCount; i++) {
+            if (_isTargetInRole(account, _rolesByIndex[i].name)) {
                 balance += 1;
             }
         }
@@ -93,7 +93,7 @@ contract CommunityERC721 is CommunityBase, IERC721Upgradeable, IERC721MetadataUp
         uint8 roleId = uint8(tokenId >> 160);
         address w = address(uint160(tokenId - (roleId << 160)));
         
-        owner = (_isTargetInRole(w, _rolesIndices[roleId].name)) ? w : address(0);
+        owner = (_isTargetInRole(w, _rolesByIndex[roleId].name)) ? w : address(0);
 
     }
 
@@ -164,7 +164,7 @@ contract CommunityERC721 is CommunityBase, IERC721Upgradeable, IERC721MetadataUp
         uint256/* tokenId*/
     ) 
         external
-        view 
+        pure 
         override 
         returns (address/* operator*/) 
     {
@@ -244,16 +244,16 @@ contract CommunityERC721 is CommunityBase, IERC721Upgradeable, IERC721MetadataUp
         override 
         returns (string memory)
     {
-        //_rolesIndices[_roles[role.stringToBytes32()]].roleURI = roleURI;
+        //_rolesByIndex[_roles[role.stringToBytes32()]].roleURI = roleURI;
         uint8 roleId = uint8(tokenId >> 160);
         address w = address(uint160(tokenId - (roleId << 160)));
 
-        bytes memory bytesExtraURI = bytes(_rolesIndices[roleId].extraURI[w]);
+        bytes memory bytesExtraURI = bytes(_rolesByIndex[roleId].extraURI[w]);
 
         if (bytesExtraURI.length != 0) {
-            return _rolesIndices[roleId].extraURI[w];
+            return _rolesByIndex[roleId].extraURI[w];
         } else {
-            return _rolesIndices[roleId].roleURI;
+            return _rolesByIndex[roleId].roleURI;
         }
         
     }

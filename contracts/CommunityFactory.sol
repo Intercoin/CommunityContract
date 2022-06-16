@@ -19,7 +19,7 @@ contract CommunityFactory {
     * @custom:shortd CommunityERC721 implementation address
     * @notice CommunityERC721 implementation address
     */
-    address public immutable communityerc721Implementation;
+    address public immutable communityERC721Implementation;
 
     address[] public instances;
     
@@ -27,15 +27,15 @@ contract CommunityFactory {
 
     /**
     * @param communityImpl address of Community implementation
-    * @param communityerc721Impl address of CommunityERC721 implementation
+    * @param communityERC721Impl address of CommunityERC721 implementation
     */
     constructor(
         address communityImpl,
-        address communityerc721Impl
+        address communityERC721Impl
     ) 
     {
         communityImplementation = communityImpl;
-        communityerc721Implementation = communityerc721Impl;
+        communityERC721Implementation = communityERC721Impl;
     }
 
     ////////////////////////////////////////////////////////////////////////
@@ -97,7 +97,7 @@ contract CommunityFactory {
         returns (address instance) 
     {
         
-        instance = communityerc721Implementation.clone();
+        instance = communityERC721Implementation.clone();
 
         _produce(instance);
 

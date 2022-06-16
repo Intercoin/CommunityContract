@@ -3,7 +3,6 @@ pragma solidity ^0.8.11;
 pragma experimental ABIEncoderV2;
 //import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 
@@ -26,8 +25,6 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     using ECDSAExt for string;
     using ECDSAUpgradeable for bytes32;
     
-    using SafeMathUpgradeable for uint256;
-    
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
     using AddressUpgradeable for address;
@@ -41,11 +38,11 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         bool exists;
     }
     
-    uint8 internal rolesIndex;
+    uint8 internal rolesCount;
     mapping (bytes32 => uint8) internal _roles;
-    //mapping (uint256 => bytes32) internal _rolesIndices;
+    //mapping (uint256 => bytes32) internal _rolesByIndex;
     mapping (address => PackedSet.Set) internal _rolesByMember;
-    //mapping (bytes32 => EnumerableSetUpgradeable.AddressSet) internal _membersByRoles;
+    //mapping (bytes32 => EnumerableSetUpgradeable.AddressSet) internal _members;
     //mapping (uint256 => EnumerableSetUpgradeable.UintSet) internal _canManageRoles;
 
     address public hook;
@@ -55,9 +52,9 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         string roleURI;
         mapping(address => string) extraURI;
         EnumerableSetUpgradeable.UintSet canManageRoles;
-        EnumerableSetUpgradeable.AddressSet membersByRoles;
+        EnumerableSetUpgradeable.AddressSet members;
     }
-    mapping (uint8 => Role) internal _rolesIndices;
+    mapping (uint8 => Role) internal _rolesByIndex;
 
 
 
@@ -87,7 +84,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     */
     bytes32 public constant DEFAULT_RELAYERS_ROLE = 0x72656c6179657273000000000000000000000000000000000000000000000000;
 
-    enum ReimburseStatus{ NONE, PENDING, DONE }
+    enum ReimburseStatus{ NONE, PENDING, CLAIMED }
     /**
     * @notice constant reward that user-relayers will obtain
     * @custom:shortd reward that user-relayers will obtain
@@ -193,7 +190,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         // Possibly need to check max gasprice and usedGas here to limit possibility for abuse.
         uint gasCost = usedGas * tx.gasprice;
         // accummulate refund gas cost
-        inviteSignatures[sSig].gasCost = inviteSignatures[sSig].gasCost.add(gasCost);
+        inviteSignatures[sSig].gasCost = inviteSignatures[sSig].gasCost + gasCost;
     }
 
     /**
@@ -207,7 +204,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         
         uint gasCost;
         
-        if (inviteSignatures[sSig].reimbursed == ReimburseStatus.NONE) {
+        if (inviteSignatures[sSig].reimbursed != ReimburseStatus.NONE) {
             uint remainingGasEnd = gasleft();
             uint usedGas = remainingGasStart - remainingGasEnd;
 
@@ -217,9 +214,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
             // Possibly need to check max gasprice and usedGas here to limit possibility for abuse.
             gasCost = usedGas * tx.gasprice;
 
-            inviteSignatures[sSig].gasCost = inviteSignatures[sSig].gasCost.add(gasCost);
-        } else {
-            
+            inviteSignatures[sSig].gasCost = inviteSignatures[sSig].gasCost + gasCost;
         }
         // Refund gas cost
         gasCost = inviteSignatures[sSig].gasCost;
@@ -231,7 +226,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
             inviteSignatures[sSig].reimbursed == ReimburseStatus.PENDING
             )
         ) {
-            inviteSignatures[sSig].reimbursed = ReimburseStatus.DONE;
+            inviteSignatures[sSig].reimbursed = ReimburseStatus.CLAIMED;
             //payable (inviteSignatures[sSig].caller).transfer(gasCost);
            
             payable(msg.sender).transfer(gasCost);
@@ -248,17 +243,11 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     ///////////////////////////////////////////////////////////
 
     /**
-    * @notice one of the way to donate ETH to the contract in separate method. Second way is send directly `receive()`
-    * @custom:shortd one of the way to donate ETH to the contract in separate method. 
-    */
-    function ETHDonate() public payable {} 
-
-    /**
-    * @notice the way to withdraw ETH from the contract. called by owners only 
+    * @notice the way to withdraw remaining ETH from the contract. called by owners only 
     * @custom:shortd the way to withdraw ETH from the contract.
     * @custom:calledby owners
     */
-    function ETHWithdraw(
+    function withdrawRemainingBalance(
     ) 
         public 
         ifTargetInRole(msg.sender, DEFAULT_OWNERS_ROLE)
@@ -396,7 +385,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         // prevent creating role in CamelCases with admins and owners (Admins,ADMINS,ADminS)
         require(_roles[role._toLower().stringToBytes32()] == 0, "Such role is already exists");
         
-        require(rolesIndex < type(uint8).max -1, "Max amount of roles exceeded");
+        require(rolesCount < type(uint8).max -1, "Max amount of roles exceeded");
 
         _createRole(role.stringToBytes32());
         
@@ -443,12 +432,12 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     {
         bytes32 roleBytes32= role.stringToBytes32();
         uint8 roleIndex = _roles[roleBytes32];
-        uint256 len = _rolesIndices[roleIndex].membersByRoles.length();
+        uint256 len = _rolesByIndex[roleIndex].members.length();
         address[] memory l = new address[](len);
         uint256 i;
             
         for (i = 0; i < len; i++) {
-            l[i] = _rolesIndices[roleIndex].membersByRoles.at(i);
+            l[i] = _rolesByIndex[roleIndex].members.at(i);
         }
         return l;
     }
@@ -480,7 +469,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
                 roleBytes32 = roles[j].stringToBytes32();
                 roleIndex = _roles[roleBytes32];
 
-                tmplen = _rolesIndices[roleIndex].membersByRoles.length();
+                tmplen = _rolesByIndex[roleIndex].members.length();
                 len += tmplen;
             }
 
@@ -493,10 +482,10 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
                 roleBytes32 = roles[j].stringToBytes32();
                 roleIndex = _roles[roleBytes32];
 
-                tmplen = _rolesIndices[roleIndex].membersByRoles.length();
+                tmplen = _rolesByIndex[roleIndex].members.length();
 
                 for (i = 0; i < tmplen; i++) {
-                    l[ilen] = _rolesIndices[roleIndex].membersByRoles.at(i);
+                    l[ilen] = _rolesByIndex[roleIndex].members.at(i);
                     ilen += 1;
                 }
             }
@@ -553,7 +542,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
                 tmplen = _rolesByMember[members[j]].length();
 
                 for (i = 0; i < tmplen; i++) {
-                    l[ilen] = _rolesIndices[uint8(_rolesByMember[members[j]].get(i))].name.bytes32ToString();
+                    l[ilen] = _rolesByIndex[uint8(_rolesByMember[members[j]].get(i))].name.bytes32ToString();
                     ilen += 1;
                 }
             }
@@ -579,7 +568,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         uint256 i;
             
         for (i = 0; i < len; i++) {
-            l[i] = _rolesIndices[uint8(_rolesByMember[member].get(i))].name.bytes32ToString();
+            l[i] = _rolesByIndex[uint8(_rolesByMember[member].get(i))].name.bytes32ToString();
         }
         return l;
     }
@@ -594,15 +583,17 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     ) 
         public 
         view
-        returns(string[] memory)
+        returns(string[] memory, string[] memory)
     {
 
-        string[] memory l = new string[](rolesIndex-1);
-        // rolesIndex start from 1
-        for (uint8 i = 1; i < rolesIndex; i++) {
-            l[i-1] = _rolesIndices[i].name.bytes32ToString();
+        string[] memory names = new string[](rolesCount-1);
+        string[] memory roleURIs = new string[](rolesCount-1);
+        // rolesCount start from 1
+        for (uint8 i = 1; i < rolesCount; i++) {
+            names[i-1] = _rolesByIndex[i].name.bytes32ToString();
+            roleURIs[i-1] = _rolesByIndex[i].roleURI;
         }
-        return l;
+        return (names, roleURIs);
     }
     
     /**
@@ -618,7 +609,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         view
         returns(uint256)
     {
-        return _rolesIndices[_roles[role.stringToBytes32()]].membersByRoles.length();
+        return _rolesByIndex[_roles[role.stringToBytes32()]].members.length();
     }
         
     /**
@@ -788,13 +779,13 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
      * @param role role name
      */
     function _createRole(bytes32 role) internal {
-        _roles[role] = rolesIndex;
-        _rolesIndices[rolesIndex].name = role;
-        rolesIndex += 1;
+        _roles[role] = rolesCount;
+        _rolesByIndex[rolesCount].name = role;
+        rolesCount += 1;
        
         if (hook != address(0)) {            
-            try ICommunityHook(hook).supportsInterface(type(ICommunityHook).interfaceId) returns (bool success) {
-                ICommunityHook(hook).roleCreated(role, rolesIndex);
+            try ICommunityHook(hook).supportsInterface(type(ICommunityHook).interfaceId) returns (bool) {
+                ICommunityHook(hook).roleCreated(role, rolesCount);
             } catch {
                 revert("wrong interface");
             }
@@ -811,7 +802,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         require(_roles[sourceRole] != 0, "Source role does not exists");
         require(_roles[targetRole] != 0, "Source role does not exists");
        
-        _rolesIndices[_roles[sourceRole]].canManageRoles.add(_roles[targetRole]);
+        _rolesByIndex[_roles[sourceRole]].canManageRoles.add(_roles[targetRole]);
        
         emit RoleManaged(sourceRole, targetRole, msg.sender);
     }
@@ -823,7 +814,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
      */
     function _grantRole(address account, bytes32 targetRole) internal {
        _rolesByMember[account].add(_roles[targetRole]);
-       _rolesIndices[_roles[targetRole]].membersByRoles.add(account);
+       _rolesByIndex[_roles[targetRole]].members.add(account);
        
         grantedBy[account].push(ActionInfo({
             actor: msg.sender,
@@ -837,7 +828,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         }));
        
         if (hook != address(0)) {
-            try ICommunityHook(hook).supportsInterface(type(ICommunityHook).interfaceId) returns (bool success) {
+            try ICommunityHook(hook).supportsInterface(type(ICommunityHook).interfaceId) returns (bool) {
                 ICommunityHook(hook).roleGranted(targetRole, _roles[targetRole], account);
             } catch {
                 revert("wrong interface");
@@ -853,7 +844,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
      */
     function _revokeRole(address account, bytes32 targetRole) internal {
         _rolesByMember[account].remove(_roles[targetRole]);
-        _rolesIndices[_roles[targetRole]].membersByRoles.remove(account);
+        _rolesByIndex[_roles[targetRole]].members.remove(account);
        
         revokedBy[account].push(ActionInfo({
             actor: msg.sender,
@@ -867,7 +858,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         }));
 
         if (hook != address(0)) {
-            try ICommunityHook(hook).supportsInterface(type(ICommunityHook).interfaceId) returns (bool success) {
+            try ICommunityHook(hook).supportsInterface(type(ICommunityHook).interfaceId) returns (bool) {
                 ICommunityHook(hook).roleRevoked(targetRole, _roles[targetRole], account);
             } catch {
                 revert("wrong interface");
@@ -893,7 +884,8 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         
         for (uint256 i = 0; i<_rolesByMember[sender].length(); i++) {
             
-            if (_rolesIndices[uint8(_rolesByMember[sender].get(i))].canManageRoles.contains(targetRoleID) == true) {
+            if (_rolesByIndex[uint8(_rolesByMember[sender].get(i))]
+            .canManageRoles.contains(targetRoleID) == true) {
                 isCan = true;
                 break;
             }
@@ -905,7 +897,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
 
         __ReentrancyGuard_init();
         
-        rolesIndex = 1;
+        rolesCount = 1;
         
         _createRole(DEFAULT_OWNERS_ROLE);
         _createRole(DEFAULT_ADMINS_ROLE);
@@ -914,14 +906,15 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         _grantRole(msg.sender, DEFAULT_OWNERS_ROLE);
         _grantRole(msg.sender, DEFAULT_ADMINS_ROLE);
         _grantRole(msg.sender, DEFAULT_RELAYERS_ROLE);
-        //an exception from the rules. owners can manage owners role. 
-        //means that can grant member to owner role and revoke it.
-        _manageRole(DEFAULT_OWNERS_ROLE, DEFAULT_OWNERS_ROLE); 
-        //---                                                                
+        // initial rules. owners can manage owners, admins, members, relayers
+        // while admins can manage members, relayers
+        // any other rules can be added later by owners
+        _manageRole(DEFAULT_OWNERS_ROLE, DEFAULT_OWNERS_ROLE);                       
         _manageRole(DEFAULT_OWNERS_ROLE, DEFAULT_ADMINS_ROLE);
+        _manageRole(DEFAULT_OWNERS_ROLE, DEFAULT_RELAYERS_ROLE);
+        _manageRole(DEFAULT_OWNERS_ROLE, DEFAULT_MEMBERS_ROLE);
         _manageRole(DEFAULT_ADMINS_ROLE, DEFAULT_MEMBERS_ROLE);
         _manageRole(DEFAULT_ADMINS_ROLE, DEFAULT_RELAYERS_ROLE);
-        //_manageRole(DEFAULT_MEMBERS_ROLE, DEFAULT_MEMBERS_ROLE);
 
         // avoiding hook's trigger for built-in roles(owners/admins/members/relayers)
         // so define hook address in the end
