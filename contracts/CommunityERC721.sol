@@ -164,7 +164,7 @@ contract CommunityERC721 is CommunityBase, IERC721Upgradeable, IERC721MetadataUp
         uint256/* tokenId*/
     ) 
         external
-        pure 
+        view 
         override 
         returns (address/* operator*/) 
     {
