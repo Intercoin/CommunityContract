@@ -37,7 +37,7 @@ contract CommunityERC721 is CommunityBase, IERC721Upgradeable, IERC721MetadataUp
         string memory roleURI
     ) 
         public 
-        canManage(msg.sender, role.stringToBytes32())
+        canManage(_msgSender(), role.stringToBytes32())
     {
         _rolesByIndex[_roles[role.stringToBytes32()]].roleURI = roleURI;
     }
@@ -51,9 +51,9 @@ contract CommunityERC721 is CommunityBase, IERC721Upgradeable, IERC721MetadataUp
         string memory extraURI
     )
         public
-        ifTargetInRole(msg.sender, role.stringToBytes32())
+        ifTargetInRole(_msgSender(), role.stringToBytes32())
     {
-        _rolesByIndex[_roles[role.stringToBytes32()]].extraURI[msg.sender] = extraURI;
+        _rolesByIndex[_roles[role.stringToBytes32()]].extraURI[_msgSender()] = extraURI;
     }
 
     /**
