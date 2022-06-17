@@ -244,16 +244,16 @@ describe("Community", function () {
             let balanceBeforeAll = (await ethers.provider.getBalance(CommunityInstance.address));
 
             // send ETH to Contract      
-            await CommunityInstance.connect(accountThree).ETHDonate({value: amountETHSendToContract});
+            await accountThree.sendTransaction({to: CommunityInstance.address, value: amountETHSendToContract});
 
             let balanceAfterDonate = (await ethers.provider.getBalance(CommunityInstance.address));
 
             await expect(
-                CommunityInstance.connect(accountThree).ETHWithdraw()
+                CommunityInstance.connect(accountThree).withdrawRemainingBalance()
             ).to.be.revertedWith("Target account must be with role '" +rolesTitle.get('owners')+"'");
 
             let balanceOwnerBefore =  (await ethers.provider.getBalance(owner.address));
-            let tx = await CommunityInstance.connect(owner).ETHWithdraw();
+            let tx = await CommunityInstance.connect(owner).withdrawRemainingBalance();
             let balanceOwnerAfterWithdraw = (await ethers.provider.getBalance(owner.address));
             let balanceAfterWithdraw = (await ethers.provider.getBalance(CommunityInstance.address));
 
@@ -325,8 +325,8 @@ describe("Community", function () {
         });
 
         it("can view all roles", async () => {
-            
-            var rolesList = (await CommunityInstance.connect(accountOne)["getRoles()"]());
+            var rolesList;
+            [rolesList,] = await CommunityInstance.connect(accountOne)["getRoles()"]();
             
             // here it will be only internal roles
 
@@ -354,7 +354,7 @@ describe("Community", function () {
 
             await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'));
 
-            rolesList = (await CommunityInstance.connect(accountOne)["getRoles()"]());
+            [rolesList,] = await CommunityInstance.connect(accountOne)["getRoles()"]();
             (
                 rolesExists.concat(
                     [rolesTitle.get('role1')]
