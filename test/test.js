@@ -29,19 +29,18 @@ describe("Community", function () {
     
     // Setup accounts.
     const owner = accounts[0];                     
-    const accountOne = accounts[0];
-    const accountTwo = accounts[1];  
-    const accountThree = accounts[2];
-    const accountFourth= accounts[3];
-    const accountFive = accounts[4];
-    const accountSix = accounts[5];
-    const accountSeven = accounts[6];
-    const accountEight = accounts[7];
-    const accountNine = accounts[8];
-    const accountTen = accounts[9];
-    const relayer = accounts[9];
-    const accountEleven = accounts[10];
-    const accountTwelwe = accounts[11];
+    const accountOne = accounts[1];
+    const accountTwo = accounts[2];  
+    const accountThree = accounts[3];
+    const accountFourth= accounts[4];
+    const accountFive = accounts[5];
+    const accountSix = accounts[6];
+    const accountSeven = accounts[7];
+    const accountEight = accounts[8];
+    const accountNine = accounts[9];
+    const accountTen = accounts[10];
+    const relayer = accounts[11];
+    const trustedForwarder = accounts[12];
     
     // setup useful vars
     
@@ -86,8 +85,63 @@ describe("Community", function () {
 
     });
 
-    describe("Community Hooks tests", function () {
-         
+    describe("TrustedForwarder", function () {
+        var CommunityInstance;
+        //var CommunityFactory;
+        beforeEach("deploying", async() => {
+
+            let tx,rc,event,instance,instancesCount;
+            //
+            tx = await CommunityFactory.connect(owner)["produce(address)"](NO_HOOK);
+            rc = await tx.wait(); // 0ms, as tx is already confirmed
+            event = rc.events.find(event => event.event === 'InstanceCreated');
+            [instance, instancesCount] = event.args;
+            CommunityInstance = await ethers.getContractAt("Community",instance);
+
+        });
+
+        it("should be empty after init", async() => {
+            expect(await CommunityInstance.isTrustedForwarder(ZERO_ADDRESS)).to.be.true;
+        });
+
+        it("should be setup by owner", async() => {
+            await expect(CommunityInstance.connect(accountOne).setTrustedForwarder(accountTwo.address)).to.be.revertedWith("Target account must be with role '" +rolesTitle.get('owners')+"'");
+            expect(await CommunityInstance.connect(accountOne).isTrustedForwarder(ZERO_ADDRESS)).to.be.true;
+            await CommunityInstance.connect(owner).setTrustedForwarder(accountTwo.address);
+            expect(await CommunityInstance.connect(accountTwo).isTrustedForwarder(accountTwo.address)).to.be.true;
+        });
+        
+        it("shouldnt become owner and trusted forwarder", async() => {
+            await expect(CommunityInstance.connect(owner).setTrustedForwarder(owner.address)).to.be.revertedWith("FORWARDER_CAN_NOT_BE_OWNER");
+        });
+        
+    });
+
+    for (const trustedForwardMode of [false,true]) {
+
+    var mixedCall = async function(instance, trustedForwardMode, from_, func_signature_, params_, revertedMessage_){
+        let expectError = (typeof(revertedMessage_) === 'undefined') ? false : true;
+
+        if (trustedForwardMode) {
+            const dataTx = await instance.connect(trustedForwarder).populateTransaction[func_signature_](...params_);
+            dataTx.data = dataTx.data.concat((from_.address).substring(2));
+            if (expectError) {
+                return await expect(trustedForwarder.sendTransaction(dataTx)).to.be.revertedWith(revertedMessage_);
+            } else {
+                return await trustedForwarder.sendTransaction(dataTx);
+            }
+        } else {
+            if (expectError) {
+                return await expect(instance.connect(from_)[func_signature_](...params_)).to.be.revertedWith(revertedMessage_);
+            } else {
+                return await instance.connect(from_)[func_signature_](...params_);
+            }
+        }
+    }
+
+    describe(`${trustedForwardMode ? '[trusted forwarder]' : ''} Community Hooks tests`, function () {
+        
+
         it("shouldn't setup hook with invalid interface", async () => {
             
             const CommunityHookF = await ethers.getContractFactory("CommunityHookNoMethods");
@@ -113,19 +167,24 @@ describe("Community", function () {
                 event = rc.events.find(event => event.event === 'InstanceCreated');
                 [instance, instancesCount] = event.args;
                 CommunityInstance = await ethers.getContractAt("Community",instance);
+
+                if (trustedForwardMode) {
+                    await CommunityInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
+                }
             }); 
 
             it("while grantRole", async () => {
 
-                await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'));
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role1')]);
+                
                 const executedCountBefore = await communityHook.roleGrantedExecuted();
 
                 //add member
-                await CommunityInstance.connect(accountOne).addMembers([accountTwo.address]);
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'addMembers(address[])', [[accountTwo.address]]);
 
                 //grant role
-                await CommunityInstance.connect(accountOne).grantRoles([accountTwo.address], [rolesTitle.get('role1')]);
-
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],string[])', [[accountTwo.address],[rolesTitle.get('role1')]]);
+               
                 const executedCountAfter = await communityHook.roleGrantedExecuted();
 
                 // grant to members(while factory produce)
@@ -137,18 +196,19 @@ describe("Community", function () {
             }); 
 
             it("while revokeRole", async () => {
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role1')]);
                 
-                await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'));
                 const executedCountBefore = await communityHook.roleRevokedExecuted();
 
                 //add member
-                await CommunityInstance.connect(accountOne).addMembers([accountTwo.address]);
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'addMembers(address[])', [[accountTwo.address]]);
+                
                 //grant role
-                await CommunityInstance.connect(accountOne).grantRoles([accountTwo.address], [rolesTitle.get('role1')]);
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],string[])', [[accountTwo.address],[rolesTitle.get('role1')]]);
+                
                 //revoke role
-                await CommunityInstance.connect(accountOne).revokeRoles([accountTwo.address], [rolesTitle.get('role1')]);
-
-
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'revokeRoles(address[],string[])', [[accountTwo.address],[rolesTitle.get('role1')]]);
+                
                 const executedCountAfter = await communityHook.roleRevokedExecuted();
                 expect(executedCountBefore).to.be.eq(ZERO);
                 expect(executedCountAfter).to.be.eq(ONE);
@@ -157,13 +217,15 @@ describe("Community", function () {
             it("while createRole", async () => {
 
                 const executedCountBefore = await communityHook.roleCreatedExecuted();
-                await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'));
+
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role1')]);
+                
                 const executedCountAfter = await communityHook.roleCreatedExecuted();
 
                 expect(executedCountBefore).to.be.eq(ZERO);
                 expect(executedCountAfter).to.be.eq(ONE);
-                
-                await expect(CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'))).to.be.revertedWith("Such role is already exists");
+
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role1')], "Such role is already exists");
 
             }); 
         });
@@ -181,47 +243,44 @@ describe("Community", function () {
                 event = rc.events.find(event => event.event === 'InstanceCreated');
                 [instance, instancesCount] = event.args;
                 CommunityInstance = await ethers.getContractAt("Community",instance);
+
+                if (trustedForwardMode) {
+                    await CommunityInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
+                }
             }); 
             it("while grantRole", async () => {
 
                 await communityHook.set(true, false, false);
 
-                await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'))
-                // role granted 
-                
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role1')]);
 
                 //when adding member we grant role members to him
-                await expect(
-                    CommunityInstance.connect(accountOne).addMembers([accountTwo.address])
-                ).to.be.revertedWith("error in granted hook");
-
-                
-
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'addMembers(address[])', [[accountTwo.address]], "error in granted hook");
             }); 
 
             it("while revokeRole", async () => {
                 await communityHook.set(false, true, false);
-                await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'));
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role1')]);
                 
                 //add member
-                await CommunityInstance.connect(accountOne).addMembers([accountTwo.address]);
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'addMembers(address[])', [[accountTwo.address]]);
+                
                 //grant role
-                await CommunityInstance.connect(accountOne).grantRoles([accountTwo.address], [rolesTitle.get('role1')]);
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],string[])', [[accountTwo.address], [rolesTitle.get('role1')]]);
+                
                 //revoke role
-                await expect(CommunityInstance.connect(accountOne).revokeRoles([accountTwo.address], [rolesTitle.get('role1')])).to.be.revertedWith("error in revoked hook");
-
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'revokeRoles(address[],string[])', [[accountTwo.address], [rolesTitle.get('role1')]], "error in revoked hook");
             }); 
             
             it("while createRole", async () => {
                 await communityHook.set(false, false, true);
-                await expect(CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'))).to.be.revertedWith("error in created hook");
-
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role1')],"error in created hook");
             }); 
         }); 
 
     });
 
-    describe("Community tests", function () {
+    describe(`${trustedForwardMode ? '[trusted forwarder]' : ''} Community tests`, function () {
     
         var CommunityInstance;
         //var CommunityFactory;
@@ -235,9 +294,14 @@ describe("Community", function () {
             [instance, instancesCount] = event.args;
             CommunityInstance = await ethers.getContractAt("Community",instance);
 
+            if (trustedForwardMode) {
+                await CommunityInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
+            }
+
         });
 
         it("can donate/withdraw ETH", async () => {
+
             const price = ethers.utils.parseEther('1');
             const amountETHSendToContract = price.mul(TWO); // 2ETH
         
@@ -248,13 +312,16 @@ describe("Community", function () {
 
             let balanceAfterDonate = (await ethers.provider.getBalance(CommunityInstance.address));
 
-            await expect(
-                CommunityInstance.connect(accountThree).withdrawRemainingBalance()
-            ).to.be.revertedWith("Target account must be with role '" +rolesTitle.get('owners')+"'");
+            await mixedCall(CommunityInstance, trustedForwardMode, accountThree, 'withdrawRemainingBalance()', [],"Target account must be with role '" +rolesTitle.get('owners')+"'");
 
             let balanceOwnerBefore =  (await ethers.provider.getBalance(owner.address));
-            let tx = await CommunityInstance.connect(owner).withdrawRemainingBalance();
+            let balanceTrustedForwarderBefore =  (await ethers.provider.getBalance(trustedForwarder.address));
+
+            let tx = await mixedCall(CommunityInstance, trustedForwardMode, owner, 'withdrawRemainingBalance()', []);
+
             let balanceOwnerAfterWithdraw = (await ethers.provider.getBalance(owner.address));
+            let balanceTrustedForwarderAfterWithdraw =  (await ethers.provider.getBalance(trustedForwarder.address));
+
             let balanceAfterWithdraw = (await ethers.provider.getBalance(CommunityInstance.address));
 
             expect(balanceBeforeAll).to.be.eq(ZERO);
@@ -266,10 +333,20 @@ describe("Community", function () {
             let transactionFee = BigNumber.from(txReceipt.cumulativeGasUsed).mul(
                                     BigNumber.from(txReceipt.effectiveGasPrice)
                                 );
-            expect(
-                balanceOwnerAfterWithdraw.sub(balanceOwnerBefore).add(transactionFee)
-            ).to.be.eq(amountETHSendToContract); // transaction fee is paid by the contract
-
+            if (trustedForwardMode) {
+                // no fee consuming for owner. because trasaction initiated trusted forwarder
+                expect(
+                    balanceOwnerAfterWithdraw.sub(balanceOwnerBefore)
+                ).to.be.eq(amountETHSendToContract); // transaction fee is paid by the contract
+                // transaction fee consumed by TrustedForwarder
+                expect(
+                    balanceTrustedForwarderBefore.sub(balanceTrustedForwarderAfterWithdraw)
+                ).to.be.eq(transactionFee); // transaction fee is paid by the contract
+            } else {
+                expect(
+                    balanceOwnerAfterWithdraw.sub(balanceOwnerBefore).add(transactionFee)
+                ).to.be.eq(amountETHSendToContract); // transaction fee is paid by the contract
+            }
         });
 
 
@@ -287,7 +364,7 @@ describe("Community", function () {
                 await CommunityInstance.isMemberHasRole(accountTwo.address, rolesTitle.get('members'))
             ).to.be.false;
 
-            await CommunityInstance.addMembers([accountTwo.address]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'addMembers(address[])', [[accountTwo.address]]);
             var rolesList = (await CommunityInstance.connect(owner)["getRoles(address)"](accountTwo.address));
 
             expect(rolesList.includes(rolesTitle.get('members'))).to.be.eq(true); // outside members role
@@ -302,31 +379,32 @@ describe("Community", function () {
             
             var rolesList;
 
-            await CommunityInstance.addMembers([accountTwo.address]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'addMembers(address[])', [[accountTwo.address]]);
             rolesList = (await CommunityInstance.connect(owner)["getRoles(address)"](accountTwo.address));
             expect(rolesList.includes(rolesTitle.get('members'))).to.be.eq(true);
             
-            await CommunityInstance.removeMembers([accountTwo.address]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'removeMembers(address[])', [[accountTwo.address]]);
             rolesList = (await CommunityInstance.connect(owner)["getRoles(address)"](accountTwo.address));
             expect(rolesList.includes(rolesTitle.get('members'))).to.be.eq(false);
         });
         
         
         it("can create new role", async () => {
-            await expect(CommunityInstance.connect(accountThree).createRole(rolesTitle.get('role1'))).to.be.revertedWith("Target account must be with role '" +rolesTitle.get('owners')+"'");
-            await expect(CommunityInstance.connect(accountOne).createRole(rolesTitle.get('owners'))).to.be.revertedWith("Such role is already exists");
-            await expect(CommunityInstance.connect(accountOne).createRole(rolesTitle.get('admins'))).to.be.revertedWith("Such role is already exists");
-            await expect(CommunityInstance.connect(accountOne).createRole(rolesTitle.get('members'))).to.be.revertedWith("Such role is already exists");
-            await expect(CommunityInstance.connect(accountOne).createRole(rolesTitle.get('cc_admins'))).to.be.revertedWith("Such role is already exists");
+            await mixedCall(CommunityInstance, trustedForwardMode, accountThree, 'createRole(string)', [rolesTitle.get('role1')], "Target account must be with role '" +rolesTitle.get('owners')+"'");
+
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('owners')], "Such role is already exists");
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('admins')], "Such role is already exists");
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('members')], "Such role is already exists");
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('cc_admins')], "Such role is already exists");
             
-            await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'));
-            await expect(CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'))).to.be.revertedWith("Such role is already exists");
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role1')]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role1')], "Such role is already exists");
             
         });
 
         it("can view all roles", async () => {
             var rolesList;
-            [rolesList,] = await CommunityInstance.connect(accountOne)["getRoles()"]();
+            [rolesList,] = await CommunityInstance.connect(owner)["getRoles()"]();
             
             // here it will be only internal roles
 
@@ -352,9 +430,9 @@ describe("Community", function () {
                  expect(rolesList.includes(value)).to.be.eq(false);
             })
 
-            await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'));
-
-            [rolesList,] = await CommunityInstance.connect(accountOne)["getRoles()"]();
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role1')]);
+            
+            [rolesList,] = await CommunityInstance.connect(owner)["getRoles()"]();
             (
                 rolesExists.concat(
                     [rolesTitle.get('role1')]
@@ -368,42 +446,42 @@ describe("Community", function () {
 
         it("can view all members in role", async () => {
             // create roles
-            await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'));
-            await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role2'));
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role1')]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role2')]);
             //add member
-            await CommunityInstance.connect(accountOne).addMembers([
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'addMembers(address[])', [[
                 accountTwo.address,
                 accountThree.address,
                 accountFourth.address,
                 accountFive.address,
                 accountSix.address,
                 accountSeven.address
-            ]);
+            ]]);
             // add member to role
-            await CommunityInstance.connect(accountOne).grantRoles([
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],string[])', [[
                 accountTwo.address,
                 accountThree.address,
                 accountFourth.address,
                 accountFive.address,
                 accountSix.address
-            ], [rolesTitle.get('role1')]);
-            await CommunityInstance.connect(accountOne).grantRoles([
+            ], [rolesTitle.get('role1')]]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],string[])', [[
                 accountFive.address,
                 accountSix.address,
                 accountSeven.address
-            ], [rolesTitle.get('role2')]);
+            ], [rolesTitle.get('role2')]]);
 
-            let allMembers = await CommunityInstance.connect(accountOne)["getMembers()"]();
+            let allMembers = await CommunityInstance.connect(owner)["getMembers()"]();
             expect(allMembers.length).to.be.eq(SEVEN); // accounts - One,Two,Three,Four,Five,Six,Seven
 
-            let allMembersInMemebers = await CommunityInstance.connect(accountOne)["getMembers(string)"](rolesTitle.get('members'));
+            let allMembersInMemebers = await CommunityInstance.connect(owner)["getMembers(string)"](rolesTitle.get('members'));
             expect(allMembersInMemebers.length).to.be.eq(SEVEN);
             expect(allMembersInMemebers.length).to.be.eq(allMembers.length);
 
-            let allMembersInRole1 = await CommunityInstance.connect(accountOne)["getMembers(string)"](rolesTitle.get('role1'));
+            let allMembersInRole1 = await CommunityInstance.connect(owner)["getMembers(string)"](rolesTitle.get('role1'));
             expect(allMembersInRole1.length).to.be.eq(FIVE); // accounts - Two,Three,Four,Five,Six
 
-            let allMembersInRole2 = await CommunityInstance.connect(accountOne)["getMembers(string)"](rolesTitle.get('role2'));
+            let allMembersInRole2 = await CommunityInstance.connect(owner)["getMembers(string)"](rolesTitle.get('role2'));
             expect(allMembersInRole2.length).to.be.eq(THREE); // accounts - Five,Six,Seven
 
 
@@ -412,151 +490,161 @@ describe("Community", function () {
         it("can manage role", async () => {
             
             // create two roles
-            await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'));
-            await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role2'));
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role1')]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role2')]);
             
             // ownable check
-            await expect(
-                CommunityInstance.connect(accountThree).manageRole(rolesTitle.get('role1'),rolesTitle.get('role2'))
-            ).to.be.revertedWith("Target account must be with role '" +rolesTitle.get('owners')+"'");
+            await mixedCall(CommunityInstance, trustedForwardMode, accountThree, 'manageRole(string,string)', [rolesTitle.get('role1'),rolesTitle.get('role2')],"Target account must be with role '" +rolesTitle.get('owners')+"'");
             
             // role exist check
-            await expect(
-                CommunityInstance.connect(accountOne).manageRole(rolesTitle.get('role4'),rolesTitle.get('role2'))
-            ).to.be.revertedWith("Source role does not exists");
-            await expect(
-                CommunityInstance.connect(accountOne).manageRole(rolesTitle.get('role1'),rolesTitle.get('role4'))
-            ).to.be.revertedWith("Source role does not exists");
-            
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'manageRole(string,string)', [rolesTitle.get('role4'),rolesTitle.get('role2')],"Source role does not exists");
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'manageRole(string,string)', [rolesTitle.get('role1'),rolesTitle.get('role4')],"Source role does not exists");
             
             // manage role
-            await CommunityInstance.connect(accountOne).manageRole(rolesTitle.get('role1'),rolesTitle.get('role2'));
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'manageRole(string,string)', [rolesTitle.get('role1'),rolesTitle.get('role2')]);
             //add member
-            await CommunityInstance.connect(accountOne).addMembers([accountTwo.address]);
-
-            await expect(
-                CommunityInstance.connect(accountThree).grantRoles([accountTwo.address], [rolesTitle.get('role1')])
-            ).to.be.revertedWith("Sender can not manage Members with role '" +rolesTitle.get('role1')+"'");
-            // added member to none-exists member
-            await expect(
-                CommunityInstance.connect(accountOne).grantRoles([accountThree.address], [rolesTitle.get('role1')])
-            ).to.be.revertedWith("Target account must be with role '" +rolesTitle.get('members')+"'");
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'addMembers(address[])', [[accountTwo.address]]);
             
+            await mixedCall(CommunityInstance, trustedForwardMode, accountThree, 'grantRoles(address[],string[])', [
+                [accountTwo.address], [rolesTitle.get('role1')]
+            ], "Sender can not manage Members with role '" +rolesTitle.get('role1')+"'");
+
+            // added member to none-exists member
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],string[])', [
+                [accountThree.address], [rolesTitle.get('role1')]
+            ], "Target account must be with role '" +rolesTitle.get('members')+"'");
 
             // added member to none-exists role 
-            await expect(
-                CommunityInstance.connect(accountOne).grantRoles([accountTwo.address], [rolesTitle.get('role4')])
-            ).to.be.revertedWith("Such role '"+rolesTitle.get('role4')+"' does not exists");
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],string[])', [
+                [accountTwo.address], [rolesTitle.get('role4')]
+            ], "Such role '"+rolesTitle.get('role4')+"' does not exists");
             
-            await CommunityInstance.connect(accountOne).grantRoles([accountTwo.address], [rolesTitle.get('role1')]);
-
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],string[])', [
+                [accountTwo.address], [rolesTitle.get('role1')]
+            ]);
+            
             //add member 
-            await CommunityInstance.connect(accountOne).addMembers([accountFourth.address]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'addMembers(address[])', [[accountFourth.address]]);
 
             //add role2 to accountFourth by accountTwo
-            await CommunityInstance.connect(accountTwo).grantRoles([accountFourth.address], [rolesTitle.get('role2')]);
+            await mixedCall(CommunityInstance, trustedForwardMode, accountTwo, 'grantRoles(address[],string[])', [
+                [accountFourth.address], [rolesTitle.get('role2')]
+            ]);
 
         });
-        
+
         it("can remove account from role", async () => {
 
             var rolesList;
-            
-            await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'));
-            await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role2'));
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role1')]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role2')]);
 
             //add member
-            await CommunityInstance.connect(accountOne).addMembers([accountTwo.address]);
-            await CommunityInstance.connect(accountOne).addMembers([accountThree.address]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'addMembers(address[])', [[accountTwo.address,accountThree.address]]);
             // add member to role
-            await CommunityInstance.connect(accountOne).grantRoles([accountTwo.address], [rolesTitle.get('role1')]);
-            await CommunityInstance.connect(accountOne).grantRoles([accountThree.address], [rolesTitle.get('role2')]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],string[])', [
+                [accountTwo.address, accountThree.address], [rolesTitle.get('role1'),rolesTitle.get('role2')]
+            ]);
             
             // check that accountTwo got `get('role1')`
-            rolesList = (await CommunityInstance.connect(accountOne)["getRoles(address)"](accountTwo.address));
+            rolesList = (await CommunityInstance.connect(owner)["getRoles(address)"](accountTwo.address));
             expect(rolesList.includes(rolesTitle.get('role1'))).to.be.eq(true); // 'outside role'
             
-            await expect(
-                CommunityInstance.connect(accountThree).revokeRoles([accountFourth.address], [rolesTitle.get('role1')])
-            ).to.be.revertedWith("Target account must be with role '" +rolesTitle.get('members')+"'");
-
-            await expect(
-                CommunityInstance.connect(accountThree).revokeRoles([accountTwo.address], [rolesTitle.get('role1')])
-            ).to.be.revertedWith("Sender can not manage Members with role '" +rolesTitle.get('role1')+"'");
-
+            await mixedCall(CommunityInstance, trustedForwardMode, accountThree, 'revokeRoles(address[],string[])', [
+                [accountFourth.address], [rolesTitle.get('role1')]
+            ],"Target account must be with role '" +rolesTitle.get('members')+"'");
+            
+            await mixedCall(CommunityInstance, trustedForwardMode, accountThree, 'revokeRoles(address[],string[])', [
+                [accountTwo.address], [rolesTitle.get('role1')]
+            ],"Sender can not manage Members with role '" +rolesTitle.get('role1')+"'");
 
             // remove
-            await CommunityInstance.connect(accountOne).revokeRoles([accountTwo.address], [rolesTitle.get('role1')]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'revokeRoles(address[],string[])', [
+                [accountTwo.address], [rolesTitle.get('role1')]
+            ]);
+
             // check removing
-            rolesList = (await CommunityInstance.connect(accountOne)["getRoles(address)"](accountTwo.address));
+            rolesList = (await CommunityInstance.connect(owner)["getRoles(address)"](accountTwo.address));
             expect(rolesList.includes(rolesTitle.get('role1'))).to.be.eq(false); // 'outside role'
             
             // check allowance to remove default role `members`
-            await expect(
-                CommunityInstance.connect(accountOne).revokeRoles([accountTwo.address], [rolesTitle.get('members')])
-            ).to.be.revertedWith("Can not remove role '" +rolesTitle.get('members')+"'");
-
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'revokeRoles(address[],string[])', [
+                [accountTwo.address], [rolesTitle.get('members')]
+            ], "Can not remove role '" +rolesTitle.get('members')+"'");
             
         });
 
         it("shouldnt manage owners role by none owners", async () => {
-            await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'));
-            await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role2'));
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role1')]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role2')]);
 
-            await CommunityInstance.connect(accountOne).manageRole(rolesTitle.get('role1'),rolesTitle.get('role2'));
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'manageRole(string,string)', [rolesTitle.get('role1'), rolesTitle.get('role2')]);
 
-            await expect(
-                CommunityInstance.connect(accountOne).manageRole(rolesTitle.get('role2'),rolesTitle.get('owners'))
-            ).to.be.revertedWith("targetRole can not be '" +rolesTitle.get('owners')+"'");
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'manageRole(string,string)', [rolesTitle.get('role2'), rolesTitle.get('owners')],"targetRole can not be '" +rolesTitle.get('owners')+"'");
         }); 
         
         it("possible to grant with cycle.", async () => {
             
             // create roles
-            await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role2'));
-            await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role3'));
-            await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role4'));
-            await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role5'));
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role2')]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role3')]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role4')]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role5')]);
+
             // manage roles to cycle 
-            await CommunityInstance.connect(accountOne).manageRole(rolesTitle.get('role2'),rolesTitle.get('role3'));
-            await CommunityInstance.connect(accountOne).manageRole(rolesTitle.get('role3'),rolesTitle.get('role4'));
-            await CommunityInstance.connect(accountOne).manageRole(rolesTitle.get('role4'),rolesTitle.get('role5'));
-            await CommunityInstance.connect(accountOne).manageRole(rolesTitle.get('role5'),rolesTitle.get('role2'));
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'manageRole(string,string)', [rolesTitle.get('role2'), rolesTitle.get('role3')]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'manageRole(string,string)', [rolesTitle.get('role3'), rolesTitle.get('role4')]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'manageRole(string,string)', [rolesTitle.get('role4'), rolesTitle.get('role5')]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'manageRole(string,string)', [rolesTitle.get('role5'), rolesTitle.get('role2')]);
             
             // account2
-            await CommunityInstance.connect(accountOne).addMembers([accountTwo.address]);
-            await CommunityInstance.connect(accountOne).grantRoles([accountTwo.address], [rolesTitle.get('role2')]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'addMembers(address[])', [[accountTwo.address]]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],string[])', [
+                [accountTwo.address], [rolesTitle.get('role2')]
+            ]);
             
             // check
-            rolesList = await CommunityInstance.connect(accountOne)["getRoles(address)"](accountTwo.address);
+            rolesList = await CommunityInstance.connect(owner)["getRoles(address)"](accountTwo.address);
             expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(true); 
             
             // account 3
-            await CommunityInstance.connect(accountOne).addMembers([accountThree.address]);
-            await CommunityInstance.connect(accountTwo).grantRoles([accountThree.address], [rolesTitle.get('role3')]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'addMembers(address[])', [[accountThree.address]]);
+            await mixedCall(CommunityInstance, trustedForwardMode, accountTwo, 'grantRoles(address[],string[])', [
+                [accountThree.address], [rolesTitle.get('role3')]
+            ]);
             
             // account 4
-            await CommunityInstance.connect(accountOne).addMembers([accountFourth.address]);
-            await CommunityInstance.connect(accountThree).grantRoles([accountFourth.address], [rolesTitle.get('role4')]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'addMembers(address[])', [[accountFourth.address]]);
+            await mixedCall(CommunityInstance, trustedForwardMode, accountThree, 'grantRoles(address[],string[])', [
+                [accountFourth.address], [rolesTitle.get('role4')]
+            ]);
             
             // account 5
-            await CommunityInstance.connect(accountOne).addMembers([accountFive.address]);
-            await CommunityInstance.connect(accountFourth).grantRoles([accountFive.address], [rolesTitle.get('role5')]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'addMembers(address[])', [[accountFive.address]]);
+            await mixedCall(CommunityInstance, trustedForwardMode, accountFourth, 'grantRoles(address[],string[])', [
+                [accountFive.address], [rolesTitle.get('role5')]
+            ]);
             
             // account 5 remove account2 from role2
-            await CommunityInstance.connect(accountFive).revokeRoles([accountTwo.address], [rolesTitle.get('role2')]);
+            await mixedCall(CommunityInstance, trustedForwardMode, accountFive, 'revokeRoles(address[],string[])', [
+                [accountTwo.address], [rolesTitle.get('role2')]
+            ]);
             
             // check again
-            rolesList = await CommunityInstance.connect(accountOne)["getRoles(address)"](accountTwo.address);
+            rolesList = await CommunityInstance.connect(owner)["getRoles(address)"](accountTwo.address);
             expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(false); 
         });
 
         it("check amount of roles after revoke(empty strings)", async () => {
-            await CommunityInstance.connect(owner).createRole(rolesTitle.get('role1'));
-            await CommunityInstance.connect(owner).addMembers([accountFive.address]);
-            await CommunityInstance.connect(owner).grantRoles([accountFive.address],[rolesTitle.get('role1')]);
-            await CommunityInstance.connect(owner).revokeRoles([accountFive.address],[rolesTitle.get('role1')]);
-
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role1')]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'addMembers(address[])', [[accountFive.address]]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],string[])', [
+                [accountFive.address], [rolesTitle.get('role1')]
+            ]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'revokeRoles(address[],string[])', [
+                [accountFive.address], [rolesTitle.get('role1')]
+            ]);
+            
             var rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountFive.address));
 
             expect(rolesList.length).to.be.eq(ONE); // members
@@ -564,56 +652,57 @@ describe("Community", function () {
         });
 
         it("check amount of roles after revoke(empty strings)::more roles", async () => {
-            await CommunityInstance.connect(owner).createRole(rolesTitle.get('role1'));
-            await CommunityInstance.connect(owner).createRole(rolesTitle.get('role2'));
-            await CommunityInstance.connect(owner).createRole(rolesTitle.get('role3'));
-            await CommunityInstance.connect(owner).createRole(rolesTitle.get('role4'));
-            await CommunityInstance.connect(owner).createRole(rolesTitle.get('role5'));
-            await CommunityInstance.connect(owner).createRole(rolesTitle.get('role6'));
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role1')]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role2')]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role3')]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role4')]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role5')]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role6')]);
 
-            await CommunityInstance.connect(owner).addMembers([accountFive.address]);
-            await CommunityInstance.connect(owner).grantRoles([accountFive.address],[rolesTitle.get('role1')]);
-            await CommunityInstance.connect(owner).revokeRoles([accountFive.address],[rolesTitle.get('role1')]);
-            await CommunityInstance.connect(owner).grantRoles([accountFive.address],[rolesTitle.get('role2')]);
-            await CommunityInstance.connect(owner).revokeRoles([accountFive.address],[rolesTitle.get('role2')]);
-            await CommunityInstance.connect(owner).grantRoles([accountFive.address],[rolesTitle.get('role3')]);
-            await CommunityInstance.connect(owner).revokeRoles([accountFive.address],[rolesTitle.get('role3')]);
-            await CommunityInstance.connect(owner).grantRoles([accountFive.address],[rolesTitle.get('role4')]);
-            await CommunityInstance.connect(owner).grantRoles([accountFive.address],[rolesTitle.get('role5')]);
-            await CommunityInstance.connect(owner).revokeRoles([accountFive.address],[rolesTitle.get('role5')]);
-            await CommunityInstance.connect(owner).revokeRoles([accountFive.address],[rolesTitle.get('role4')]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'addMembers(address[])', [[accountFive.address]]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],string[])', [[accountFive.address], [rolesTitle.get('role1')]]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'revokeRoles(address[],string[])', [[accountFive.address], [rolesTitle.get('role1')]]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],string[])', [[accountFive.address], [rolesTitle.get('role2')]]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'revokeRoles(address[],string[])', [[accountFive.address], [rolesTitle.get('role2')]]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],string[])', [[accountFive.address], [rolesTitle.get('role3')]]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'revokeRoles(address[],string[])', [[accountFive.address], [rolesTitle.get('role3')]]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],string[])', [[accountFive.address], [rolesTitle.get('role4')]]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],string[])', [[accountFive.address], [rolesTitle.get('role5')]]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'revokeRoles(address[],string[])', [[accountFive.address], [rolesTitle.get('role5')]]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'revokeRoles(address[],string[])', [[accountFive.address], [rolesTitle.get('role4')]]);
+            
             var rolesList;
 
             rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountFive.address));
             expect(rolesList.length).to.be.eq(ONE); // members
-
-            await CommunityInstance.connect(owner).grantRoles(
-                [accountFive.address,accountFive.address],
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],string[])', [
+                [accountFive.address,accountFive.address], 
                 [rolesTitle.get('role1'),rolesTitle.get('role2')]
-            );
-            await CommunityInstance.connect(owner).grantRoles(
-                [accountFive.address,accountFive.address],
+            ]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],string[])', [
+                [accountFive.address,accountFive.address], 
                 [rolesTitle.get('role3'),rolesTitle.get('role4')]
-            );
-            await CommunityInstance.connect(owner).grantRoles(
-                [accountFive.address,accountFive.address],
+            ]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],string[])', [
+                [accountFive.address,accountFive.address], 
                 [rolesTitle.get('role5'),rolesTitle.get('role6')]
-            );
+            ]);
+
             rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountFive.address));
             expect(rolesList.length).to.be.eq(SEVEN); // members,role#1,role#2,role#3,role#4,role#5,role#6
 
-            await CommunityInstance.connect(owner).revokeRoles(
-                [accountFive.address,accountFive.address],
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'revokeRoles(address[],string[])', [
+                [accountFive.address,accountFive.address], 
                 [rolesTitle.get('role6'),rolesTitle.get('role1')]
-            );
-            await CommunityInstance.connect(owner).revokeRoles(
-                [accountFive.address,accountFive.address],
+            ]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'revokeRoles(address[],string[])', [
+                [accountFive.address,accountFive.address], 
                 [rolesTitle.get('role2'),rolesTitle.get('role3')]
-            );
-            await CommunityInstance.connect(owner).revokeRoles(
-                [accountFive.address,accountFive.address],
+            ]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'revokeRoles(address[],string[])', [
+                [accountFive.address,accountFive.address], 
                 [rolesTitle.get('role4'),rolesTitle.get('role5')]
-            );
+            ]);
 
             rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountFive.address));
             expect(rolesList.length).to.be.eq(ONE); // members
@@ -623,15 +712,15 @@ describe("Community", function () {
             beforeEach("prepare", async() => {
                 
                 // create roles
-                await CommunityInstance.connect(owner).createRole(rolesTitle.get('role1'));
-                await CommunityInstance.connect(owner).createRole(rolesTitle.get('role2'));
-                await CommunityInstance.connect(owner).createRole(rolesTitle.get('role3'));
-                await CommunityInstance.connect(owner).createRole(rolesTitle.get('role4'));
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role1')]);
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role2')]);
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role3')]);
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role4')]);
 
                 // Adding
-                await CommunityInstance.connect(owner).addMembers(
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'addMembers(address[])', [
                     [
-                        accountOne.address,
+                        owner.address,
                         accountTwo.address,
                         accountThree.address,
                         accountFourth.address,
@@ -639,11 +728,11 @@ describe("Community", function () {
                         accountSix.address,
                         accountSeven.address
                     ]
-                );
+                ]);
 
-                await CommunityInstance.connect(owner).grantRoles(
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],string[])', [
                     [
-                        accountOne.address,
+                        owner.address,
                         accountTwo.address,
                         accountThree.address
                     ], 
@@ -652,8 +741,8 @@ describe("Community", function () {
                         rolesTitle.get('role2'),
                         rolesTitle.get('role3'),
                     ]
-                );
-                await CommunityInstance.connect(owner).grantRoles(
+                ]);
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],string[])', [
                     [
                         accountFourth.address,
                         accountFive.address
@@ -662,8 +751,8 @@ describe("Community", function () {
                         rolesTitle.get('role2'),
                         rolesTitle.get('role3')
                     ]
-                );
-                await CommunityInstance.connect(owner).grantRoles(
+                ]);
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],string[])', [
                     [
                         accountSix.address,
                         accountSeven.address
@@ -672,7 +761,7 @@ describe("Community", function () {
                         rolesTitle.get('role1'),
                         rolesTitle.get('role2')
                     ]
-                );
+                ]);
 
             }); 
 
@@ -681,8 +770,8 @@ describe("Community", function () {
                 
                 ///// checking by Members
                 var rolesList;
-                // accountOne
-                rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountOne.address));
+                // owner
+                rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](owner.address));
                 expect(rolesList.includes(rolesTitle.get('role1'))).to.be.eq(true); 
                 expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(true); 
                 expect(rolesList.includes(rolesTitle.get('role3'))).to.be.eq(true); 
@@ -781,13 +870,12 @@ describe("Community", function () {
         }); 
 
         describe("invites", function () {
-            var privatekey1, 
-            privatekey2,
-            CommunityInstanceStartingBalance
-            ;
+            //var privatekey1, 
+            //privatekey2,
+            var CommunityInstanceStartingBalance;
             beforeEach("deploying", async() => {
-                privatekey1 = accountOne._signingKey()["privateKey"];
-                privatekey2 = accountTwo._signingKey()["privateKey"];
+                // privatekey1 = owner._signingKey()["privateKey"];
+                // privatekey2 = accountTwo._signingKey()["privateKey"];
                
                 const price = ethers.utils.parseEther('1');
                 const amountETHSendToContract = price.mul(TWO); // 2ETH
@@ -802,19 +890,16 @@ describe("Community", function () {
 
                 // create relayers user
                 // Adding
-                await CommunityInstance.connect(accountOne).addMembers([accountTen.address]);
-                await CommunityInstance.connect(accountOne).grantRoles(
-                    [relayer.address], 
-                    [rolesTitle.get('relayers')]
-                );
-
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'addMembers(address[])', [[relayer.address]]);
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],string[])', [[relayer.address], [rolesTitle.get('relayers')]]);
                 
                 // create roles
-                await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role1'));
-                await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role2'));
-                await CommunityInstance.connect(accountOne).createRole(rolesTitle.get('role3'));
-        
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role1')]);
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role2')]);
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role3')]);
+                
             });
+
             it("signatures mismatch (recipient address not equal)", async () => {   
                 let adminMsg = [
                     'invite',
@@ -833,12 +918,10 @@ describe("Community", function () {
                 let rSig = await accountTwo.signMessage(recipientMsg);
 
                 // imitate invitePrepare and check it in system
-                await CommunityInstance.connect(relayer).invitePrepare(sSig,rSig);
+                await mixedCall(CommunityInstance, trustedForwardMode, relayer, 'invitePrepare(bytes,bytes)', [sSig,rSig]);
 
                 // imitate inviteAccept
-                await expect(
-                    CommunityInstance.connect(relayer).inviteAccept(adminMsg, sSig, recipientMsg, rSig)
-                ).to.be.revertedWith("Signature are mismatch");
+                await mixedCall(CommunityInstance, trustedForwardMode, relayer, 'inviteAccept(string,bytes,string,bytes)', [adminMsg, sSig, recipientMsg, rSig],"Signature are mismatch");
 
             });
 
@@ -860,12 +943,11 @@ describe("Community", function () {
                 let rSig = await accountTwo.signMessage(recipientMsg);
 
                 // imitate invitePrepare and check it in system
-                await CommunityInstance.connect(relayer).invitePrepare(sSig,rSig);
+                await mixedCall(CommunityInstance, trustedForwardMode, relayer, 'invitePrepare(bytes,bytes)', [sSig,rSig]);
 
                 // imitate inviteAccept
-                await expect(
-                    CommunityInstance.connect(relayer).inviteAccept(adminMsg, sSig, recipientMsg, rSig)
-                ).to.be.revertedWith("Signature are mismatch");
+                await mixedCall(CommunityInstance, trustedForwardMode, relayer, 'inviteAccept(string,bytes,string,bytes)', [adminMsg, sSig, recipientMsg, rSig],"Signature are mismatch");
+                
 
             });
 
@@ -887,12 +969,9 @@ describe("Community", function () {
                 let rSig = await accountTwo.signMessage(recipientMsg);
 
                 // imitate invitePrepare and check it in system
-                await CommunityInstance.connect(relayer).invitePrepare(sSig,rSig);
-
+                await mixedCall(CommunityInstance, trustedForwardMode, relayer, 'invitePrepare(bytes,bytes)', [sSig,rSig]);
                 // imitate inviteAccept
-                await expect(
-                    CommunityInstance.connect(relayer).inviteAccept(adminMsg, sSig, recipientMsg, rSig)
-                ).to.be.revertedWith("Can not add no one role");
+                await mixedCall(CommunityInstance, trustedForwardMode, relayer, 'inviteAccept(string,bytes,string,bytes)', [adminMsg, sSig, recipientMsg, rSig],"Can not add no one role");
 
             }); 
 
@@ -906,15 +985,10 @@ describe("Community", function () {
                     ].join(','),
                     'GregMagarshak'
                     ].join(':');
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'addMembers(address[])', [[accountThree.address]]);
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],string[])', [ [accountThree.address], [rolesTitle.get('role3')]]);
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'manageRole(string,string)', [rolesTitle.get('role3'),rolesTitle.get('role2')]);
                 
-                await CommunityInstance.connect(owner).addMembers([accountThree.address]);
-                await CommunityInstance.connect(owner).grantRoles(
-                    [accountThree.address], 
-                    [rolesTitle.get('role3')]
-                );
-                await CommunityInstance.connect(owner).manageRole(rolesTitle.get('role3'),rolesTitle.get('role2'));
-
-
                 let recipientMsg = ''+accountTwo.address+':John Doe';
                 
                 let sSig = await accountThree.signMessage(adminMsg);
@@ -922,10 +996,10 @@ describe("Community", function () {
                 let rSig = await accountTwo.signMessage(recipientMsg);
 
                 // imitate invitePrepare and check it in system
-                await CommunityInstance.connect(relayer).invitePrepare(sSig,rSig);
+                await mixedCall(CommunityInstance, trustedForwardMode, relayer, 'invitePrepare(bytes,bytes)', [sSig,rSig]);
 
                 // imitate inviteAccept
-                await CommunityInstance.connect(relayer).inviteAccept(adminMsg, sSig, recipientMsg, rSig)
+                await mixedCall(CommunityInstance, trustedForwardMode, relayer, 'inviteAccept(string,bytes,string,bytes)', [adminMsg, sSig, recipientMsg, rSig]);
                 
                 // check roles of accountTwo
                 rolesList = await CommunityInstance.connect(owner)["getRoles(address)"](accountTwo.address);
@@ -965,7 +1039,7 @@ describe("Community", function () {
                 const relayerStartingBalance = (await ethers.provider.getBalance(relayer.address));
 
                 // imitate invitePrepare and check it in system
-                await CommunityInstance.connect(relayer).invitePrepare(sSig,rSig);
+                await mixedCall(CommunityInstance, trustedForwardMode, relayer, 'invitePrepare(bytes,bytes)', [sSig,rSig]);
 
                 let invite = await CommunityInstance.connect(relayer).inviteView(sSig);
                 expect(invite.exists).to.be.true; // 'invite not found';
@@ -973,7 +1047,7 @@ describe("Community", function () {
                 //console.log('(1)invite.gasCost=',invite.gasCost);
             
                 // imitate inviteAccept
-                await CommunityInstance.connect(relayer).inviteAccept(adminMsg, sSig, recipientMsg, rSig);
+                await mixedCall(CommunityInstance, trustedForwardMode, relayer, 'inviteAccept(string,bytes,string,bytes)', [adminMsg, sSig, recipientMsg, rSig]);
 
                 const relayerEndingBalance = await ethers.provider.getBalance(relayer.address);
                 const recipientEndingBalance = await ethers.provider.getBalance(accountTwo.address);
@@ -998,13 +1072,8 @@ describe("Community", function () {
 
                 expect(recipientEndingBalance.sub(recipientStartingBalance)).to.be.eq(replenishAmount); // "wrong replenishAmount"
                 
-                await expect(
-                    CommunityInstance.connect(relayer).invitePrepare(sSig,rSig)
-                ).to.be.revertedWith("Such signature is already exists");
-                
-                await expect(
-                    CommunityInstance.connect(relayer).inviteAccept(adminMsg, sSig, recipientMsg, rSig)
-                ).to.be.revertedWith("Such signature is already used");
+                await mixedCall(CommunityInstance, trustedForwardMode, relayer, 'invitePrepare(bytes,bytes)', [sSig,rSig], "Such signature is already exists");
+                await mixedCall(CommunityInstance, trustedForwardMode, relayer, 'inviteAccept(string,bytes,string,bytes)', [adminMsg, sSig, recipientMsg, rSig], "Such signature is already used");
                 
                 await expect(await CommunityInstance.invitedBy(accountTwo.address)).to.be.eq(owner.address); //'does not store invited mapping'
                 await expect(await CommunityInstance.invitedBy(accountTwo.address)).not.to.be.eq(accountNine.address); //'store wrong keys in invited mapping'
@@ -1017,7 +1086,7 @@ describe("Community", function () {
 
     });
 
-    describe("CommunityERC721 tests", function () {
+    describe(`${trustedForwardMode ? '[trusted forwarder]' : ''}CommunityERC721 tests`, function () {
         
         var CommunityInstance;
         
@@ -1030,6 +1099,11 @@ describe("Community", function () {
             event = rc.events.find(event => event.event === 'InstanceCreated');
             [instance, instancesCount] = event.args;
             CommunityInstance = await ethers.getContractAt("CommunityERC721",instance);
+
+            if (trustedForwardMode) {
+                await CommunityInstance.connect(accountTen).setTrustedForwarder(trustedForwarder.address);
+            }
+
         });
 
         it("name should be `Community`", async () => {
@@ -1053,46 +1127,45 @@ describe("Community", function () {
             beforeEach("deploying", async() => {
 
                 // create roles
-                await CommunityInstance.connect(accountTen).createRole(rolesTitle.get('role1'));
-                await CommunityInstance.connect(accountTen).createRole(rolesTitle.get('role2'));
-                await CommunityInstance.connect(accountTen).createRole(rolesTitle.get('role3'));
-                await CommunityInstance.connect(accountTen).createRole(rolesTitle.get('role4'));
+                await mixedCall(CommunityInstance, trustedForwardMode, accountTen, 'createRole(string)', [rolesTitle.get('role1')]);
+                await mixedCall(CommunityInstance, trustedForwardMode, accountTen, 'createRole(string)', [rolesTitle.get('role2')]);
+                await mixedCall(CommunityInstance, trustedForwardMode, accountTen, 'createRole(string)', [rolesTitle.get('role3')]);
+                await mixedCall(CommunityInstance, trustedForwardMode, accountTen, 'createRole(string)', [rolesTitle.get('role4')]);
 
                 // Adding
-                await CommunityInstance.connect(accountTen).addMembers(
+                await mixedCall(CommunityInstance, trustedForwardMode, accountTen, 'addMembers(address[])', [
                     [
-                        accountOne.address,
+                        owner.address,
                         accountTwo.address,
                         accountThree.address,
                         accountFourth.address,
                         accountSix.address,
                     ]
-                );
-
-                await CommunityInstance.connect(accountTen).grantRoles(
-                    [accountOne.address], 
+                ]);
+                await mixedCall(CommunityInstance, trustedForwardMode, accountTen, 'grantRoles(address[],string[])', [
+                    [owner.address], 
                     [rolesTitle.get('role1')]
-                );
+                ]);
 
-                await CommunityInstance.connect(accountTen).grantRoles(
+                await mixedCall(CommunityInstance, trustedForwardMode, accountTen, 'grantRoles(address[],string[])', [
                     [accountTwo.address], 
                     [rolesTitle.get('role2')]
-                );
+                ]);
 
-                await CommunityInstance.connect(accountTen).grantRoles(
+                await mixedCall(CommunityInstance, trustedForwardMode, accountTen, 'grantRoles(address[],string[])', [
                     [accountThree.address,
                     accountSix.address], 
                     [
                         rolesTitle.get('role3')
                     ]
-                );
+                ]);
                 
             });
 
             
             it("should correct balanceOf for holders", async () => {
                 // using "+ONE" because any account in community have extra role "members"
-                expect(await CommunityInstance.balanceOf(accountOne.address)).to.be.eq(ONE.add(ONE));
+                expect(await CommunityInstance.balanceOf(owner.address)).to.be.eq(ONE.add(ONE));
                 expect(await CommunityInstance.balanceOf(accountTwo.address)).to.be.eq(ONE.add(ONE));
                 expect(await CommunityInstance.balanceOf(accountThree.address)).to.be.eq(ONE.add(ONE));
                 expect(await CommunityInstance.balanceOf(accountFourth.address)).to.be.eq(ZERO.add(ONE));
@@ -1104,8 +1177,8 @@ describe("Community", function () {
 
             it("should be owner of token", async () => {
                 expect(
-                    await CommunityInstance.ownerOf(generateTokenId(accountOne.address, rolesIndex.get('role1')))
-                ).to.be.eq(accountOne.address);
+                    await CommunityInstance.ownerOf(generateTokenId(owner.address, rolesIndex.get('role1')))
+                ).to.be.eq(owner.address);
                 expect(
                     await CommunityInstance.ownerOf(generateTokenId(accountTwo.address, rolesIndex.get('role2')))
                 ).to.be.eq(accountTwo.address);
@@ -1117,43 +1190,43 @@ describe("Community", function () {
 
             it("shouldn't be owner of token", async () => {
                 expect(
-                    await CommunityInstance.ownerOf(generateTokenId(accountOne.address, rolesIndex.get('role2')))
+                    await CommunityInstance.ownerOf(generateTokenId(owner.address, rolesIndex.get('role2')))
                 ).to.be.eq(ZERO_ADDRESS);
             });
 
             it("shouldn't approve", async () => {
                 await expect(
-                    CommunityInstance.connect(accountOne).approve(
+                    CommunityInstance.connect(owner).approve(
                         accountFourth.address,
-                        generateTokenId(accountOne.address, rolesIndex.get('role1'))
+                        generateTokenId(owner.address, rolesIndex.get('role1'))
                     )
                 ).to.be.revertedWith("CommunityContract: NOT_AUTHORIZED");
             });
 
             it("shouldn't transferFrom", async () => {
                 await expect(
-                    CommunityInstance.connect(accountOne).transferFrom(
-                        accountOne.address,
+                    CommunityInstance.connect(owner).transferFrom(
+                        owner.address,
                         accountFourth.address,
-                        generateTokenId(accountOne.address, rolesIndex.get('role1'))
+                        generateTokenId(owner.address, rolesIndex.get('role1'))
                     )
                 ).to.be.revertedWith("CommunityContract: NOT_AUTHORIZED");
             });
 
             it("shouldn't safeTransferFrom", async () => {
                 await expect(
-                    CommunityInstance.connect(accountOne)["safeTransferFrom(address,address,uint256)"](
-                        accountOne.address,
+                    CommunityInstance.connect(owner)["safeTransferFrom(address,address,uint256)"](
+                        owner.address,
                         accountFourth.address,
-                        generateTokenId(accountOne.address, rolesIndex.get('role1'))
+                        generateTokenId(owner.address, rolesIndex.get('role1'))
                     )
                 ).to.be.revertedWith("CommunityContract: NOT_AUTHORIZED");
 
                 await expect(
-                    CommunityInstance.connect(accountOne)["safeTransferFrom(address,address,uint256,bytes)"](
-                        accountOne.address,
+                    CommunityInstance.connect(owner)["safeTransferFrom(address,address,uint256,bytes)"](
+                        owner.address,
                         accountFourth.address,
-                        generateTokenId(accountOne.address, rolesIndex.get('role1')),
+                        generateTokenId(owner.address, rolesIndex.get('role1')),
                         []
                     )
                 ).to.be.revertedWith("CommunityContract: NOT_AUTHORIZED");
@@ -1161,16 +1234,16 @@ describe("Community", function () {
 
             it("shouldn't getApproved", async () => {
                 await expect(
-                    CommunityInstance.connect(accountOne).getApproved(
-                        generateTokenId(accountOne.address, rolesIndex.get('role1'))
+                    CommunityInstance.connect(owner).getApproved(
+                        generateTokenId(owner.address, rolesIndex.get('role1'))
                     )
                 ).to.be.revertedWith("CommunityContract: NOT_AUTHORIZED");
             });
 
             it("shouldn't setApprovalForAll", async () => {
                 await expect(
-                    CommunityInstance.connect(accountOne).setApprovalForAll(
-                        accountOne.address,
+                    CommunityInstance.connect(owner).setApprovalForAll(
+                        owner.address,
                         true
                     )
                 ).to.be.revertedWith("CommunityContract: NOT_AUTHORIZED");
@@ -1178,8 +1251,8 @@ describe("Community", function () {
 
             it("shouldn't isApprovedForAll", async () => {
                 await expect(
-                    CommunityInstance.connect(accountOne).isApprovedForAll(
-                        accountOne.address,
+                    CommunityInstance.connect(owner).isApprovedForAll(
+                        owner.address,
                         accountTwo.address
                     )
                 ).to.be.revertedWith("CommunityContract: NOT_AUTHORIZED");
@@ -1192,16 +1265,16 @@ describe("Community", function () {
                 let interfaceWrongId = "0x00ff0000";
                 
                 await expect(
-                    await CommunityInstance.connect(accountOne).supportsInterface(interfaceIERC721UpgradeableId)
+                    await CommunityInstance.connect(owner).supportsInterface(interfaceIERC721UpgradeableId)
                 ).to.be.true;
                 await expect(
-                    await CommunityInstance.connect(accountOne).supportsInterface(interfaceIERC721MetadataUpgradeableId)
+                    await CommunityInstance.connect(owner).supportsInterface(interfaceIERC721MetadataUpgradeableId)
                 ).to.be.true;
                 await expect(
-                    await CommunityInstance.connect(accountOne).supportsInterface(interfaceIERC165UpgradeableId)
+                    await CommunityInstance.connect(owner).supportsInterface(interfaceIERC165UpgradeableId)
                 ).to.be.true;
                 await expect(
-                    await CommunityInstance.connect(accountOne).supportsInterface(interfaceWrongId)
+                    await CommunityInstance.connect(owner).supportsInterface(interfaceWrongId)
                 ).to.be.false;
             });
 
@@ -1209,12 +1282,7 @@ describe("Community", function () {
                 let uri = "http://google.com/";
                 let extrauri = "http://google.com/extra";
 
-                await expect(
-                    CommunityInstance.connect(accountThree).setRoleURI(
-                        rolesTitle.get('role3'),
-                        uri
-                    )
-                ).to.be.revertedWith("Sender can not manage Members with role '" +rolesTitle.get('role3')+"'");
+                await mixedCall(CommunityInstance, trustedForwardMode, accountThree, 'setRoleURI(string,string)', [rolesTitle.get('role3'),uri],"Sender can not manage Members with role '" +rolesTitle.get('role3')+"'");
 
                 expect(
                     await CommunityInstance.tokenURI(generateTokenId(accountThree.address, rolesIndex.get('role3')))
@@ -1224,7 +1292,7 @@ describe("Community", function () {
                     await CommunityInstance.tokenURI(generateTokenId(accountSix.address, rolesIndex.get('role3')))
                 ).to.be.eq("");
 
-                await CommunityInstance.connect(accountTen).setRoleURI(rolesTitle.get('role3'), uri);
+                await mixedCall(CommunityInstance, trustedForwardMode, accountTen, 'setRoleURI(string,string)', [rolesTitle.get('role3'),uri]);
 
                 expect(
                     await CommunityInstance.tokenURI(generateTokenId(accountThree.address, rolesIndex.get('role3')))
@@ -1234,7 +1302,7 @@ describe("Community", function () {
                     await CommunityInstance.tokenURI(generateTokenId(accountSix.address, rolesIndex.get('role3')))
                 ).to.be.eq(uri);
 
-                await CommunityInstance.connect(accountSix).setExtraURI(rolesTitle.get('role3'), extrauri);
+                await mixedCall(CommunityInstance, trustedForwardMode, accountSix, 'setExtraURI(string,string)', [rolesTitle.get('role3'),extrauri]);
 
                 expect(
                     await CommunityInstance.tokenURI(generateTokenId(accountThree.address, rolesIndex.get('role3')))
@@ -1248,4 +1316,7 @@ describe("Community", function () {
 
         });
     });
+
+    }
+
 });

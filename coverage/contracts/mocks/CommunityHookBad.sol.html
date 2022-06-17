@@ -1,14 +1,14 @@
 <!doctype html>
 <html lang="en">
 <head>
-    <title>Code coverage report for contracts\Community.sol</title>
+    <title>Code coverage report for contracts\mocks\CommunityHookBad.sol</title>
     <meta charset="utf-8" />
-    <link rel="stylesheet" href="../prettify.css" />
-    <link rel="stylesheet" href="../base.css" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style type='text/css'>
         .coverage-summary .sorter {
-            background-image: url(../sort-arrow-sprite.png);
+            background-image: url(../../sort-arrow-sprite.png);
         }
     </style>
 </head>
@@ -16,28 +16,28 @@
 <div class='wrapper'>
   <div class='pad1'>
     <h1>
-      <a href="../index.html">all files</a> / <a href="index.html">contracts/</a> Community.sol
+      <a href="../../index.html">all files</a> / <a href="index.html">contracts/mocks/</a> CommunityHookBad.sol
     </h1>
     <div class='clearfix'>
       <div class='fl pad1y space-right2'>
         <span class="strong">100% </span>
         <span class="quiet">Statements</span>
-        <span class='fraction'>1/1</span>
+        <span class='fraction'>9/9</span>
       </div>
       <div class='fl pad1y space-right2'>
-        <span class="strong">100% </span>
+        <span class="strong">83.33% </span>
         <span class="quiet">Branches</span>
-        <span class='fraction'>0/0</span>
+        <span class='fraction'>5/6</span>
       </div>
       <div class='fl pad1y space-right2'>
         <span class="strong">100% </span>
         <span class="quiet">Functions</span>
-        <span class='fraction'>1/1</span>
+        <span class='fraction'>4/4</span>
       </div>
       <div class='fl pad1y space-right2'>
         <span class="strong">100% </span>
         <span class="quiet">Lines</span>
-        <span class='fraction'>1/1</span>
+        <span class='fraction'>6/6</span>
       </div>
     </div>
   </div>
@@ -67,7 +67,14 @@
 22
 23
 24
-25</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+25
+26
+27
+28
+29
+30
+31
+32</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -83,35 +90,49 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-yes">6×</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">30×</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">63×</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6×</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.11;
-pragma experimental ABIEncoderV2;
 &nbsp;
-import "./CommunityBase.sol";
-import "./interfaces/ICommunity.sol";
+import "../CommunityHookBase.sol";
 &nbsp;
-contract Community is CommunityBase, ICommunity {
+contract CommunityHookBad is CommunityHookBase {
     
-    
-    ///////////////////////////////////////////////////////////
-    /// external section
-    ///////////////////////////////////////////////////////////
+    bool public throwInRoleGrantedExecuted = false;
+    bool public throwInRevokedExecuted = false;
+    bool public throwInCreatedExecuted = false;
 &nbsp;
-    /**
-     * @dev creates three default roles and manage relations between them
-     * @param hook address of contract which implement ICommunityHookInterface
-     */
-    function init(address hook) external initializer {
-        __CommunityBase_init(hook);
-        
+    function set(
+        bool throwInRoleGrantedExecuted_,
+        bool throwInRevokedExecuted_,
+        bool throwInCreatedExecuted_
+    ) public  {
+        throwInRoleGrantedExecuted = throwInRoleGrantedExecuted_;
+        throwInRevokedExecuted = throwInRevokedExecuted_;
+        throwInCreatedExecuted = throwInCreatedExecuted_;
+    }
+    function roleGranted(bytes32 role, uint8 roleIndex, address account) external {
+        if (throwInRoleGrantedExecuted) {revert("error in granted hook");}
+    }
+    function roleRevoked(bytes32 role, uint8 roleIndex, address account) external {
+        <span class="missing-if-branch" title="else path not taken" >E</span>if (throwInRevokedExecuted) {revert("error in revoked hook");}
+    }
+    function roleCreated(bytes32 role, uint8 roleIndex) external {
+        if (throwInCreatedExecuted) {revert("error in created hook");}
     }
     
 }
@@ -124,7 +145,7 @@ contract Community is CommunityBase, ICommunity {
   generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Fri Jun 17 2022 17:38:14 GMT+0300 (Восточная Европа, летнее время)
 </div>
 </div>
-<script src="../prettify.js"></script>
+<script src="../../prettify.js"></script>
 <script>
 window.onload = function () {
         if (typeof prettyPrint === 'function') {
@@ -132,6 +153,6 @@ window.onload = function () {
         }
 };
 </script>
-<script src="../sorter.js"></script>
+<script src="../../sorter.js"></script>
 </body>
 </html>

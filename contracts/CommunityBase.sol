@@ -11,12 +11,13 @@ import "./lib/StringUtils.sol";
 import "./IntercoinTrait.sol";
 
 import "./lib/PackedSet.sol";
+import "./access/TrustedForwarder.sol";
 
 import "./interfaces/ICommunityHook.sol";
 
 //import "hardhat/console.sol";
 
-contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuardUpgradeable, IntercoinTrait {
+contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuardUpgradeable, IntercoinTrait, TrustedForwarder {
     
     using PackedSet for PackedSet.Set;
 
@@ -229,7 +230,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
             inviteSignatures[sSig].reimbursed = ReimburseStatus.CLAIMED;
             //payable (inviteSignatures[sSig].caller).transfer(gasCost);
            
-            payable(msg.sender).transfer(gasCost);
+            payable(_msgSender()).transfer(gasCost);
 
         } else {
             inviteSignatures[sSig].reimbursed = ReimburseStatus.PENDING;
@@ -250,10 +251,10 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     function withdrawRemainingBalance(
     ) 
         public 
-        ifTargetInRole(msg.sender, DEFAULT_OWNERS_ROLE)
+        ifTargetInRole(_msgSender(), DEFAULT_OWNERS_ROLE)
         nonReentrant()
     {
-        payable(msg.sender).transfer(address(this).balance);
+        payable(_msgSender()).transfer(address(this).balance);
     } 
     /**
      * @notice Added participants to role members
@@ -264,8 +265,8 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     function addMembers(
         address[] memory members
     )
-        //canManage(msg.sender, DEFAULT_MEMBERS_ROLE)
-        ifTargetInRole(msg.sender, DEFAULT_OWNERS_ROLE)
+        //canManage(_msgSender(), DEFAULT_MEMBERS_ROLE)
+        ifTargetInRole(_msgSender(), DEFAULT_OWNERS_ROLE)
         public 
     {
         
@@ -285,8 +286,8 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     function removeMembers(
         address[] memory members
     )
-        //canManage(msg.sender, DEFAULT_MEMBERS_ROLE)
-        ifTargetInRole(msg.sender, DEFAULT_OWNERS_ROLE)
+        //canManage(_msgSender(), DEFAULT_MEMBERS_ROLE)
+        ifTargetInRole(_msgSender(), DEFAULT_OWNERS_ROLE)
         public 
     {
         uint256 len = members.length;
@@ -321,7 +322,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
                 
             }
             for (j = 0; j < lenRoles; j++) {
-                if (!_isCanManage(msg.sender, roles[j].stringToBytes32())) {
+                if (!_isCanManage(_msgSender(), roles[j].stringToBytes32())) {
                     revert(string(abi.encodePacked("Sender can not manage Members with role '",roles[j],"'")));
                 }
                 _grantRole(members[i], roles[j].stringToBytes32());
@@ -359,7 +360,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
                     revert(string(abi.encodePacked("Can not remove role '",roles[j],"'")));
                 }
 
-                if (!_isCanManage(msg.sender, roleBytes32)) {
+                if (!_isCanManage(_msgSender(), roleBytes32)) {
                     revert(string(abi.encodePacked("Sender can not manage Members with role '",roles[j],"'")));
                 }
                 _revokeRole(members[i], roles[j].stringToBytes32());
@@ -378,8 +379,9 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         string memory role
     ) 
         public 
-        ifTargetInRole(msg.sender, DEFAULT_OWNERS_ROLE) 
+        ifTargetInRole(_msgSender(), DEFAULT_OWNERS_ROLE) 
     {
+
         require(_roles[role.stringToBytes32()] == 0, "Such role is already exists");
         
         // prevent creating role in CamelCases with admins and owners (Admins,ADMINS,ADminS)
@@ -407,7 +409,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         string memory targetRole
     ) 
         public 
-        ifTargetInRole(msg.sender, DEFAULT_OWNERS_ROLE) 
+        ifTargetInRole(_msgSender(), DEFAULT_OWNERS_ROLE) 
     {
         
         if (targetRole.stringToBytes32() == DEFAULT_OWNERS_ROLE) {
@@ -653,7 +655,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         bytes memory rSig
     ) 
         public 
-        ifTargetInRole(msg.sender, DEFAULT_RELAYERS_ROLE) 
+        ifTargetInRole(_msgSender(), DEFAULT_RELAYERS_ROLE) 
         accummulateGasCost(sSig)
     {
         require(inviteSignatures[sSig].exists == false, "Such signature is already exists");
@@ -686,7 +688,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         bytes memory rSig
     )
         public 
-        ifTargetInRole(msg.sender, DEFAULT_RELAYERS_ROLE) 
+        ifTargetInRole(_msgSender(), DEFAULT_RELAYERS_ROLE) 
         refundGasCost(sSig)
         nonReentrant()
     {
@@ -718,12 +720,12 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
                     isCanProceed = true;
                     _grantRole(rpAddr, rolesArr[i].stringToBytes32());
                 } else {
-                    emit RoleAddedErrorMessage(msg.sender, string(abi.encodePacked("inviting user did not have permission to add role '",rolesArr[i],"'")));
+                    emit RoleAddedErrorMessage(_msgSender(), string(abi.encodePacked("inviting user did not have permission to add role '",rolesArr[i],"'")));
                 }
             }
         
         } else {
-            emit RoleAddedErrorMessage(msg.sender, string(abi.encodePacked("inviting user did not have permission to add role '",DEFAULT_MEMBERS_ROLE.bytes32ToString(),"'")));
+            emit RoleAddedErrorMessage(_msgSender(), string(abi.encodePacked("inviting user did not have permission to add role '",DEFAULT_MEMBERS_ROLE.bytes32ToString(),"'")));
         }
         
         if (isCanProceed == true) {
@@ -773,7 +775,21 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     ///////////////////////////////////////////////////////////
     /// internal section
     ///////////////////////////////////////////////////////////
-   
+    
+    function setTrustedForwarder(
+        address forwarder
+    ) 
+        ifTargetInRole(_msgSender(), DEFAULT_OWNERS_ROLE) 
+        public 
+        override 
+    {
+         require(
+            !_isTargetInRole(forwarder, DEFAULT_OWNERS_ROLE),
+            "FORWARDER_CAN_NOT_BE_OWNER"
+        );
+        _setTrustedForwarder(forwarder);
+    }
+ 
    
     /**
      * @param role role name
@@ -790,7 +806,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
                 revert("wrong interface");
             }
         }
-        emit RoleCreated(role, msg.sender);
+        emit RoleCreated(role, _msgSender());
     }
    
     /**
@@ -804,7 +820,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
        
         _rolesByIndex[_roles[sourceRole]].canManageRoles.add(_roles[targetRole]);
        
-        emit RoleManaged(sourceRole, targetRole, msg.sender);
+        emit RoleManaged(sourceRole, targetRole, _msgSender());
     }
     
     /**
@@ -817,11 +833,11 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
        _rolesByIndex[_roles[targetRole]].members.add(account);
        
         grantedBy[account].push(ActionInfo({
-            actor: msg.sender,
+            actor: _msgSender(),
             timestamp: uint64(block.timestamp),
             extra: uint32(_roles[targetRole])
         }));
-        granted[msg.sender].push(ActionInfo({
+        granted[_msgSender()].push(ActionInfo({
             actor: account,
             timestamp: uint64(block.timestamp),
             extra: uint32(_roles[targetRole])
@@ -834,7 +850,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
                 revert("wrong interface");
             }
         }
-        emit RoleGranted(targetRole, account, msg.sender);
+        emit RoleGranted(targetRole, account, _msgSender());
     }
     
     /**
@@ -847,11 +863,11 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         _rolesByIndex[_roles[targetRole]].members.remove(account);
        
         revokedBy[account].push(ActionInfo({
-            actor: msg.sender,
+            actor: _msgSender(),
             timestamp: uint64(block.timestamp),
             extra: uint32(_roles[targetRole])
         }));
-        revoked[msg.sender].push(ActionInfo({
+        revoked[_msgSender()].push(ActionInfo({
             actor: account,
             timestamp: uint64(block.timestamp),
             extra: uint32(_roles[targetRole])
@@ -864,7 +880,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
                 revert("wrong interface");
             }
         }
-        emit RoleRevoked(targetRole, account, msg.sender);
+        emit RoleRevoked(targetRole, account, _msgSender());
     }
     
     function _isTargetInRole(address target, bytes32 targetRole) internal view returns(bool) {
@@ -894,7 +910,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     }
 
     function __CommunityBase_init(address hook_) internal onlyInitializing {
-
+        __TrustedForwarder_init();
         __ReentrancyGuard_init();
         
         rolesCount = 1;
@@ -903,9 +919,9 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         _createRole(DEFAULT_ADMINS_ROLE);
         _createRole(DEFAULT_MEMBERS_ROLE);
         _createRole(DEFAULT_RELAYERS_ROLE);
-        _grantRole(msg.sender, DEFAULT_OWNERS_ROLE);
-        _grantRole(msg.sender, DEFAULT_ADMINS_ROLE);
-        _grantRole(msg.sender, DEFAULT_RELAYERS_ROLE);
+        _grantRole(_msgSender(), DEFAULT_OWNERS_ROLE);
+        _grantRole(_msgSender(), DEFAULT_ADMINS_ROLE);
+        _grantRole(_msgSender(), DEFAULT_RELAYERS_ROLE);
         // initial rules. owners can manage owners, admins, members, relayers
         // while admins can manage members, relayers
         // any other rules can be added later by owners
@@ -955,7 +971,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         private 
     {
         if (REWARD_AMOUNT <= address(this).balance) {
-            payable(msg.sender).transfer(REWARD_AMOUNT);
+            payable(_msgSender()).transfer(REWARD_AMOUNT);
         }
     }
     
