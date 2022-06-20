@@ -1081,6 +1081,58 @@ describe("Community", function () {
             
                 
             });
+
+            it("check first invites test", async () => {   
+                
+                // Adding another relayer(accountSix)
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'addMembers(address[])', [[accountSix.address]]);
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],string[])', [[accountSix.address], [rolesTitle.get('relayers')]]);
+                // Adding another owner(accountSeven)
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'addMembers(address[])', [[accountSeven.address]]);
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],string[])', [[accountSeven.address], [rolesTitle.get('owners')]]);
+
+                let adminMsgFirst = [
+                    'invite',
+                    CommunityInstance.address,
+                    [
+                        rolesTitle.get('role1')
+                    ].join(','),
+                    'GregMagarshak'
+                    ].join(':');
+                let adminMsgSecond = [
+                    'invite',
+                    CommunityInstance.address,
+                    [
+                        rolesTitle.get('role2')
+                    ].join(','),
+                    'GregMagarshak'
+                    ].join(':');
+                let recipientMsg = ''+accountTwo.address+':John Doe';
+
+                let rSig;
+
+                let sSigFirst = await owner.signMessage(adminMsgFirst);
+                rSig = await accountTwo.signMessage(recipientMsg);
+
+                await mixedCall(CommunityInstance, trustedForwardMode, relayer, 'invitePrepare(bytes,bytes)', [sSigFirst,rSig]);
+                await mixedCall(CommunityInstance, trustedForwardMode, relayer, 'inviteAccept(string,bytes,string,bytes)', [adminMsgFirst, sSigFirst, recipientMsg, rSig]);
+
+                //  make with another owner
+                let sSigSecond = await accountSeven.signMessage(adminMsgSecond);
+                
+                await mixedCall(CommunityInstance, trustedForwardMode, accountSix, 'invitePrepare(bytes,bytes)', [sSigSecond,rSig]);
+                await mixedCall(CommunityInstance, trustedForwardMode, accountSix, 'inviteAccept(string,bytes,string,bytes)', [adminMsgSecond, sSigSecond, recipientMsg, rSig]);
+
+                await expect(await CommunityInstance.invitedBy(accountTwo.address)).to.be.eq(owner.address); // should be invited by first owner
+                await expect(await CommunityInstance.invitedBy(accountTwo.address)).not.to.be.eq(accountSeven.address); // shouldnt be invited by swcond owner(accountSeven)
+                await expect(await CommunityInstance.invitedBy(accountTwo.address)).not.to.be.eq(accountNine.address); //'store wrong keys in invited mapping'
+
+                // check roles of accountTwo
+                rolesList = await CommunityInstance.connect(owner)["getRoles(address)"](accountTwo.address);
+                expect(rolesList.includes(rolesTitle.get('role1'))).to.be.eq(true); 
+                expect(rolesList.includes(rolesTitle.get('role2'))).to.be.eq(true); 
+                expect(rolesList.includes(rolesTitle.get('role3'))).to.be.eq(false); 
+            });
         });
 
 

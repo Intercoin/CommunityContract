@@ -713,7 +713,12 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         bool isCanProceed = false;
         
         if (_isCanManage(pAddr, DEFAULT_MEMBERS_ROLE)) {
-            _grantRole(rpAddr, DEFAULT_MEMBERS_ROLE);
+
+            if (!_isTargetInRole(rpAddr, DEFAULT_MEMBERS_ROLE)) {
+                _grantRole(rpAddr, DEFAULT_MEMBERS_ROLE);
+                invitedBy[rpAddr] = pAddr;
+            }
+
             
             for (uint256 i = 0; i < rolesArr.length; i++) {
                 if (_isCanManage(pAddr, rolesArr[i].stringToBytes32())) {
@@ -731,7 +736,6 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         if (isCanProceed == true) {
             inviteSignatures[sSig].used = true;
             
-            invitedBy[rpAddr] = pAddr;
             invited[pAddr].add(rpAddr);
             
             _rewardCaller();
