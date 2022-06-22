@@ -45,6 +45,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     mapping (address => PackedSet.Set) internal _rolesByMember;
     //mapping (bytes32 => EnumerableSetUpgradeable.AddressSet) internal _members;
     //mapping (uint256 => EnumerableSetUpgradeable.UintSet) internal _canManageRoles;
+    uint256 addressesCounter;
 
     address public hook;
 
@@ -84,6 +85,18 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     * @notice constant role name "relayers" in bytes32
     */
     bytes32 public constant DEFAULT_RELAYERS_ROLE = 0x72656c6179657273000000000000000000000000000000000000000000000000;
+
+    /**
+    * @custom:shortd role name "alumni" in bytes32
+    * @notice constant role name "alumni" in bytes32
+    */
+    bytes32 public constant DEFAULT_ALUMNI_ROLE = 0x616c756d6e690000000000000000000000000000000000000000000000000000;
+
+    /**
+    * @custom:shortd role name "guests" in bytes32
+    * @notice constant role name "guests" in bytes32
+    */
+    bytes32 public constant DEFAULT_GUESTS_ROLE = 0x6775657374730000000000000000000000000000000000000000000000000000;
 
     enum ReimburseStatus{ NONE, PENDING, CLAIMED }
     /**
@@ -700,7 +713,8 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
      * @param rolename role name
      * @return bool 
      */
-    function isMemberHasRole(
+    //function isMemberHasRole(
+    function isAccountHasRole(
         address account, 
         string memory rolename
     ) 
@@ -865,24 +879,24 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         
         rolesCount = 1;
         
+        _createRole(DEFAULT_RELAYERS_ROLE);
         _createRole(DEFAULT_OWNERS_ROLE);
         _createRole(DEFAULT_ADMINS_ROLE);
         _createRole(DEFAULT_MEMBERS_ROLE);
-        _createRole(DEFAULT_RELAYERS_ROLE);
+        _createRole(DEFAULT_ALUMNI_ROLE);
+        _createRole(DEFAULT_GUESTS_ROLE);
+        
         _grantRole(_msgSender(), DEFAULT_OWNERS_ROLE);
-        _grantRole(_msgSender(), DEFAULT_ADMINS_ROLE);
-        _grantRole(_msgSender(), DEFAULT_RELAYERS_ROLE);
-        // initial rules. owners can manage owners, admins, members, relayers
-        // while admins can manage members, relayers
+        
+        // initial rules. owners can manage any roles. to save storage we will hardcode in any validate
+        // admins can manage members, alumni and guests
         // any other rules can be added later by owners
-        _manageRole(DEFAULT_OWNERS_ROLE, DEFAULT_OWNERS_ROLE);                       
-        _manageRole(DEFAULT_OWNERS_ROLE, DEFAULT_ADMINS_ROLE);
-        _manageRole(DEFAULT_OWNERS_ROLE, DEFAULT_RELAYERS_ROLE);
-        _manageRole(DEFAULT_OWNERS_ROLE, DEFAULT_MEMBERS_ROLE);
+        
         _manageRole(DEFAULT_ADMINS_ROLE, DEFAULT_MEMBERS_ROLE);
-        _manageRole(DEFAULT_ADMINS_ROLE, DEFAULT_RELAYERS_ROLE);
+        _manageRole(DEFAULT_ADMINS_ROLE, DEFAULT_ALUMNI_ROLE);
+        _manageRole(DEFAULT_ADMINS_ROLE, DEFAULT_GUESTS_ROLE);
 
-        // avoiding hook's trigger for built-in roles(owners/admins/members/relayers)
+        // avoiding hook's trigger for built-in roles
         // so define hook address in the end
         hook = hook_;
     }
