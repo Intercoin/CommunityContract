@@ -550,7 +550,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
      * @param role role name
      * @return count of members for that role
      */
-    function memberCount(
+    function addressesCount(
         string memory role
     )
         public
@@ -561,17 +561,17 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     }
         
     /**
-     * @notice if call without params then returns count of all members with default role
+     * @notice if call without params then returns count of all users which have at least one role
      * @custom:shortd all members count
      * @return count of members
      */
-    function memberCount(
+    function addressesCount(
     )
         public
         view
         returns(uint256)
     {
-        return memberCount(DEFAULT_MEMBERS_ROLE.bytes32ToString());
+        return addressesCounter;
     }
     
     /**
