@@ -256,47 +256,6 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     {
         payable(_msgSender()).transfer(address(this).balance);
     } 
-    /**
-     * @notice Added participants to role members
-     * @custom:shortd Added participants to role members
-     * @custom:calledby owners
-     * @param members participant's addresses
-     */
-    function addMembers(
-        address[] memory members
-    )
-        //canManage(_msgSender(), DEFAULT_MEMBERS_ROLE)
-        ifTargetInRole(_msgSender(), DEFAULT_OWNERS_ROLE)
-        public 
-    {
-        
-        uint256 len = members.length;
-        uint256 i;
-        for (i = 0; i < len; i++) {
-            _grantRole(members[i], DEFAULT_MEMBERS_ROLE);
-        }
-    }
-    
-    /**
-     * @notice Removed participants from  role members
-     * @custom:shortd Removed participants from  role members
-     * @custom:calledby owners
-     * @param members participant's addresses
-     */
-    function removeMembers(
-        address[] memory members
-    )
-        //canManage(_msgSender(), DEFAULT_MEMBERS_ROLE)
-        ifTargetInRole(_msgSender(), DEFAULT_OWNERS_ROLE)
-        public 
-    {
-        uint256 len = members.length;
-        uint256 i;
-        for (i = 0; i < len; i++) {
-            _revokeRole(members[i], DEFAULT_MEMBERS_ROLE);
-            //TODO 0: does need to remove from all exists roles?
-        }
-    }
     
     /**
      * @notice Added new Roles for members
@@ -498,19 +457,6 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
        
     }
     
-    /**
-     * @notice if call without params then returns all members belong to `DEFAULT_MEMBERS_ROLE`
-     * @custom:shortd `DEFAULT_MEMBERS_ROLE` members
-     * @return array of address 
-     */
-    function getMembers(
-    ) 
-        public 
-        view
-        returns(address[] memory)
-    {
-        return getMembers(DEFAULT_MEMBERS_ROLE.bytes32ToString());
-    }
     
     /**
      * @dev can be duplicate items in output. see https://github.com/Intercoin/CommunityContract/issues/4#issuecomment-1049797389
