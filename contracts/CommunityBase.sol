@@ -112,6 +112,10 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     
 
     enum ReimburseStatus{ NONE, PENDING, CLAIMED }
+
+    // enum used in method when need to mark what need to do when error happens
+    enum FlagFork{ NONE, EMIT, REVERT }
+
     /**
     * @notice constant reward that user-relayers will obtain
     * @custom:shortd reward that user-relayers will obtain
@@ -198,13 +202,8 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
      */
     modifier canGrant(address sender, uint8 targetRoleIndex) {
      
-        bool isCan = _isCanGrant(sender, targetRoleIndex);
+        _isCanGrant(sender, targetRoleIndex,FlagFork.REVERT);
       
-        require(
-            isCan == true,
-            string(abi.encodePacked("Sender can not manage Members with role '", _rolesByIndex[targetRoleIndex].name.bytes32ToString(), "'"))
-        );
-        
         _;
     }
     
@@ -290,22 +289,31 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     {
         payable(_msgSender()).transfer(address(this).balance);
     } 
-    
+    // sender try to grant rolesIndexes to members
+    function grantRoles(
+        address[] memory members, 
+        uint8[] memory rolesIndexes,
+        uint8 byRole
+    )
+        public
+    {
+        
+    }
     /**
-     * @notice Added new Roles for members
-     * @custom:shortd Added new Roles for members
-     * @param members participant's addresses
+     * @notice Added new Roles for each account
+     * @custom:shortd Added new Roles for each account
+     * @param accounts participant's addresses
      * @param rolesIndexes Roles indexes
      */
     function grantRoles(
-        address[] memory members, 
+        address[] memory accounts, 
         uint8[] memory rolesIndexes
     )
         public 
     {
-        uint256 lengthMembers = members.length;
+        uint256 lengthAccounts = accounts.length;
         uint256 lenRoles = rolesIndexes.length;
-        uint8[] rolesIndexWhichWillGrant;
+        uint8[] memory rolesIndexWhichWillGrant;
         uint8 roleIndexWhichWillGrant;
         address sender = _msgSender();
 
@@ -315,57 +323,72 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
                 "invalid role"
             ); 
 
-            rolesIndexWhichWillGrant = __isCanGrant(sender, rolesIndexes[i]);
+            rolesIndexWhichWillGrant = _isCanGrant(sender, rolesIndexes[i], FlagFork.NONE);
             require(
                 rolesIndexWhichWillGrant.length != 0,
-                string(abi.encodePacked("Sender can not manage Members with role '",_rolesByIndex[rolesIndexes[i]].name.bytes32ToString(),"'"))
+                string(abi.encodePacked("Sender can not grant role '",_rolesByIndex[rolesIndexes[i]].name.bytes32ToString(),"'"))
             );
 
-            roleIndexWhichWillGrant = validateGrantSettings(rolesIndexWhichWillGrant, rolesIndexes[i]);
+            roleIndexWhichWillGrant = validateGrantSettings(rolesIndexWhichWillGrant, rolesIndexes[i], FlagFork.REVERT);
 
-            for (uint256 j = 0; j < lengthMembers; j++) {
-                _grantRole(roleIndexWhichWillGrant, sender, members[j], rolesIndexes[i]);
+            for (uint256 j = 0; j < lengthAccounts; j++) {
+                _grantRole(roleIndexWhichWillGrant, sender, rolesIndexes[i], accounts[j]);
             }
         }
 
     }
-        
+    
+    /**
+    * @dev find which role can grant `targetRoleIndex` to account
+    * @param rolesWhichCanGrant array of role indexes which want to grant `targetRoleIndex` to account
+    * @param targetRoleIndex target role index
+    * @param flag flag which indicated what is need to do when error happens. 
+    *   if FlagFork.REVERT - when transaction will reverts, 
+    *   if FlagFork.EMIT - emit event `RoleAddedErrorMessage` 
+    *   otherwise - do nothing
+    * @return uint8 role index which can grant `targetRoleIndex` to account without error
+    */
     function validateGrantSettings(
         uint8[] memory rolesWhichCanGrant,
-        uint8 targetRoleIndex
-    ) internal view returns(uint8) {
+        uint8 targetRoleIndex,
+        FlagFork flag
 
-        bool isCan = false;
+    ) 
+        internal 
+        returns(uint8) 
+    {
+
+        uint8 roleWhichCanGrant = NONE_ROLE_INDEX;
 
         for (uint256 i = 0; i < rolesWhichCanGrant.length; i++) {
             if (
                 (_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].maxAddresses == 0)
             ) {
-                isCan = true;
+                roleWhichCanGrant = rolesWhichCanGrant[i];
             } else {
                 if (_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].duration == 0 ) {
-                    if (_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].grantedAddressesCounter+1 <= _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].grantedAddressesCounter.maxAddresses) {
-                        isCan = true;
+                    if (_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].grantedAddressesCounter+1 <= _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].maxAddresses) {
+                        roleWhichCanGrant = rolesWhichCanGrant[i];
                     }
                 } else {
                     // if (lastIntervalIndex = 0) {
 
                     // } else {
                         // get current interval index
-                        uint256 interval = block.timestamp/(_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].duration)*(_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].duration);
+                        uint64 interval = uint64(block.timestamp)/(_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].duration)*(_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].duration);
                         if (interval == _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].lastIntervalIndex) {
                             if (
                                 _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].grantedAddressesCounter+1 
                                 <= 
-                                _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].grantedAddressesCounter.maxAddresses
+                                _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].maxAddresses
                             ) {
-                                isCan = true;
+                                roleWhichCanGrant = rolesWhichCanGrant[i];
                             }
                         } else {
-                            isCan = true;
-                            _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].lastIntervalIndex = interval;
-                            _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].grantedAddressesCounter = 0;
-                            
+                            roleWhichCanGrant = rolesWhichCanGrant[i];
+                            _rolesByIndex[roleWhichCanGrant].grantSettings[targetRoleIndex].lastIntervalIndex = interval;
+                            _rolesByIndex[roleWhichCanGrant].grantSettings[targetRoleIndex].grantedAddressesCounter = 0;
+
                         }
 
                         
@@ -377,54 +400,69 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
                 }
             }
 
-            if (isCan) {
+            if (roleWhichCanGrant != NONE_ROLE_INDEX) {
                 _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].grantedAddressesCounter += 1;
-                return rolesWhichCanGrant[i];
+                break;
             }
 
         }
-        require(isCan, "Max amount addresses exceeded");
+
+        if (roleWhichCanGrant == NONE_ROLE_INDEX) {
+            string memory errMsg = "Max amount addresses exceeded";
+
+            if (flag == FlagFork.REVERT) {
+                revert(errMsg);
+            } else if (flag == FlagFork.EMIT) {
+                emit RoleAddedErrorMessage(_msgSender(), errMsg);
+            }
+        }
+
+        return roleWhichCanGrant;
 
     }
     
     /**
-     * @notice Removed Role for member
-     * @custom:shortd Removed Role for member
-     * @param members participant's addresses
-     * @param roles Roles name
+     * @notice Removed Roles from each member
+     * @custom:shortd Removed Roles from each member
+     * @param accounts participant's addresses
+     * @param rolesIndexes Roles indexes
      */
     function revokeRoles(
-        address[] memory members, 
-        string[] memory roles
+        address[] memory accounts, 
+        uint8[] memory rolesIndexes
     ) 
         public 
     {
 
-        uint256 lengthMembers = members.length;
-        uint256 lenRoles = roles.length;
-        uint256 i;
-        uint256 j;
-        bytes32 roleBytes32;
 
-        for (i = 0; i < lengthMembers; i++) {
-            if (!_isTargetInRole(members[i], DEFAULT_MEMBERS_ROLE)) {
-                revert(string(abi.encodePacked("Target account must be with role '",DEFAULT_MEMBERS_ROLE.bytes32ToString(),"'")));
-            }
-            for (j = 0; j < lenRoles; j++) {
+        uint256 lengthMembers = accounts.length;
+        uint256 lenRoles = rolesIndexes.length;
+        uint8 roleWhichWillRevoke;
+        address sender = _msgSender();
 
-                roleBytes32 = roles[j].stringToBytes32();
-                if (roleBytes32 == DEFAULT_MEMBERS_ROLE) {
-                    revert(string(abi.encodePacked("Can not remove role '",roles[j],"'")));
-                }
-
-                if (!_isCanManage(_msgSender(), roleBytes32)) {
-                    revert(string(abi.encodePacked("Sender can not manage Members with role '",roles[j],"'")));
-                }
-                _revokeRole(members[i], roles[j].stringToBytes32());
-
+        for (uint256 i = 0; i < lenRoles; i++) {
+            require(
+                _isRoleValid(rolesIndexes[i]), 
+                "invalid role"
+            ); 
+            roleWhichWillRevoke = NONE_ROLE_INDEX;
+            for (uint256 j = 0; j<_rolesByMember[sender].length(); j++) {
                 
+                if (_rolesByIndex[uint8(_rolesByMember[sender].get(j))].canRevokeRoles.contains(rolesIndexes[i]) == true) {
+                    roleWhichWillRevoke = _rolesByMember[sender].get(j);
+                    
+                    break;
+                }
+
+            
             }
+            require(roleWhichWillRevoke != NONE_ROLE_INDEX, string(abi.encodePacked("Sender can not manage Members with role '",_rolesByIndex[rolesIndexes[i]].name.bytes32ToString(),"'")));
+            for (uint256 k = 0; k < lengthMembers; k++) {
+                _revokeRole(roleWhichWillRevoke, sender, rolesIndexes[i], accounts[k]);
+            }
+
         }
+
     }
     
     /**
@@ -472,7 +510,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     {
         
         if (ofRole == _roles[DEFAULT_OWNERS_ROLE]) {
-            revert(string(abi.encodePacked("targetRole can not be '", _roles[ofRole].bytes32ToString(), "'")));
+            revert(string(abi.encodePacked("targetRole can not be '", _rolesByIndex[ofRole].name.bytes32ToString(), "'")));
         }
         
         _manageRole(
@@ -517,7 +555,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
      * @return array of address 
      */
     function getAddresses(
-        string[] memory rolesIndexes
+        uint8[] memory rolesIndexes
     ) 
         public 
         view
@@ -530,7 +568,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         } else {
             uint256 len;
             for (uint256 j = 0; j < rolesIndexes.length; j++) {
-                len += _rolesByIndex[_roles[j]].members.length();
+                len += _rolesByIndex[rolesIndexes[j]].members.length();
             }
 
             l = new address[](len);
@@ -538,9 +576,9 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
             uint256 ilen;
             uint256 tmplen;
             for (uint256 j = 0; j < rolesIndexes.length; j++) {
-                tmplen = _rolesByIndex[_roles[j]].members.length();
+                tmplen = _rolesByIndex[rolesIndexes[j]].members.length();
                 for (uint256 i = 0; i < tmplen; i++) {
-                    l[ilen] = _rolesByIndex[_roles[j]].members.at(i);
+                    l[ilen] = _rolesByIndex[rolesIndexes[j]].members.at(i);
                     ilen += 1;
                 }
             }
@@ -694,7 +732,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         bytes memory rSig
     ) 
         public 
-        ifTargetInRole(_msgSender(), DEFAULT_RELAYERS_ROLE) 
+        ifTargetInRole(_msgSender(), _roles[DEFAULT_RELAYERS_ROLE]) 
         accummulateGasCost(sSig)
     {
         require(inviteSignatures[sSig].exists == false, "Such signature is already exists");
@@ -727,7 +765,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         bytes memory rSig
     )
         public 
-        ifTargetInRole(_msgSender(), DEFAULT_RELAYERS_ROLE) 
+        ifTargetInRole(_msgSender(), _roles[DEFAULT_RELAYERS_ROLE]) 
         refundGasCost(sSig)
         nonReentrant()
     {
@@ -748,42 +786,38 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         ) {
             revert("Signature are mismatch");
         }
-        
+      
         bool isCanProceed = false;
         
-        if (_isCanManage(pAddr, DEFAULT_MEMBERS_ROLE)) {
-
-            if (!_isTargetInRole(rpAddr, DEFAULT_MEMBERS_ROLE)) {
-                _grantRole(rpAddr, DEFAULT_MEMBERS_ROLE);
-                invitedBy[rpAddr] = pAddr;
+        for (uint256 i = 0; i < rolesArr.length; i++) {
+            uint8 roleIndex = _roles[rolesArr[i].stringToBytes32()];
+            if (roleIndex == 0) {
+                emit RoleAddedErrorMessage(_msgSender(), "invalid role");
             }
 
-            
-            for (uint256 i = 0; i < rolesArr.length; i++) {
-                if (_isCanManage(pAddr, rolesArr[i].stringToBytes32())) {
-                    isCanProceed = true;
-                    _grantRole(rpAddr, rolesArr[i].stringToBytes32());
-                } else {
-                    emit RoleAddedErrorMessage(_msgSender(), string(abi.encodePacked("inviting user did not have permission to add role '",rolesArr[i],"'")));
-                }
+            uint8[] memory rolesIndexWhichWillGrant = _isCanGrant(pAddr, roleIndex, FlagFork.EMIT);
+
+            uint8 roleIndexWhichWillGrant = validateGrantSettings(rolesIndexWhichWillGrant, roleIndex, FlagFork.EMIT);
+
+            if (roleIndexWhichWillGrant == NONE_ROLE_INDEX) {
+                emit RoleAddedErrorMessage(_msgSender(), string(abi.encodePacked("inviting user did not have permission to add role '",_rolesByIndex[roleIndex].name.bytes32ToString(),"'")));
+            } else {
+                isCanProceed = true;
+                _grantRole(roleIndexWhichWillGrant, pAddr, roleIndex, rpAddr);
             }
-        
-        } else {
-            emit RoleAddedErrorMessage(_msgSender(), string(abi.encodePacked("inviting user did not have permission to add role '",DEFAULT_MEMBERS_ROLE.bytes32ToString(),"'")));
         }
-        
-        if (isCanProceed == true) {
-            inviteSignatures[sSig].used = true;
-            
-            invited[pAddr].add(rpAddr);
-            
-            _rewardCaller();
-            _replenishRecipient(rpAddr);
-            
-        } else {
+
+        if (isCanProceed == false) {
             revert("Can not add no one role");
         }
+
+        inviteSignatures[sSig].used = true;
+            
+        invited[pAddr].add(rpAddr);
         
+        _rewardCaller();
+        _replenishRecipient(rpAddr);
+            
     }
 
     /**
@@ -823,12 +857,12 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     function setTrustedForwarder(
         address forwarder
     ) 
-        ifTargetInRole(_msgSender(), DEFAULT_OWNERS_ROLE) 
+        ifTargetInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]) 
         public 
         override 
     {
          require(
-            !_isTargetInRole(forwarder, DEFAULT_OWNERS_ROLE),
+            !_isTargetInRole(forwarder, _roles[DEFAULT_OWNERS_ROLE]),
             "FORWARDER_CAN_NOT_BE_OWNER"
         );
         _setTrustedForwarder(forwarder);
@@ -883,9 +917,9 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
             _rolesByIndex[byRole].canRevokeRoles.remove(ofRole);
         }
 
-        _rolesByIndex[byRole].grantSettings.requireRole = requireRole;
-        _rolesByIndex[byRole].grantSettings.maxAddresses = maxAddresses;
-        _rolesByIndex[byRole].grantSettings.duration = duration;
+        _rolesByIndex[byRole].grantSettings[ofRole].requireRole = requireRole;
+        _rolesByIndex[byRole].grantSettings[ofRole].maxAddresses = maxAddresses;
+        _rolesByIndex[byRole].grantSettings[ofRole].duration = duration;
 
         emit RoleManaged(
             byRole, 
@@ -898,27 +932,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
             _msgSender()
         );
     }
-
-    // struct GrantSettings {
-    //     uint8 requireRole;   //=0, 
-    //     uint256 maxAddresses;//=0, 
-    //     uint64 duration;    //=0
-    //     uint64 lastIntervalIndex;
-    //     uint256 grantedAddressesCounter;
-    // }
-    // struct Role {
-    //     bytes32 name;
-    //     string roleURI;
-    //     mapping(address => string) extraURI;
-    //     EnumerableSetUpgradeable.UintSet canGrantRoles;
-    //     EnumerableSetUpgradeable.UintSet canRevokeRoles;
-    //     mapping(uint8 => GrantSettings) grantSettings;
-    //     EnumerableSetUpgradeable.AddressSet members;
-    // }
-    // mapping (uint8 => Role) internal _rolesByIndex;
-
-
-    
+ 
     /**
      * adding role to member
      * @param sourceRoleIndex sender role index
@@ -951,61 +965,61 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
                 revert("wrong interface");
             }
         }
-        emit RoleGranted(_rolesByIndex[targetRoleIndex].name, account, _msgSender());
+        emit RoleGranted(_rolesByIndex[targetRoleIndex].name, targetAccount, sourceAccount);
     }
     
     /**
      * removing role from member
-     * @param account account's address
-     * @param targetRole role name
+     * @param sourceRoleIndex sender role index
+     * @param sourceAccount sender account's address
+     * @param targetRoleIndex target role index
+     * @param targetAccount target account's address
      */
-    function _revokeRole(address account, bytes32 targetRole) internal {
-        _rolesByMember[account].remove(_roles[targetRole]);
-        _rolesByIndex[_roles[targetRole]].members.remove(account);
+    function _revokeRole(
+        uint8 sourceRoleIndex, address sourceAccount, uint8 targetRoleIndex, address targetAccount
+        //address account, bytes32 targetRole
+    ) 
+        internal 
+    {
+        _rolesByMember[targetAccount].remove(targetRoleIndex);
+        _rolesByIndex[targetRoleIndex].members.remove(targetAccount);
        
-        revokedBy[account].push(ActionInfo({
-            actor: _msgSender(),
+        revokedBy[targetAccount].push(ActionInfo({
+            actor: sourceAccount,
             timestamp: uint64(block.timestamp),
-            extra: uint32(_roles[targetRole])
+            extra: uint32(targetRoleIndex)
         }));
-        revoked[_msgSender()].push(ActionInfo({
-            actor: account,
+        revoked[sourceAccount].push(ActionInfo({
+            actor: targetAccount,
             timestamp: uint64(block.timestamp),
-            extra: uint32(_roles[targetRole])
+            extra: uint32(targetRoleIndex)
         }));
 
         if (hook != address(0)) {
             try ICommunityHook(hook).supportsInterface(type(ICommunityHook).interfaceId) returns (bool) {
-                ICommunityHook(hook).roleRevoked(targetRole, _roles[targetRole], account);
+                ICommunityHook(hook).roleRevoked(_rolesByIndex[targetRoleIndex].name, targetRoleIndex, targetAccount);
             } catch {
                 revert("wrong interface");
             }
         }
-        emit RoleRevoked(targetRole, account, _msgSender());
+        emit RoleRevoked(_rolesByIndex[targetRoleIndex].name, targetAccount, sourceAccount);
     }
     
     function _isTargetInRole(address target, uint8 targetRoleIndex) internal view returns(bool) {
         return _rolesByMember[target].contains(targetRoleIndex);
     }
     
-    function _isCanGrant(address sender, uint8 targetRoleIndex) internal view returns (bool) {
-        return __isCanGrant(sender, targetRoleIndex).length == 0 ? false : true;
-    }
 
-    function __isCanGrant(address sender, uint8 targetRoleIndex) internal view returns (uint8[] memory) {
+    function _isCanGrant(address sender, uint8 targetRoleIndex, FlagFork flag) internal returns (uint8[] memory) {
         
         //uint256 targetRoleID = uint256(targetRoleIndex);
-        
-        require(
-            targetRoleIndex != 0,
-            string(abi.encodePacked("Such role '",_rolesByIndex[targetRoleIndex].name.bytes32ToString(),"' does not exists"))
-        );
+       
         uint256 iLen=0;
 
         for (uint256 i = 0; i<_rolesByMember[sender].length(); i++) {
             
             if (_rolesByIndex[uint8(_rolesByMember[sender].get(i))]
-            .canManageRoles.contains(targetRoleIndex) == true) {
+            .canGrantRoles.contains(targetRoleIndex) == true) {
                 iLen++;
             }
         }
@@ -1015,34 +1029,22 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         for (uint256 i = 0; i<_rolesByMember[sender].length(); i++) {
             
             if (_rolesByIndex[uint8(_rolesByMember[sender].get(i))]
-            .canManageRoles.contains(targetRoleIndex) == true) {
+            .canGrantRoles.contains(targetRoleIndex) == true) {
                 rolesWhichCan[rolesWhichCan.length] = _rolesByMember[sender].get(i);
             }
         }
+
+        if (rolesWhichCan.length == 0) {
+            string memory errMsg = string(abi.encodePacked("Sender can not grant account with role '", _rolesByIndex[targetRoleIndex].name.bytes32ToString(), "'"));
+            if (flag == FlagFork.REVERT) {
+                revert(errMsg);
+            } else if (flag == FlagFork.EMIT) {
+                emit RoleAddedErrorMessage(sender, errMsg);
+            }
+        }
+        
         return rolesWhichCan;
     }
-
-    // function _isCanManage(address sender, uint8 targetRoleIndex) internal view returns (bool) {
-     
-    //     bool isCan = false;
-        
-    //     uint256 targetRoleID = uint256(targetRoleIndex);
-        
-    //     require(
-    //         targetRoleID != 0,
-    //         string(abi.encodePacked("Such role '",_rolesByIndex[targetRoleIndex].name.bytes32ToString(),"' does not exists"))
-    //     );
-        
-    //     for (uint256 i = 0; i<_rolesByMember[sender].length(); i++) {
-            
-    //         if (_rolesByIndex[uint8(_rolesByMember[sender].get(i))]
-    //         .canManageRoles.contains(targetRoleID) == true) {
-    //             isCan = true;
-    //             break;
-    //         }
-    //     }
-    //     return isCan;
-    // }
 
     
     function _isRoleValid(uint8 index) internal view returns (bool){
@@ -1062,15 +1064,18 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         _createRole(DEFAULT_ALUMNI_ROLE);
         _createRole(DEFAULT_VISITORS_ROLE);
         
-        _grantRole(_msgSender(), DEFAULT_OWNERS_ROLE);
+        
+        //_grantRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]);
+        _grantRole(_roles[DEFAULT_OWNERS_ROLE], _msgSender(), _roles[DEFAULT_OWNERS_ROLE], _msgSender());
         
         // initial rules. owners can manage any roles. to save storage we will hardcode in any validate
         // admins can manage members, alumni and visitors
         // any other rules can be added later by owners
         
-        _manageRole(DEFAULT_ADMINS_ROLE, DEFAULT_MEMBERS_ROLE);
-        _manageRole(DEFAULT_ADMINS_ROLE, DEFAULT_ALUMNI_ROLE);
-        _manageRole(DEFAULT_ADMINS_ROLE, DEFAULT_VISITORS_ROLE);
+        _manageRole(_roles[DEFAULT_ADMINS_ROLE], _roles[DEFAULT_MEMBERS_ROLE],  true, true, 0, 0, 0);
+        _manageRole(_roles[DEFAULT_ADMINS_ROLE], _roles[DEFAULT_ALUMNI_ROLE],   true, true, 0, 0, 0);
+        _manageRole(_roles[DEFAULT_ADMINS_ROLE], _roles[DEFAULT_VISITORS_ROLE], true, true, 0, 0, 0);
+        
 
         // avoiding hook's trigger for built-in roles
         // so define hook address in the end

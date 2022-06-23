@@ -37,7 +37,7 @@ contract CommunityERC721 is CommunityBase, IERC721Upgradeable, IERC721MetadataUp
         string memory roleURI
     ) 
         public 
-        canManage(_msgSender(), role.stringToBytes32())
+        canGrant(_msgSender(), _roles[role.stringToBytes32()])
     {
         _rolesByIndex[_roles[role.stringToBytes32()]].roleURI = roleURI;
     }
@@ -51,7 +51,7 @@ contract CommunityERC721 is CommunityBase, IERC721Upgradeable, IERC721MetadataUp
         string memory extraURI
     )
         public
-        ifTargetInRole(_msgSender(), role.stringToBytes32())
+        ifTargetInRole(_msgSender(), _roles[role.stringToBytes32()])
     {
         _rolesByIndex[_roles[role.stringToBytes32()]].extraURI[_msgSender()] = extraURI;
     }
@@ -71,7 +71,7 @@ contract CommunityERC721 is CommunityBase, IERC721Upgradeable, IERC721MetadataUp
     {
         
         for (uint8 i = 1; i < rolesCount; i++) {
-            if (_isTargetInRole(account, _rolesByIndex[i].name)) {
+            if (_isTargetInRole(account, i)) {
                 balance += 1;
             }
         }
@@ -93,7 +93,7 @@ contract CommunityERC721 is CommunityBase, IERC721Upgradeable, IERC721MetadataUp
         uint8 roleId = uint8(tokenId >> 160);
         address w = address(uint160(tokenId - (roleId << 160)));
         
-        owner = (_isTargetInRole(w, _rolesByIndex[roleId].name)) ? w : address(0);
+        owner = (_isTargetInRole(w, roleId)) ? w : address(0);
 
     }
 
