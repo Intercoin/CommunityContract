@@ -30,6 +30,11 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
     using AddressUpgradeable for address;
 
+
+    ////////////////////////////////
+    ///////// structs //////////////
+    ////////////////////////////////
+
     struct inviteSignature {
         bytes sSig;
         bytes rSig;
@@ -38,16 +43,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         bool used;
         bool exists;
     }
-    uint8 internal constant NONE_ROLE_INDEX = 0;
-    uint8 internal rolesCount;
-    mapping (bytes32 => uint8) internal _roles;
-    //mapping (uint256 => bytes32) internal _rolesByIndex;
-    mapping (address => PackedSet.Set) internal _rolesByMember;
-    //mapping (bytes32 => EnumerableSetUpgradeable.AddressSet) internal _members;
-    //mapping (uint256 => EnumerableSetUpgradeable.UintSet) internal _canManageRoles;
-    uint256 addressesCounter;
 
-    address public hook;
     struct GrantSettings {
         uint8 requireRole;   //=0, 
         uint256 maxAddresses;//=0, 
@@ -68,11 +64,23 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         EnumerableSetUpgradeable.AddressSet members;
     }
 
-    mapping (uint8 => Role) internal _rolesByIndex;
+    // Please make grantedBy(uint160 recipient => struct ActionInfo) mapping, and save it when user grants role. (Difference with invitedBy is that invitedBy the user has to ACCEPT the invite while grantedBy doesn’t require recipient to accept).
+    // And also make revokedBy same way.
+    // Please refactor invited and invitedBy and to return struct ActionInfo also. Here is struct ActionInfo, it fits in ONE slot:
+    struct ActionInfo {
+        address actor;
+        uint64 timestamp;
+        uint32 extra; // used for any other info, eg up to four role ids can be stored here !!!
+    }
 
+    /////////////////////////////
+    ///////// vars //////////////
+    /////////////////////////////
 
-
-    mapping (bytes => inviteSignature) inviteSignatures;          
+    uint8 internal constant NONE_ROLE_INDEX = 0;
+    uint8 internal rolesCount;
+    address public hook;
+    uint256 addressesCounter;
 
     /**
     * @custom:shortd role name "owners" in bytes32
@@ -110,12 +118,6 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     */
     bytes32 public constant DEFAULT_VISITORS_ROLE = 0x76697369746f7273000000000000000000000000000000000000000000000000;
     
-
-    enum ReimburseStatus{ NONE, PENDING, CLAIMED }
-
-    // enum used in method when need to mark what need to do when error happens
-    enum FlagFork{ NONE, EMIT, REVERT }
-
     /**
     * @notice constant reward that user-relayers will obtain
     * @custom:shortd reward that user-relayers will obtain
@@ -126,20 +128,25 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     * @custom:shortd reward amount that user-recepient will replenish
     */
     uint256 public constant REPLENISH_AMOUNT = 1000000000000000; // 0.001 * 1e18
+
+    enum ReimburseStatus{ NONE, PENDING, CLAIMED }
+
+    // enum used in method when need to mark what need to do when error happens
+    enum FlagFork{ NONE, EMIT, REVERT }
    
+    ////////////////////////////////
+    ///////// mapping //////////////
+    ////////////////////////////////
+
     //receiver => sender
     mapping(address => address) public invitedBy;
     //sender => receivers
     mapping(address => EnumerableSetUpgradeable.AddressSet) internal invited;
     
-    // Please make grantedBy(uint160 recipient => struct ActionInfo) mapping, and save it when user grants role. (Difference with invitedBy is that invitedBy the user has to ACCEPT the invite while grantedBy doesn’t require recipient to accept).
-    // And also make revokedBy same way.
-    // Please refactor invited and invitedBy and to return struct ActionInfo also. Here is struct ActionInfo, it fits in ONE slot:
-    struct ActionInfo {
-        address actor;
-        uint64 timestamp;
-        uint32 extra; // used for any other info, eg up to four role ids can be stored here !!!
-    }
+    mapping (bytes32 => uint8) internal _roles;
+    mapping (address => PackedSet.Set) internal _rolesByMember;
+    mapping (uint8 => Role) internal _rolesByIndex;
+    mapping (bytes => inviteSignature) inviteSignatures;          
     
     /**
     * @notice map users granted by
@@ -162,6 +169,9 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     */
     mapping(address => ActionInfo[]) public revoked;
 
+    ////////////////////////////////
+    ///////// events ///////////////
+    ////////////////////////////////
     event RoleCreated(bytes32 indexed role, address indexed sender);
     event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender);
     event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender);
@@ -181,32 +191,6 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     /// modifiers  section
     ///////////////////////////////////////////////////////////
 
-    /**
-     * @notice does address belong to role
-     * @param target address
-     * @param targetRoleIndex role index
-     */
-    modifier ifTargetInRole(address target, uint8 targetRoleIndex) {
-        
-        require(
-            _isTargetInRole(target, targetRoleIndex),
-            string(abi.encodePacked("Target account must be with role '", _rolesByIndex[targetRoleIndex].name.bytes32ToString(),"'"))
-        );
-        _;
-    }
-    
-    /**
-     * @notice is role can be granted by sender's roles?
-     * @param sender sender
-     * @param targetRoleIndex role index
-     */
-    modifier canGrant(address sender, uint8 targetRoleIndex) {
-     
-        _isCanGrant(sender, targetRoleIndex,FlagFork.REVERT);
-      
-        _;
-    }
-    
     /**
      * @param sSig signature of admin whom generate invite and signed it
      */
@@ -284,9 +268,10 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     function withdrawRemainingBalance(
     ) 
         public 
-        ifTargetInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE])
         nonReentrant()
     {
+        
+        ifTargetInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]);
         payable(_msgSender()).transfer(address(this).balance);
     } 
     // sender try to grant rolesIndexes to members
@@ -474,8 +459,9 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         string memory role
     ) 
         public 
-        ifTargetInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]) 
+        
     {
+        ifTargetInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]);
 
         require(_roles[role.stringToBytes32()] == 0, "Such role is already exists");
         
@@ -506,9 +492,10 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         uint64 duration
     )
         public 
-        ifTargetInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]) 
     {
         
+        ifTargetInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]);
+
         if (ofRole == _roles[DEFAULT_OWNERS_ROLE]) {
             revert(string(abi.encodePacked("targetRole can not be '", _rolesByIndex[ofRole].name.bytes32ToString(), "'")));
         }
@@ -732,9 +719,10 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         bytes memory rSig
     ) 
         public 
-        ifTargetInRole(_msgSender(), _roles[DEFAULT_RELAYERS_ROLE]) 
+        
         accummulateGasCost(sSig)
     {
+        ifTargetInRole(_msgSender(), _roles[DEFAULT_RELAYERS_ROLE]);
         require(inviteSignatures[sSig].exists == false, "Such signature is already exists");
         inviteSignatures[sSig].sSig= sSig;
         inviteSignatures[sSig].rSig = rSig;
@@ -765,10 +753,11 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         bytes memory rSig
     )
         public 
-        ifTargetInRole(_msgSender(), _roles[DEFAULT_RELAYERS_ROLE]) 
         refundGasCost(sSig)
         nonReentrant()
     {
+        ifTargetInRole(_msgSender(), _roles[DEFAULT_RELAYERS_ROLE]);
+        
         require(inviteSignatures[sSig].used == false, "Such signature is already used");
 
         (address pAddr, address rpAddr) = _recoverAddresses(p, sSig, rp, rSig);
@@ -854,14 +843,43 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     /// internal section
     ///////////////////////////////////////////////////////////
     
+    
+    /**
+     * @notice does address belong to role
+     * @param target address
+     * @param targetRoleIndex role index
+     */
+    function ifTargetInRole(address target, uint8 targetRoleIndex) internal {
+        
+        require(
+            _isTargetInRole(target, targetRoleIndex),
+            string(abi.encodePacked("Target account must be with role '", _rolesByIndex[targetRoleIndex].name.bytes32ToString(),"'"))
+        );
+
+    }
+    
+    /**
+     * @notice is role can be granted by sender's roles?
+     * @param sender sender
+     * @param targetRoleIndex role index
+     */
+    function ifCanGrant(address sender, uint8 targetRoleIndex) internal {
+     
+        _isCanGrant(sender, targetRoleIndex,FlagFork.REVERT);
+      
+    }
+    
+
     function setTrustedForwarder(
         address forwarder
     ) 
-        ifTargetInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]) 
         public 
         override 
     {
-         require(
+      
+        ifTargetInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]);
+
+        require(
             !_isTargetInRole(forwarder, _roles[DEFAULT_OWNERS_ROLE]),
             "FORWARDER_CAN_NOT_BE_OWNER"
         );
