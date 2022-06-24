@@ -9,8 +9,7 @@ import "./CommunityBase.sol";
 import "./interfaces/ICommunityERC721.sol";
 
 contract CommunityERC721 is CommunityBase, IERC721Upgradeable, IERC721MetadataUpgradeable, ICommunityERC721 {
-    using StringUtils for *;
-
+   
     /**
     * @notice getting name
     * @custom:shortd ERC721'name
@@ -27,33 +26,37 @@ contract CommunityERC721 is CommunityBase, IERC721Upgradeable, IERC721MetadataUp
 
     /**
     * @notice setting tokenURI for role
-    * @param role role name
+    * @param roleIndex role index
     * @param roleURI token URI
     * @custom:shortd setting tokenURI for role
     * @custom:calledby any who can manage this role
     */
     function setRoleURI(
-        string memory role,
+        uint8 roleIndex,
         string memory roleURI
     ) 
         public 
-        canGrant(_msgSender(), _roles[role.stringToBytes32()])
+        
     {
-        _rolesByIndex[_roles[role.stringToBytes32()]].roleURI = roleURI;
+        ifCanGrant(_msgSender(), roleIndex);
+        _rolesByIndex[roleIndex].roleURI = roleURI;
     }
 
     /**
     * @notice setting extraURI for role.
+    * @param roleIndex role index
+    * @param extraURI extra token URI. user can set custom uri for himself
     * @custom:calledby any who belong to role
     */
     function setExtraURI(
-        string memory role,
+        uint8 roleIndex,
         string memory extraURI
     )
         public
-        ifTargetInRole(_msgSender(), _roles[role.stringToBytes32()])
+        
     {
-        _rolesByIndex[_roles[role.stringToBytes32()]].extraURI[_msgSender()] = extraURI;
+        ifTargetInRole(_msgSender(), roleIndex);
+        _rolesByIndex[roleIndex].extraURI[_msgSender()] = extraURI;
     }
 
     /**
@@ -164,7 +167,7 @@ contract CommunityERC721 is CommunityBase, IERC721Upgradeable, IERC721MetadataUp
         uint256/* tokenId*/
     ) 
         external
-        view 
+        pure 
         override 
         returns (address/* operator*/) 
     {
@@ -195,7 +198,7 @@ contract CommunityERC721 is CommunityBase, IERC721Upgradeable, IERC721MetadataUp
         address /*operator*/
     ) 
         external 
-        view 
+        pure 
         override
         returns (bool) 
     {

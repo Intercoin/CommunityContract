@@ -4,7 +4,6 @@ pragma experimental ABIEncoderV2;
 //import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 
 import "./lib/ECDSAExt.sol";
 import "./lib/StringUtils.sol";
@@ -17,7 +16,7 @@ import "./interfaces/ICommunityHook.sol";
 
 //import "hardhat/console.sol";
 
-contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuardUpgradeable, IntercoinTrait, TrustedForwarder {
+contract CommunityBase is Initializable, ReentrancyGuardUpgradeable, IntercoinTrait, TrustedForwarder {
     
     using PackedSet for PackedSet.Set;
 
@@ -28,7 +27,6 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
-    using AddressUpgradeable for address;
 
 
     ////////////////////////////////
@@ -77,11 +75,11 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     ///////// vars //////////////
     /////////////////////////////
 
-    uint8 internal constant NONE_ROLE_INDEX = 0;
     uint8 internal rolesCount;
     address public hook;
     uint256 addressesCounter;
 
+    uint8 internal constant NONE_ROLE_INDEX = 0;
     /**
     * @custom:shortd role name "owners" in bytes32
     * @notice constant role name "owners" in bytes32
@@ -201,14 +199,16 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         _;
 
         uint remainingGasEnd = gasleft();
-        uint usedGas = remainingGasStart - remainingGasEnd;
-        // Add intrinsic gas and transfer gas. Need to account for gas stipend as well.
-        // usedGas += 21000 + 9700;
-        usedGas += 30000;
-        // Possibly need to check max gasprice and usedGas here to limit possibility for abuse.
-        uint gasCost = usedGas * tx.gasprice;
-        // accummulate refund gas cost
-        inviteSignatures[sSig].gasCost = inviteSignatures[sSig].gasCost + gasCost;
+        // uint usedGas = remainingGasStart - remainingGasEnd;
+        // // Add intrinsic gas and transfer gas. Need to account for gas stipend as well.
+        // // usedGas += 21000 + 9700;
+        // usedGas += 30700;
+        // // Possibly need to check max gasprice and usedGas here to limit possibility for abuse.
+        // uint gasCost = usedGas * tx.gasprice;
+        // // accummulate refund gas cost
+        // inviteSignatures[sSig].gasCost = inviteSignatures[sSig].gasCost + gasCost;
+        inviteSignatures[sSig].gasCost = inviteSignatures[sSig].gasCost + (remainingGasStart - remainingGasEnd + 30700) * tx.gasprice;
+        //----
     }
 
     /**
@@ -224,15 +224,14 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         
         if (inviteSignatures[sSig].reimbursed == ReimburseStatus.NONE) {
             uint remainingGasEnd = gasleft();
-            uint usedGas = remainingGasStart - remainingGasEnd;
+            // uint usedGas = remainingGasStart - remainingGasEnd;
+            // // Add intrinsic gas and transfer gas. Need to account for gas stipend as well.
+            // usedGas += 21000 + 9700 + 47500;
+            // // Possibly need to check max gasprice and usedGas here to limit possibility for abuse.
+            // gasCost = usedGas * tx.gasprice;
 
-            // Add intrinsic gas and transfer gas. Need to account for gas stipend as well.
-            usedGas += 21000 + 9700 + 47500;
-
-            // Possibly need to check max gasprice and usedGas here to limit possibility for abuse.
-            gasCost = usedGas * tx.gasprice;
-
-            inviteSignatures[sSig].gasCost = inviteSignatures[sSig].gasCost + gasCost;
+            // inviteSignatures[sSig].gasCost = inviteSignatures[sSig].gasCost + gasCost;
+            inviteSignatures[sSig].gasCost = inviteSignatures[sSig].gasCost + ((remainingGasStart - remainingGasEnd + 78200) * tx.gasprice);
         }
         // Refund gas cost
         gasCost = inviteSignatures[sSig].gasCost;
@@ -270,20 +269,10 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         public 
         nonReentrant()
     {
-        
         ifTargetInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]);
         payable(_msgSender()).transfer(address(this).balance);
     } 
-    // sender try to grant rolesIndexes to members
-    function grantRoles(
-        address[] memory members, 
-        uint8[] memory rolesIndexes,
-        uint8 byRole
-    )
-        public
-    {
-        
-    }
+
     /**
      * @notice Added new Roles for each account
      * @custom:shortd Added new Roles for each account
@@ -296,19 +285,18 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     )
         public 
     {
-        uint256 lengthAccounts = accounts.length;
-        uint256 lenRoles = rolesIndexes.length;
+        // uint256 lengthAccounts = accounts.length;
+        // uint256 lenRoles = rolesIndexes.length;
         uint8[] memory rolesIndexWhichWillGrant;
         uint8 roleIndexWhichWillGrant;
-        address sender = _msgSender();
 
-        for (uint256 i = 0; i < lenRoles; i++) {
-            require(
-                _isRoleValid(rolesIndexes[i]), 
-                "invalid role"
-            ); 
+        //address sender = _msgSender();
 
-            rolesIndexWhichWillGrant = _isCanGrant(sender, rolesIndexes[i], FlagFork.NONE);
+
+        for (uint256 i = 0; i < rolesIndexes.length; i++) {
+            _isRoleValid(rolesIndexes[i]); 
+
+            rolesIndexWhichWillGrant = _isCanGrant(_msgSender(), rolesIndexes[i], FlagFork.NONE);
             require(
                 rolesIndexWhichWillGrant.length != 0,
                 string(abi.encodePacked("Sender can not grant role '",_rolesByIndex[rolesIndexes[i]].name.bytes32ToString(),"'"))
@@ -316,8 +304,8 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
 
             roleIndexWhichWillGrant = validateGrantSettings(rolesIndexWhichWillGrant, rolesIndexes[i], FlagFork.REVERT);
 
-            for (uint256 j = 0; j < lengthAccounts; j++) {
-                _grantRole(roleIndexWhichWillGrant, sender, rolesIndexes[i], accounts[j]);
+            for (uint256 j = 0; j < accounts.length; j++) {
+                _grantRole(roleIndexWhichWillGrant, _msgSender(), rolesIndexes[i], accounts[j]);
             }
         }
 
@@ -393,12 +381,11 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         }
 
         if (roleWhichCanGrant == NONE_ROLE_INDEX) {
-            string memory errMsg = "Max amount addresses exceeded";
-
+            
             if (flag == FlagFork.REVERT) {
-                revert(errMsg);
+                revert("Max amount addresses exceeded");
             } else if (flag == FlagFork.EMIT) {
-                emit RoleAddedErrorMessage(_msgSender(), errMsg);
+                emit RoleAddedErrorMessage(_msgSender(), "Max amount addresses exceeded");
             }
         }
 
@@ -420,21 +407,19 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     {
 
 
-        uint256 lengthMembers = accounts.length;
-        uint256 lenRoles = rolesIndexes.length;
+        //uint256 lengthMembers = accounts.length;
+        //uint256 lenRoles = rolesIndexes.length;
         uint8 roleWhichWillRevoke;
-        address sender = _msgSender();
+        //address sender = _msgSender();
 
-        for (uint256 i = 0; i < lenRoles; i++) {
-            require(
-                _isRoleValid(rolesIndexes[i]), 
-                "invalid role"
-            ); 
+        for (uint256 i = 0; i < rolesIndexes.length; i++) {
+            _isRoleValid(rolesIndexes[i]); 
+
             roleWhichWillRevoke = NONE_ROLE_INDEX;
-            for (uint256 j = 0; j<_rolesByMember[sender].length(); j++) {
+            for (uint256 j = 0; j<_rolesByMember[_msgSender()].length(); j++) {
                 
-                if (_rolesByIndex[uint8(_rolesByMember[sender].get(j))].canRevokeRoles.contains(rolesIndexes[i]) == true) {
-                    roleWhichWillRevoke = _rolesByMember[sender].get(j);
+                if (_rolesByIndex[uint8(_rolesByMember[_msgSender()].get(j))].canRevokeRoles.contains(rolesIndexes[i]) == true) {
+                    roleWhichWillRevoke = _rolesByMember[_msgSender()].get(j);
                     
                     break;
                 }
@@ -442,8 +427,8 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
             
             }
             require(roleWhichWillRevoke != NONE_ROLE_INDEX, string(abi.encodePacked("Sender can not manage Members with role '",_rolesByIndex[rolesIndexes[i]].name.bytes32ToString(),"'")));
-            for (uint256 k = 0; k < lengthMembers; k++) {
-                _revokeRole(roleWhichWillRevoke, sender, rolesIndexes[i], accounts[k]);
+            for (uint256 k = 0; k < accounts.length; k++) {
+                _revokeRole(/*roleWhichWillRevoke, */_msgSender(), rolesIndexes[i], accounts[k]);
             }
 
         }
@@ -463,10 +448,15 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     {
         ifTargetInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]);
 
-        require(_roles[role.stringToBytes32()] == 0, "Such role is already exists");
-        
-        // prevent creating role in CamelCases with admins and owners (Admins,ADMINS,ADminS)
-        require(_roles[role._toLower().stringToBytes32()] == 0, "Such role is already exists");
+        // require(_roles[role.stringToBytes32()] == 0, "Such role is already exists");
+        // // prevent creating role in CamelCases with admins and owners (Admins,ADMINS,ADminS)
+        // require(_roles[role._toLower().stringToBytes32()] == 0, "Such role is already exists");
+        require(
+            (_roles[role.stringToBytes32()] == 0) &&
+            (_roles[role._toLower().stringToBytes32()] == 0) 
+            , 
+            "Such role is already exists"
+        );
         
         require(rolesCount < type(uint8).max -1, "Max amount of roles exceeded");
 
@@ -496,9 +486,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         
         ifTargetInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]);
 
-        if (ofRole == _roles[DEFAULT_OWNERS_ROLE]) {
-            revert(string(abi.encodePacked("targetRole can not be '", _rolesByIndex[ofRole].name.bytes32ToString(), "'")));
-        }
+        require(ofRole != _roles[DEFAULT_OWNERS_ROLE], string(abi.encodePacked("targetRole can not be '", _rolesByIndex[ofRole].name.bytes32ToString(), "'")));
         
         _manageRole(
             byRole, 
@@ -510,30 +498,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
             duration
         );
     }
-
-    /**
-     * @notice Returns all addresses belong to Role
-     * @custom:shortd all addresses belong to Role
-     * @param roleIndex role index
-     * @return array of address 
-     */
-    function getAddresses(
-        uint8 roleIndex
-    ) 
-        public 
-        view
-        returns(address[] memory)
-    {
-        uint256 len = _rolesByIndex[roleIndex].members.length();
-        address[] memory l = new address[](len);
-        uint256 i;
-            
-        for (i = 0; i < len; i++) {
-            l[i] = _rolesByIndex[roleIndex].members.at(i);
-        }
-        return l;
-    }
-    
+  
     /**
      * @dev can be duplicate items in output. see https://github.com/Intercoin/CommunityContract/issues/4#issuecomment-1049797389
      * @notice Returns all addresses belong to Role
@@ -614,30 +579,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
 
         return l;
     }
-    
-    /**
-     * @notice Returns all roles which member belong to
-     * @custom:shortd member's roles
-     * @param member member's address
-     * @return array of roles 
-     */
-    function getRoles(
-        address member
-    ) 
-        public 
-        view
-        returns(uint8[] memory)
-    {
-        uint256 len = _rolesByMember[member].length();
-        uint8[] memory l = new uint8[](len);
-
-        for (uint256 i = 0; i < len; i++) {
-            l[i] = _rolesByMember[member].get(i);
-        }
-
-        return l;
-    }
-
+  
     /**
      * @dev can be duplicate items in output. see https://github.com/Intercoin/CommunityContract/issues/4#issuecomment-1049797389
      * @notice if call without params then returns all existing roles 
@@ -757,7 +699,7 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
         nonReentrant()
     {
         ifTargetInRole(_msgSender(), _roles[DEFAULT_RELAYERS_ROLE]);
-        
+
         require(inviteSignatures[sSig].used == false, "Such signature is already used");
 
         (address pAddr, address rpAddr) = _recoverAddresses(p, sSig, rp, rSig);
@@ -849,11 +791,11 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
      * @param target address
      * @param targetRoleIndex role index
      */
-    function ifTargetInRole(address target, uint8 targetRoleIndex) internal {
+    function ifTargetInRole(address target, uint8 targetRoleIndex) internal view {
         
         require(
             _isTargetInRole(target, targetRoleIndex),
-            string(abi.encodePacked("Target account must be with role '", _rolesByIndex[targetRoleIndex].name.bytes32ToString(),"'"))
+            string(abi.encodePacked("Missing role '", _rolesByIndex[targetRoleIndex].name.bytes32ToString(),"'"))
         );
 
     }
@@ -988,13 +930,14 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     
     /**
      * removing role from member
-     * @param sourceRoleIndex sender role index
+     * param sourceRoleIndex sender role index *deprecated*
      * @param sourceAccount sender account's address
      * @param targetRoleIndex target role index
      * @param targetAccount target account's address
      */
     function _revokeRole(
-        uint8 sourceRoleIndex, address sourceAccount, uint8 targetRoleIndex, address targetAccount
+        //uint8 sourceRoleIndex, 
+        address sourceAccount, uint8 targetRoleIndex, address targetAccount
         //address account, bytes32 targetRole
     ) 
         internal 
@@ -1065,8 +1008,11 @@ contract CommunityBase is Initializable/*, OwnableUpgradeable*/, ReentrancyGuard
     }
 
     
-    function _isRoleValid(uint8 index) internal view returns (bool){
-        return (rolesCount > index) ? true : false;
+    function _isRoleValid(uint8 index) internal view {
+        require(
+            (rolesCount > index), 
+            "invalid role"
+        ); 
     }
 
     function __CommunityBase_init(address hook_) internal onlyInitializing {

@@ -20,5 +20,5 @@ contract Community is CommunityBase, ICommunity {
         __CommunityBase_init(hook);
         
     }
-    
+   
 }
