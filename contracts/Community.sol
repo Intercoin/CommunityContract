@@ -5,9 +5,11 @@ pragma abicoder v2;
 import "./CommunityStorage.sol";
 import "./CommunityState.sol";
 import "./CommunityView.sol";
+import "./interfaces/ICommunity.sol";
 
 
-contract Community is CommunityStorage {
+
+contract Community is CommunityStorage, ICommunity {
     using PackedSet for PackedSet.Set;
 
     using StringUtils for *;
@@ -33,7 +35,7 @@ contract Community is CommunityStorage {
         string memory symbol
     ) 
         public 
-        //override
+        override
         initializer 
     {
 

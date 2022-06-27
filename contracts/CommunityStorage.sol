@@ -8,14 +8,14 @@ import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/IERC721MetadataUpgradeable.sol";
 
 
-import "../lib/ECDSAExt.sol";
-import "../lib/StringUtils.sol";
-import "../IntercoinTrait.sol";
+import "./lib/ECDSAExt.sol";
+import "./lib/StringUtils.sol";
+import "./IntercoinTrait.sol";
 
-import "../lib/PackedSet.sol";
-import "../access/TrustedForwarder.sol";
+import "./lib/PackedSet.sol";
+import "./access/TrustedForwarder.sol";
 
-import "../interfaces/ICommunityHook.sol";
+import "./interfaces/ICommunityHook.sol";
 
 
 //import "hardhat/console.sol";

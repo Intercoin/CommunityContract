@@ -3,6 +3,12 @@ pragma solidity ^0.8.11;
 
 interface ICommunity {
     
-    function init(address hook) external;
+    function initialize(
+        address implState,
+        address implView,
+        address hook, 
+        string memory name, 
+        string memory symbol
+    ) external;
     
 }
