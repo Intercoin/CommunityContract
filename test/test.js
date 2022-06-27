@@ -48,10 +48,13 @@ describe("Community", function () {
     // setup useful vars
     
     var rolesTitle = new Map([
+        
+      ['relayers', 'relayers'],
       ['owners', 'owners'],
       ['admins', 'admins'],
       ['members', 'members'],
-      ['relayers', 'relayers'],
+      ['alumni', 'alumni'],
+      ['visitors', 'visitors'],
       ['role1', 'Role#1'],
       ['role2', 'Role#2'],
       ['role3', 'Role#3'],
@@ -59,20 +62,23 @@ describe("Community", function () {
       ['role5', 'Role#5'],
       ['role6', 'Role#6'],
       ['cc_admins', 'AdMiNs']
+      
     ]);
 
     var rolesIndex = new Map([
-      ['owners', 1],
-      ['admins', 2],
-      ['members', 3],
-      ['relayers', 4],
-      ['role1', 5],
-      ['role2', 6],
-      ['role3', 7],
-      ['role4', 9],
-      ['role5', 10],
-      ['role6', 11],
-      ['cc_admins', 12]
+      ['relayers',  1],
+      ['owners',    2],
+      ['admins',    3],
+      ['members',   4],
+      ['alumni',    5],
+      ['visitors',  6],
+      ['role1',     7],
+      ['role2',     8],
+      ['role3',     9],
+      ['role4',     10],
+      ['role5',     11],
+      ['role6',     12],
+      ['cc_admins', 13]
     ]);
     var CommunityFactory;
 
@@ -1132,7 +1138,7 @@ describe("Community", function () {
 
 
     });
-
+*/
     describe(`${trustedForwardMode ? '[trusted forwarder]' : ''}CommunityERC721 tests`, function () {
         
         var CommunityInstance;
@@ -1141,11 +1147,11 @@ describe("Community", function () {
             
             let tx,rc,event,instance,instancesCount;
             //
-            tx = await CommunityFactory.connect(accountTen)["produce(address,string,string)"](NO_HOOK, "Community", "Community");
+            tx = await CommunityFactory.connect(accountTen)["produce(address,string,string)"](NO_HOOK, TOKEN_NAME, TOKEN_SYMBOL);
             rc = await tx.wait(); // 0ms, as tx is already confirmed
             event = rc.events.find(event => event.event === 'InstanceCreated');
             [instance, instancesCount] = event.args;
-            CommunityInstance = await ethers.getContractAt("CommunityERC721",instance);
+            CommunityInstance = await ethers.getContractAt("Community",instance);
 
             if (trustedForwardMode) {
                 await CommunityInstance.connect(accountTen).setTrustedForwarder(trustedForwarder.address);
@@ -1155,12 +1161,12 @@ describe("Community", function () {
 
         it("name should be `Community`", async () => {
             var name = await CommunityInstance.connect(accountTen).name();
-            await expect(name).to.be.eq("Community");
+            await expect(name).to.be.eq(TOKEN_NAME);
         });
 
         it("symbol should be `Community`", async () => {
             var name = await CommunityInstance.connect(accountTen).symbol();
-            await expect(name).to.be.eq("Community");
+            await expect(name).to.be.eq(TOKEN_SYMBOL);
         });
         
         describe("erc721 tokens tests", function () {
@@ -1179,43 +1185,35 @@ describe("Community", function () {
                 await mixedCall(CommunityInstance, trustedForwardMode, accountTen, 'createRole(string)', [rolesTitle.get('role3')]);
                 await mixedCall(CommunityInstance, trustedForwardMode, accountTen, 'createRole(string)', [rolesTitle.get('role4')]);
 
-                // Adding
-                await mixedCall(CommunityInstance, trustedForwardMode, accountTen, 'addMembers(address[])', [
-                    [
-                        owner.address,
-                        accountTwo.address,
-                        accountThree.address,
-                        accountFourth.address,
-                        accountSix.address,
-                    ]
-                ]);
                 await mixedCall(CommunityInstance, trustedForwardMode, accountTen, 'grantRoles(address[],uint8[])', [
                     [owner.address], 
-                    [rolesTitle.get('role1')]
+                    [rolesIndex.get('role1')]
                 ]);
 
                 await mixedCall(CommunityInstance, trustedForwardMode, accountTen, 'grantRoles(address[],uint8[])', [
                     [accountTwo.address], 
-                    [rolesTitle.get('role2')]
+                    [rolesIndex.get('role2')]
                 ]);
 
                 await mixedCall(CommunityInstance, trustedForwardMode, accountTen, 'grantRoles(address[],uint8[])', [
-                    [accountThree.address,
-                    accountSix.address], 
                     [
-                        rolesTitle.get('role3')
+                        accountThree.address,
+                        accountSix.address
+                    ], 
+                    [
+                        rolesIndex.get('role3')
                     ]
                 ]);
                 
             });
-
             
             it("should correct balanceOf for holders", async () => {
-                // using "+ONE" because any account in community have extra role "members"
-                expect(await CommunityInstance.balanceOf(owner.address)).to.be.eq(ONE.add(ONE));
-                expect(await CommunityInstance.balanceOf(accountTwo.address)).to.be.eq(ONE.add(ONE));
-                expect(await CommunityInstance.balanceOf(accountThree.address)).to.be.eq(ONE.add(ONE));
-                expect(await CommunityInstance.balanceOf(accountFourth.address)).to.be.eq(ZERO.add(ONE));
+                
+                expect(await CommunityInstance.balanceOf(owner.address)).to.be.eq(ONE);
+
+                expect(await CommunityInstance.balanceOf(accountTwo.address)).to.be.eq(ONE);
+                expect(await CommunityInstance.balanceOf(accountThree.address)).to.be.eq(ONE);
+                expect(await CommunityInstance.balanceOf(accountFourth.address)).to.be.eq(ZERO);
             });
 
             it("should correct balanceOf for none-holders", async () => {
@@ -1329,7 +1327,8 @@ describe("Community", function () {
                 let uri = "http://google.com/";
                 let extrauri = "http://google.com/extra";
 
-                await mixedCall(CommunityInstance, trustedForwardMode, accountThree, 'setRoleURI(string,string)', [rolesTitle.get('role3'),uri],"Sender can not manage Members with role '" +rolesTitle.get('role3')+"'");
+                //Sender can not manage Members with role
+                await mixedCall(CommunityInstance, trustedForwardMode, accountNine, 'setRoleURI(uint8,string)', [rolesIndex.get('role3'), uri], "Missing role '" +rolesTitle.get('role3')+"'");
 
                 expect(
                     await CommunityInstance.tokenURI(generateTokenId(accountThree.address, rolesIndex.get('role3')))
@@ -1339,7 +1338,7 @@ describe("Community", function () {
                     await CommunityInstance.tokenURI(generateTokenId(accountSix.address, rolesIndex.get('role3')))
                 ).to.be.eq("");
 
-                await mixedCall(CommunityInstance, trustedForwardMode, accountTen, 'setRoleURI(string,string)', [rolesTitle.get('role3'),uri]);
+                await mixedCall(CommunityInstance, trustedForwardMode, accountThree, 'setRoleURI(uint8,string)', [rolesIndex.get('role3'),uri]);
 
                 expect(
                     await CommunityInstance.tokenURI(generateTokenId(accountThree.address, rolesIndex.get('role3')))
@@ -1349,7 +1348,7 @@ describe("Community", function () {
                     await CommunityInstance.tokenURI(generateTokenId(accountSix.address, rolesIndex.get('role3')))
                 ).to.be.eq(uri);
 
-                await mixedCall(CommunityInstance, trustedForwardMode, accountSix, 'setExtraURI(string,string)', [rolesTitle.get('role3'),extrauri]);
+                await mixedCall(CommunityInstance, trustedForwardMode, accountSix, 'setExtraURI(uint8,string)', [rolesIndex.get('role3'),extrauri]);
 
                 expect(
                     await CommunityInstance.tokenURI(generateTokenId(accountThree.address, rolesIndex.get('role3')))
@@ -1363,7 +1362,7 @@ describe("Community", function () {
 
         });
     });
-*/
+
     }
 
 });

@@ -242,7 +242,7 @@ contract Community is CommunityStorage, ICommunity {
         refundGasCost(sSig)
         nonReentrant()
     {
-         _functionDelegateCall(
+        _functionDelegateCall(
             address(implCommunityState), 
             abi.encodeWithSelector(
                 CommunityState.inviteAccept.selector,
@@ -252,7 +252,57 @@ contract Community is CommunityStorage, ICommunity {
         );
 
     }
-  
+
+    /**
+    * @notice setting tokenURI for role
+    * @param roleIndex role index
+    * @param roleURI token URI
+    * @custom:shortd setting tokenURI for role
+    * @custom:calledby any who can manage this role
+    */
+    function setRoleURI(
+        uint8 roleIndex,
+        string memory roleURI
+    ) 
+        public 
+    {
+        _functionDelegateCall(
+            address(implCommunityState), 
+            // abi.encodeWithSelector(
+            //     CommunityState.setRoleURI.selector,
+            //     roleIndex, roleURI
+            // )
+            msg.data
+        );
+
+    }
+
+    /**
+    * @notice setting extra token URI for role
+    * @param roleIndex role index
+    * @param extraURI extra token URI
+    * @notice setting extraURI for role.
+    * @custom:calledby any who belong to role
+    */
+    function setExtraURI(
+        uint8 roleIndex,
+        string memory extraURI
+    )
+        public
+    {
+        _functionDelegateCall(
+            address(implCommunityState), 
+            // abi.encodeWithSelector(
+            //     CommunityState.setExtraURI.selector,
+            //     roleIndex, extraURI
+            // )
+            msg.data
+        );
+    }
+    
+    ///////////////////////////////////////////////////////////
+    /// public (view)section
+    ///////////////////////////////////////////////////////////
     /**
      * @dev can be duplicate items in output. see https://github.com/Intercoin/CommunityContract/issues/4#issuecomment-1049797389
      * @notice Returns all addresses belong to Role
@@ -419,7 +469,88 @@ contract Community is CommunityStorage, ICommunity {
         return _rolesByMember[account].contains(_roles[rolename.stringToBytes32()]);
 
     }
+    
+    /**
+    * @notice getting balance of owner address
+    * @param account user's address
+    * @custom:shortd part of ERC721
+    */
+    function balanceOf(
+        address account
+    ) 
+        external 
+        view 
+        override
+        returns (uint256 balance) 
+    {
+        return abi.decode(
+            _functionDelegateCallView(
+                address(implCommunityView), 
+                abi.encodeWithSelector(
+                    CommunityView.balanceOf.selector,
+                    account
+                ), 
+                ""
+            ), 
+            (uint256)
+        );  
 
+    }
+
+    /**
+    * @notice getting owner of tokenId
+    * @param tokenId tokenId
+    * @custom:shortd part of ERC721
+    */
+    function ownerOf(
+        uint256 tokenId
+    ) 
+        external 
+        view 
+        override
+        returns (address owner) 
+    {
+        return abi.decode(
+            _functionDelegateCallView(
+                address(implCommunityView), 
+                abi.encodeWithSelector(
+                    CommunityView.ownerOf.selector,
+                    tokenId
+                ), 
+                ""
+            ), 
+            (address)
+        );
+
+    }
+    
+     /**
+    * @notice getting tokenURI(part of ERC721)
+    * @custom:shortd getting tokenURI
+    * @param tokenId token ID
+    * @return tokenuri
+    */
+    function tokenURI(
+        uint256 tokenId
+    ) 
+        external 
+        view 
+        override 
+        returns (string memory)
+    {
+        return abi.decode(
+            _functionDelegateCallView(
+                address(implCommunityView), 
+                abi.encodeWithSelector(
+                    CommunityView.tokenURI.selector,
+                    tokenId
+                ), 
+                ""
+            ), 
+            (string)
+        );
+        
+    }
   
  
   

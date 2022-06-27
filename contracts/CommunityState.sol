@@ -383,6 +383,52 @@ contract CommunityState is CommunityStorage {
     }
 
     
+    function setTrustedForwarder(
+        address forwarder
+    ) 
+        public 
+        override 
+    {
+
+        ifTargetInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]);
+
+        require(
+            !_isTargetInRole(forwarder, _roles[DEFAULT_OWNERS_ROLE]),
+            "FORWARDER_CAN_NOT_BE_OWNER"
+        );
+        _setTrustedForwarder(forwarder);
+    }
+    /**
+    * @notice setting tokenURI for role
+    * @param roleIndex role index
+    * @param roleURI token URI
+    * @custom:shortd setting tokenURI for role
+    * @custom:calledby any who can manage this role
+    */
+    function setRoleURI(
+        uint8 roleIndex,
+        string memory roleURI
+    ) 
+        public 
+    {
+        ifTargetInRole(_msgSender(), roleIndex);
+        
+        _rolesByIndex[roleIndex].roleURI = roleURI;
+    }
+
+    /**
+    * @notice setting extraURI for role.
+    * @custom:calledby any who belong to role
+    */
+    function setExtraURI(
+        uint8 roleIndex,
+        string memory extraURI
+    )
+        public
+    {
+        ifTargetInRole(_msgSender(), roleIndex);
+        _rolesByIndex[roleIndex].extraURI[_msgSender()] = extraURI;
+    }
 
     ///////////////////////////////////////////////////////////
     /// external section
@@ -423,25 +469,7 @@ contract CommunityState is CommunityStorage {
         _isCanGrant(sender, targetRoleIndex,FlagFork.REVERT);
       
     }
-    
-
-    function setTrustedForwarder(
-        address forwarder
-    ) 
-        public 
-        override 
-    {
-
-        ifTargetInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]);
-
-        require(
-            !_isTargetInRole(forwarder, _roles[DEFAULT_OWNERS_ROLE]),
-            "FORWARDER_CAN_NOT_BE_OWNER"
-        );
-        _setTrustedForwarder(forwarder);
-    }
- 
-   
+  
     /**
      * @param role role name
      */
@@ -514,6 +542,7 @@ contract CommunityState is CommunityStorage {
      * @param targetAccount target account's address
      */
     function _grantRole(uint8 sourceRoleIndex, address sourceAccount, uint8 targetRoleIndex, address targetAccount) internal {
+
        _rolesByMember[targetAccount].add(targetRoleIndex);
        _rolesByIndex[targetRoleIndex].members.add(targetAccount);
        
