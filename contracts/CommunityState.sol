@@ -191,25 +191,26 @@ contract CommunityState is CommunityStorage {
         //uint256 lengthMembers = accounts.length;
         //uint256 lenRoles = rolesIndexes.length;
         uint8 roleWhichWillRevoke;
-        //address sender = _msgSender();
+        address sender = _msgSender();
 
         for (uint256 i = 0; i < rolesIndexes.length; i++) {
             _isRoleValid(rolesIndexes[i]); 
 
             roleWhichWillRevoke = NONE_ROLE_INDEX;
-            for (uint256 j = 0; j<_rolesByMember[_msgSender()].length(); j++) {
-                
-                if (_rolesByIndex[uint8(_rolesByMember[_msgSender()].get(j))].canRevokeRoles.contains(rolesIndexes[i]) == true) {
-                    roleWhichWillRevoke = _rolesByMember[_msgSender()].get(j);
-                    
-                    break;
+            if (_isTargetInRole(sender, _roles[DEFAULT_OWNERS_ROLE])) {
+                // owner can do anything. so no need to calculate or loop
+                roleWhichWillRevoke = _roles[DEFAULT_OWNERS_ROLE];
+            } else {
+                for (uint256 j = 0; j<_rolesByMember[sender].length(); j++) {
+                    if (_rolesByIndex[uint8(_rolesByMember[sender].get(j))].canRevokeRoles.contains(rolesIndexes[i]) == true) {
+                        roleWhichWillRevoke = _rolesByMember[sender].get(j);
+                        break;
+                    }
                 }
-
-            
             }
             require(roleWhichWillRevoke != NONE_ROLE_INDEX, string(abi.encodePacked("Sender can not manage Members with role '",_rolesByIndex[rolesIndexes[i]].name.bytes32ToString(),"'")));
             for (uint256 k = 0; k < accounts.length; k++) {
-                _revokeRole(/*roleWhichWillRevoke, */_msgSender(), rolesIndexes[i], accounts[k]);
+                _revokeRole(/*roleWhichWillRevoke, */sender, rolesIndexes[i], accounts[k]);
             }
 
         }
@@ -430,7 +431,7 @@ contract CommunityState is CommunityStorage {
         public 
         override 
     {
-      
+
         ifTargetInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]);
 
         require(

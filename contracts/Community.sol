@@ -70,10 +70,10 @@ contract Community is CommunityStorage, ICommunity {
     {
         _functionDelegateCall(
             address(implCommunityState), 
-            abi.encodeWithSelector(
-                CommunityState.withdrawRemainingBalance.selector
-            )
-            //msg.data
+            // abi.encodeWithSelector(
+            //     CommunityState.withdrawRemainingBalance.selector
+            // )
+            msg.data
         );
     } 
 
@@ -91,11 +91,11 @@ contract Community is CommunityStorage, ICommunity {
     {
         _functionDelegateCall(
             address(implCommunityState), 
-            abi.encodeWithSelector(
-                CommunityState.grantRoles.selector,
-                accounts, rolesIndexes
-            )
-            //msg.data
+            // abi.encodeWithSelector(
+            //     CommunityState.grantRoles.selector,
+            //     accounts, rolesIndexes
+            // )
+            msg.data
         );
 
     }
@@ -115,11 +115,11 @@ contract Community is CommunityStorage, ICommunity {
 
         _functionDelegateCall(
             address(implCommunityState), 
-            abi.encodeWithSelector(
-                CommunityState.revokeRoles.selector,
-                accounts, rolesIndexes
-            )
-            //msg.data
+            // abi.encodeWithSelector(
+            //     CommunityState.revokeRoles.selector,
+            //     accounts, rolesIndexes
+            // )
+            msg.data
         );
     }
     
@@ -136,11 +136,11 @@ contract Community is CommunityStorage, ICommunity {
     {
         _functionDelegateCall(
             address(implCommunityState), 
-            abi.encodeWithSelector(
-                CommunityState.createRole.selector,
-                role
-            )
-            //msg.data
+            // abi.encodeWithSelector(
+            //     CommunityState.createRole.selector,
+            //     role
+            // )
+            msg.data
         );
         
     }
@@ -167,11 +167,11 @@ contract Community is CommunityStorage, ICommunity {
         
         _functionDelegateCall(
             address(implCommunityState), 
-            abi.encodeWithSelector(
-                CommunityState.manageRole.selector,
-                byRole, ofRole, canGrantRole, canRevokeRole, requireRole, maxAddresses, duration
-            )
-            //msg.data
+            // abi.encodeWithSelector(
+            //     CommunityState.manageRole.selector,
+            //     byRole, ofRole, canGrantRole, canRevokeRole, requireRole, maxAddresses, duration
+            // )
+            msg.data
         );
         
     }
@@ -190,6 +190,67 @@ contract Community is CommunityStorage, ICommunity {
             // )
             msg.data
         );
+    }
+
+    /**
+     * @notice registering invite,. calling by relayers
+     * @custom:shortd registering invite 
+     * @param sSig signature of admin whom generate invite and signed it
+     * @param rSig signature of recipient
+     */
+    function invitePrepare(
+        bytes memory sSig, 
+        bytes memory rSig
+    ) 
+        public 
+        
+        accummulateGasCost(sSig)
+    {
+        _functionDelegateCall(
+            address(implCommunityState), 
+            abi.encodeWithSelector(
+                CommunityState.invitePrepare.selector,
+                sSig, rSig
+            )
+            //msg.data
+        );
+
+    }
+    
+    /**
+     * @dev
+     * @dev ==P==  
+     * @dev format is "<some string data>:<address of communityContract>:<array of rolenames (sep=',')>:<some string data>"          
+     * @dev invite:0x0A098Eda01Ce92ff4A4CCb7A4fFFb5A43EBC70DC:judges,guests,admins:GregMagarshak  
+     * @dev ==R==  
+     * @dev format is "<address of R wallet>:<name of user>"  
+     * @dev 0x5B38Da6a701c568545dCfcB03FcB875f56beddC4:John Doe  
+     * @notice accepting invite
+     * @custom:shortd accepting invite
+     * @param p invite message of admin whom generate messageHash and signed it
+     * @param sSig signature of admin whom generate invite and signed it
+     * @param rp message of recipient whom generate messageHash and signed it
+     * @param rSig signature of recipient
+     */
+    function inviteAccept(
+        string memory p, 
+        bytes memory sSig, 
+        string memory rp, 
+        bytes memory rSig
+    )
+        public 
+        refundGasCost(sSig)
+        nonReentrant()
+    {
+         _functionDelegateCall(
+            address(implCommunityState), 
+            abi.encodeWithSelector(
+                CommunityState.inviteAccept.selector,
+                p, sSig, rp, rSig
+            )
+            //msg.data
+        );
+
     }
   
     /**
@@ -334,66 +395,7 @@ contract Community is CommunityStorage, ICommunity {
         return inviteSignatures[sSig];
     }
     
-    /**
-     * @notice registering invite,. calling by relayers
-     * @custom:shortd registering invite 
-     * @param sSig signature of admin whom generate invite and signed it
-     * @param rSig signature of recipient
-     */
-    function invitePrepare(
-        bytes memory sSig, 
-        bytes memory rSig
-    ) 
-        public 
-        
-        accummulateGasCost(sSig)
-    {
-        _functionDelegateCall(
-            address(implCommunityState), 
-            abi.encodeWithSelector(
-                CommunityState.invitePrepare.selector,
-                sSig, rSig
-            )
-            //msg.data
-        );
-
-    }
     
-    /**
-     * @dev
-     * @dev ==P==  
-     * @dev format is "<some string data>:<address of communityContract>:<array of rolenames (sep=',')>:<some string data>"          
-     * @dev invite:0x0A098Eda01Ce92ff4A4CCb7A4fFFb5A43EBC70DC:judges,guests,admins:GregMagarshak  
-     * @dev ==R==  
-     * @dev format is "<address of R wallet>:<name of user>"  
-     * @dev 0x5B38Da6a701c568545dCfcB03FcB875f56beddC4:John Doe  
-     * @notice accepting invite
-     * @custom:shortd accepting invite
-     * @param p invite message of admin whom generate messageHash and signed it
-     * @param sSig signature of admin whom generate invite and signed it
-     * @param rp message of recipient whom generate messageHash and signed it
-     * @param rSig signature of recipient
-     */
-    function inviteAccept(
-        string memory p, 
-        bytes memory sSig, 
-        string memory rp, 
-        bytes memory rSig
-    )
-        public 
-        refundGasCost(sSig)
-        nonReentrant()
-    {
-         _functionDelegateCall(
-            address(implCommunityState), 
-            abi.encodeWithSelector(
-                CommunityState.inviteAccept.selector,
-                p, sSig, rp, rSig
-            )
-            //msg.data
-        );
-
-    }
 
     /**
      * @notice is member has role
