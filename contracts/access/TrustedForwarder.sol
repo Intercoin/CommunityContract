@@ -24,7 +24,7 @@ abstract contract TrustedForwarder is Initializable {
     function _setTrustedForwarder(
         address forwarder
     ) 
-        public 
+        internal 
       //  onlyOwner 
         //excludeTrustedForwarder 
     {

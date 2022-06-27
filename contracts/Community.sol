@@ -175,6 +175,22 @@ contract Community is CommunityStorage, ICommunity {
         );
         
     }
+      
+    function setTrustedForwarder(
+        address forwarder
+    ) 
+        public 
+        override
+    {
+        _functionDelegateCall(
+            address(implCommunityState), 
+            // abi.encodeWithSelector(
+            //     CommunityState.setTrustedForwarder.selector,
+            //     forwarder
+            // )
+            msg.data
+        );
+    }
   
     /**
      * @dev can be duplicate items in output. see https://github.com/Intercoin/CommunityContract/issues/4#issuecomment-1049797389
@@ -401,6 +417,9 @@ contract Community is CommunityStorage, ICommunity {
         return _rolesByMember[account].contains(_roles[rolename.stringToBytes32()]);
 
     }
+
+  
+ 
   
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     function _verifyCallResult(

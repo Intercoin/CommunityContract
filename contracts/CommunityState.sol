@@ -3,7 +3,7 @@ pragma solidity ^0.8.11;
 
 import "./CommunityStorage.sol";
 
-//import "hardhat/console.sol";
+import "hardhat/console.sol";
 
 contract CommunityState is CommunityStorage {
     
@@ -33,7 +33,6 @@ contract CommunityState is CommunityStorage {
         string memory symbol_
     ) 
         external 
-        initializer 
     {
         name = name_;
         symbol = symbol_;
@@ -74,11 +73,11 @@ contract CommunityState is CommunityStorage {
 
         //address sender = _msgSender();
 
-
         for (uint256 i = 0; i < rolesIndexes.length; i++) {
             _isRoleValid(rolesIndexes[i]); 
 
             rolesIndexWhichWillGrant = _isCanGrant(_msgSender(), rolesIndexes[i], FlagFork.NONE);
+
             require(
                 rolesIndexWhichWillGrant.length != 0,
                 string(abi.encodePacked("Sender can not grant role '",_rolesByIndex[rolesIndexes[i]].name.bytes32ToString(),"'"))
@@ -580,29 +579,32 @@ contract CommunityState is CommunityStorage {
     }
  
     function _isCanGrant(address sender, uint8 targetRoleIndex, FlagFork flag) internal returns (uint8[] memory) {
-        
+
         //uint256 targetRoleID = uint256(targetRoleIndex);
        
-        uint256 iLen=0;
+        uint256 iLen;
+        uint8[] memory rolesWhichCan;
 
-        for (uint256 i = 0; i<_rolesByMember[sender].length(); i++) {
-            
-            if (_rolesByIndex[uint8(_rolesByMember[sender].get(i))]
-            .canGrantRoles.contains(targetRoleIndex) == true) {
-                iLen++;
+        if (_isTargetInRole(sender, _roles[DEFAULT_OWNERS_ROLE])) {
+            // owner can do anything. so no need to calculate or loop
+            rolesWhichCan = new uint8[](1);
+            rolesWhichCan[0] = _roles[DEFAULT_OWNERS_ROLE];
+        } else {
+            iLen = 0;
+            for (uint256 i = 0; i<_rolesByMember[sender].length(); i++) {
+                if (_rolesByIndex[uint8(_rolesByMember[sender].get(i))].canGrantRoles.contains(targetRoleIndex) == true) {
+                    iLen++;
+                }
             }
-        }
-
-        uint8[] memory rolesWhichCan = new uint8[](iLen);
-
-        for (uint256 i = 0; i<_rolesByMember[sender].length(); i++) {
-            
-            if (_rolesByIndex[uint8(_rolesByMember[sender].get(i))]
-            .canGrantRoles.contains(targetRoleIndex) == true) {
-                rolesWhichCan[rolesWhichCan.length] = _rolesByMember[sender].get(i);
+            rolesWhichCan = new uint8[](iLen);
+            for (uint256 i = 0; i<_rolesByMember[sender].length(); i++) {
+                if (_rolesByIndex[uint8(_rolesByMember[sender].get(i))].canGrantRoles.contains(targetRoleIndex) == true) {
+                    rolesWhichCan[rolesWhichCan.length] = _rolesByMember[sender].get(i);
+                }
             }
-        }
 
+        }
+        
         if (rolesWhichCan.length == 0) {
             string memory errMsg = string(abi.encodePacked("Sender can not grant account with role '", _rolesByIndex[targetRoleIndex].name.bytes32ToString(), "'"));
             if (flag == FlagFork.REVERT) {

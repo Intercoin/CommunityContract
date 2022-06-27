@@ -26,16 +26,11 @@ contract CommunityFactory {
     event InstanceCreated(address instance, uint instancesCount);
 
     /**
-    * @param communityImpl address of Community implementation
     */
-    constructor(
-        address communityImpl
-    ) 
-    {
-        implementation = new Community();
-                
+    constructor() {
+        implementation      = new Community();
         implementationState = new CommunityState();
-        implementationView = new CommunityView();
+        implementationView  = new CommunityView();
         
     }
 
@@ -110,12 +105,10 @@ contract CommunityFactory {
         address[] memory s = new address[](1);
         s[0] = msg.sender;
 
-        string[] memory r = new string[](3);
-        r[0] = "owners";
-        r[1] = "admins";
-        r[2] = "relayers";
+        uint8[] memory r = new uint8[](1);
+        r[0] = 2;//"owners";
 
-        ICommunityTransfer(instance).addMembers(s);
+        //ICommunityTransfer(instance).addMembers(s);
         ICommunityTransfer(instance).grantRoles(s, r);
 
     }
