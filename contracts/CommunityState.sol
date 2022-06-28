@@ -85,6 +85,7 @@ contract CommunityState is CommunityStorage {
 
             roleIndexWhichWillGrant = validateGrantSettings(rolesIndexWhichWillGrant, rolesIndexes[i], FlagFork.REVERT);
 
+
             for (uint256 j = 0; j < accounts.length; j++) {
                 _grantRole(roleIndexWhichWillGrant, _msgSender(), rolesIndexes[i], accounts[j]);
             }
@@ -268,7 +269,7 @@ contract CommunityState is CommunityStorage {
         
         ifTargetInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]);
 
-        require(ofRole != _roles[DEFAULT_OWNERS_ROLE], string(abi.encodePacked("targetRole can not be '", _rolesByIndex[ofRole].name.bytes32ToString(), "'")));
+        require(ofRole != _roles[DEFAULT_OWNERS_ROLE], string(abi.encodePacked("ofRole can not be '", _rolesByIndex[ofRole].name.bytes32ToString(), "'")));
         
         _manageRole(
             byRole, 
@@ -503,9 +504,9 @@ contract CommunityState is CommunityStorage {
         uint64 duration
     ) internal {
     
-        require(rolesCount > byRole, "byRole invalid");
-        require(rolesCount > ofRole, "ofRole invalid");
-       
+        _isRoleValid(byRole);
+        _isRoleValid(ofRole);
+        
         if (canGrantRole) {
             _rolesByIndex[byRole].canGrantRoles.add(ofRole);
         } else {
@@ -542,6 +543,10 @@ contract CommunityState is CommunityStorage {
      * @param targetAccount target account's address
      */
     function _grantRole(uint8 sourceRoleIndex, address sourceAccount, uint8 targetRoleIndex, address targetAccount) internal {
+
+        if (_rolesByMember[targetAccount].length() == 0) {
+            addressesCounter++;
+        }
 
        _rolesByMember[targetAccount].add(targetRoleIndex);
        _rolesByIndex[targetRoleIndex].members.add(targetAccount);
@@ -584,9 +589,18 @@ contract CommunityState is CommunityStorage {
     ) 
         internal 
     {
+        
         _rolesByMember[targetAccount].remove(targetRoleIndex);
         _rolesByIndex[targetRoleIndex].members.remove(targetAccount);
        
+        if (
+            _rolesByMember[targetAccount].length() == 0 &&
+            addressesCounter != 0
+        ) {
+            addressesCounter--;
+        }
+
+
         revokedBy[targetAccount].push(ActionInfo({
             actor: sourceAccount,
             timestamp: uint64(block.timestamp),
@@ -620,30 +634,35 @@ contract CommunityState is CommunityStorage {
             rolesWhichCan = new uint8[](1);
             rolesWhichCan[0] = _roles[DEFAULT_OWNERS_ROLE];
         } else {
+
             iLen = 0;
             for (uint256 i = 0; i<_rolesByMember[sender].length(); i++) {
                 if (_rolesByIndex[uint8(_rolesByMember[sender].get(i))].canGrantRoles.contains(targetRoleIndex) == true) {
                     iLen++;
                 }
             }
+
             rolesWhichCan = new uint8[](iLen);
+
+            iLen = 0;
             for (uint256 i = 0; i<_rolesByMember[sender].length(); i++) {
                 if (_rolesByIndex[uint8(_rolesByMember[sender].get(i))].canGrantRoles.contains(targetRoleIndex) == true) {
-                    rolesWhichCan[rolesWhichCan.length] = _rolesByMember[sender].get(i);
+                    rolesWhichCan[iLen] = _rolesByMember[sender].get(i);
+                    iLen++;
                 }
             }
 
-        }
-        
-        if (rolesWhichCan.length == 0) {
-            string memory errMsg = string(abi.encodePacked("Sender can not grant account with role '", _rolesByIndex[targetRoleIndex].name.bytes32ToString(), "'"));
-            if (flag == FlagFork.REVERT) {
-                revert(errMsg);
-            } else if (flag == FlagFork.EMIT) {
-                emit RoleAddedErrorMessage(sender, errMsg);
+            if (rolesWhichCan.length == 0) {
+                string memory errMsg = string(abi.encodePacked("Sender can not grant account with role '", _rolesByIndex[targetRoleIndex].name.bytes32ToString(), "'"));
+                if (flag == FlagFork.REVERT) {
+                    revert(errMsg);
+                } else if (flag == FlagFork.EMIT) {
+                    emit RoleAddedErrorMessage(sender, errMsg);
+                }
             }
-        }
         
+        }
+
         return rolesWhichCan;
     }
 
