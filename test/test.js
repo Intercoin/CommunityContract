@@ -311,7 +311,9 @@ describe("Community", function () {
             }
 
         });
-
+        it("instanceCount check", async () => {
+            expect(await CommunityFactory.instancesCount()).to.be.eq(ONE);
+        });
         it("can donate/withdraw ETH", async () => {
 
             const price = ethers.utils.parseEther('1');
@@ -437,7 +439,7 @@ describe("Community", function () {
             let allMembersCount = await CommunityInstance.connect(owner)["addressesCount()"]();
             expect(allMembersCount).to.be.eq(EIGHT); // accounts - One,Two,Three,Four,Five,Six,Seven and OWNER
 
-            let allMembersInRole1 = await CommunityInstance.connect(owner)["getAddresses(uint8)"](rolesIndex.get('role1'));
+            let allMembersInRole1 = await CommunityInstance.connect(owner)["getAddresses(uint8[])"]([rolesIndex.get('role1')]);
             expect(allMembersInRole1.length).to.be.eq(FIVE); // accounts - Two,Three,Four,Five,Six
 
             let allMembersInRole2 = await CommunityInstance.connect(owner)["getAddresses(uint8)"](rolesIndex.get('role2'));
@@ -505,6 +507,57 @@ describe("Community", function () {
 
         });
 
+        it("shouldn't grant if disable in manageRole", async () => {
+            // create two roles
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role1')]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role2')]);
+
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],uint8[])', [
+                [accountOne.address], [rolesIndex.get('role1')]
+            ]);
+            // allow grant
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'manageRole(uint8,uint8,bool,bool,uint8,uint256,uint64)', [rolesIndex.get('role1'),rolesIndex.get('role2'), canGrantRole, canRevokeRole, requireRole, maxAddresses, duration]);
+
+            await mixedCall(CommunityInstance, trustedForwardMode, accountOne, 'grantRoles(address[],uint8[])', [
+                [accountTwo.address], [rolesIndex.get('role2')]
+            ]);
+
+            // denied grant
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'manageRole(uint8,uint8,bool,bool,uint8,uint256,uint64)', [rolesIndex.get('role1'),rolesIndex.get('role2'),false, canRevokeRole, requireRole, maxAddresses, duration]);
+            await mixedCall(CommunityInstance, trustedForwardMode, accountOne, 'grantRoles(address[],uint8[])', [
+                [accountThree.address], [rolesIndex.get('role2')]
+            ], "Sender can not grant role '" +rolesTitle.get('role2')+"'");
+
+        }); 
+
+        it("shouldn't revoke if disable in manageRole", async () => {
+            // create two roles
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role1')]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role2')]);
+
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],uint8[])', [
+                [accountOne.address], [rolesIndex.get('role1')]
+            ]);
+            // allow grant
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'manageRole(uint8,uint8,bool,bool,uint8,uint256,uint64)', [rolesIndex.get('role1'),rolesIndex.get('role2'),canGrantRole, canRevokeRole, requireRole, maxAddresses, duration]);
+
+            await mixedCall(CommunityInstance, trustedForwardMode, accountOne, 'grantRoles(address[],uint8[])', [
+                [accountTwo.address], [rolesIndex.get('role2')]
+            ]);
+            await mixedCall(CommunityInstance, trustedForwardMode, accountOne, 'revokeRoles(address[],uint8[])', [
+                [accountTwo.address], [rolesIndex.get('role2')]
+            ]);
+
+            // denied grant
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'manageRole(uint8,uint8,bool,bool,uint8,uint256,uint64)', [rolesIndex.get('role1'),rolesIndex.get('role2'),canGrantRole, false, requireRole, maxAddresses, duration]);
+            await mixedCall(CommunityInstance, trustedForwardMode, accountOne, 'grantRoles(address[],uint8[])', [
+                [accountTwo.address], [rolesIndex.get('role2')]
+            ]);
+            await mixedCall(CommunityInstance, trustedForwardMode, accountOne, 'revokeRoles(address[],uint8[])', [
+                [accountThree.address], [rolesIndex.get('role2')]
+            ], "Sender can not revoke role '" +rolesTitle.get('role2')+"'");
+
+        }); 
         it("can remove account from role", async () => {
 
             var rolesList;
@@ -522,7 +575,7 @@ describe("Community", function () {
             
             await mixedCall(CommunityInstance, trustedForwardMode, accountThree, 'revokeRoles(address[],uint8[])', [
                 [accountTwo.address], [rolesIndex.get('role1')]
-            ],"Sender can not manage Members with role '" +rolesTitle.get('role1')+"'");
+            ],"Sender can not revoke role '" +rolesTitle.get('role1')+"'");
 
             // remove
             await mixedCall(CommunityInstance, trustedForwardMode, owner, 'revokeRoles(address[],uint8[])', [
@@ -580,6 +633,10 @@ describe("Community", function () {
             // check
             rolesList = await CommunityInstance.connect(owner)["getRoles(address)"](accountTwo.address);
             expect(rolesList.includes(rolesIndex.get('role2'))).to.be.eq(true); 
+            
+            // check via isAccountHasRole
+            expect(await CommunityInstance.connect(owner).isAccountHasRole(accountTwo.address, rolesIndex.get('role2'))).to.be.eq(true);
+            expect(await CommunityInstance.connect(owner).getRoleIndex(rolesTitle.get('role2'))).to.be.eq(rolesIndex.get('role2'));
 
             // account 3
             await mixedCall(CommunityInstance, trustedForwardMode, accountTwo, 'grantRoles(address[],uint8[])', [
@@ -604,6 +661,9 @@ describe("Community", function () {
             // check again
             rolesList = await CommunityInstance.connect(owner)["getRoles(address)"](accountTwo.address);
             expect(rolesList.includes(rolesIndex.get('role2'))).to.be.eq(false); 
+
+            // check via isAccountHasRole
+            expect(await CommunityInstance.connect(owner).isAccountHasRole(accountTwo.address, rolesIndex.get('role2'))).to.be.eq(false);
         });
 
         it("check amount of roles after revoke(empty strings)", async () => {

@@ -124,7 +124,7 @@ contract CommunityState is CommunityStorage {
                     }
                 }
             }
-            require(roleWhichWillRevoke != NONE_ROLE_INDEX, string(abi.encodePacked("Sender can not manage Members with role '",_rolesByIndex[rolesIndexes[i]].name.bytes32ToString(),"'")));
+            require(roleWhichWillRevoke != NONE_ROLE_INDEX, string(abi.encodePacked("Sender can not revoke role '",_rolesByIndex[rolesIndexes[i]].name.bytes32ToString(),"'")));
             for (uint256 k = 0; k < accounts.length; k++) {
                 _revokeRole(/*roleWhichWillRevoke, */sender, rolesIndexes[i], accounts[k]);
             }

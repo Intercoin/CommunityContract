@@ -513,13 +513,13 @@ contract Community is CommunityStorage, ICommunity {
      * @notice is member has role
      * @custom:shortd checking is member belong to role
      * @param account user address
-     * @param rolename role name
+     * @param roleIndex role index
      * @return bool 
      */
     //function isMemberHasRole(
     function isAccountHasRole(
         address account, 
-        string memory rolename
+        uint8 roleIndex
     ) 
         public 
         view 
@@ -528,8 +528,24 @@ contract Community is CommunityStorage, ICommunity {
 
         //require(_roles[rolename.stringToBytes32()] != 0, "Such role does not exists");
 
-        return _rolesByMember[account].contains(_roles[rolename.stringToBytes32()]);
+        return _rolesByMember[account].contains(roleIndex);
 
+    }
+
+    /**
+     * @notice return role index by name
+     * @custom:shortd return role index by name
+     * @param rolename role name in string
+     * @return role index
+     */
+    function getRoleIndex(
+        string memory rolename
+    )
+        public 
+        view
+        returns(uint8)
+    {
+        return _roles[rolename.stringToBytes32()];
     }
     
     /**
