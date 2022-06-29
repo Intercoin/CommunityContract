@@ -208,11 +208,11 @@ contract Community is CommunityStorage, ICommunity {
     {
         _functionDelegateCall(
             address(implCommunityState), 
-            abi.encodeWithSelector(
-                CommunityState.invitePrepare.selector,
-                sSig, rSig
-            )
-            //msg.data
+            // abi.encodeWithSelector(
+            //     CommunityState.invitePrepare.selector,
+            //     sSig, rSig
+            // )
+            msg.data
         );
 
     }
@@ -244,11 +244,11 @@ contract Community is CommunityStorage, ICommunity {
     {
         _functionDelegateCall(
             address(implCommunityState), 
-            abi.encodeWithSelector(
-                CommunityState.inviteAccept.selector,
-                p, sSig, rp, rSig
-            )
-            //msg.data
+            // abi.encodeWithSelector(
+            //     CommunityState.inviteAccept.selector,
+            //     p, sSig, rp, rSig
+            // )
+            msg.data
         );
 
     }

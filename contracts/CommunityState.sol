@@ -328,7 +328,7 @@ contract CommunityState is CommunityStorage {
     )
         public 
         refundGasCost(sSig)
-        nonReentrant()
+        //nonReentrant()
     {
         ifTargetInRole(_msgSender(), _roles[DEFAULT_RELAYERS_ROLE]);
 
@@ -375,7 +375,12 @@ contract CommunityState is CommunityStorage {
         }
 
         inviteSignatures[sSig].used = true;
-            
+
+        //store first inviter
+        if (invitedBy[rpAddr] == address(0)) {
+            invitedBy[rpAddr] = pAddr;
+        }
+        
         invited[pAddr].add(rpAddr);
         
         _rewardCaller();
