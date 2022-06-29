@@ -10,6 +10,17 @@ Once installed will be use methods:
 |-|-|-|
 |<a href="#getintercoinaddress">getIntercoinAddress</a>|everyone||
 |<a href="#setintercoinaddress">setIntercoinAddress</a>|everyone||
+## *Events*
+### Initialized
+
+Arguments
+
+| **name** | **type** | **description** |
+|-|-|-|
+| version | uint8 | not indexed |
+
+
+
 ## *Functions*
 ### getIntercoinAddress
 

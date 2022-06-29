@@ -1,6 +1,6 @@
-# CommunityERC721
+# CommunityView
 
-Extend Community Smart contract. Each role it's ERC721 token, URI can be set by user who can manage. Also any user who belong to role can set ExtraURI <br>
+contracts/CommunityView.sol
 
 # Overview
 
@@ -9,48 +9,41 @@ Once installed will be use methods:
 | **method name** | **called by** | **description** |
 |-|-|-|
 |<a href="#default_admins_role">DEFAULT_ADMINS_ROLE</a>|everyone||
+|<a href="#default_alumni_role">DEFAULT_ALUMNI_ROLE</a>|everyone||
 |<a href="#default_members_role">DEFAULT_MEMBERS_ROLE</a>|everyone||
 |<a href="#default_owners_role">DEFAULT_OWNERS_ROLE</a>|everyone||
 |<a href="#default_relayers_role">DEFAULT_RELAYERS_ROLE</a>|everyone||
-|<a href="#ethdonate">ETHDonate</a>|everyone|one of the way to donate ETH to the contract in separate method. |
-|<a href="#ethwithdraw">ETHWithdraw</a>|owners|the way to withdraw ETH from the contract.|
+|<a href="#default_visitors_role">DEFAULT_VISITORS_ROLE</a>|everyone||
 |<a href="#replenish_amount">REPLENISH_AMOUNT</a>|everyone||
 |<a href="#reward_amount">REWARD_AMOUNT</a>|everyone||
-|<a href="#addmembers">addMembers</a>|owners|Added participants to role members|
+|<a href="#addressescount">addressesCount</a>|everyone|all members count|
+|<a href="#addressescount">addressesCount</a>|everyone|count of members for role|
 |<a href="#approve">approve</a>|everyone|part of ERC721|
 |<a href="#balanceof">balanceOf</a>|everyone|part of ERC721|
-|<a href="#createrole">createRole</a>|everyone|creating new role. can called owners role only|
+|<a href="#getaddresses">getAddresses</a>|everyone|all addresses belong to Role|
 |<a href="#getapproved">getApproved</a>|everyone|part of ERC721|
-|<a href="#getmembers">getMembers</a>|everyone|all members belong to Role|
-|<a href="#getmembers">getMembers</a>|everyone|all members belong to Role|
-|<a href="#getmembers">getMembers</a>|everyone|`DEFAULT_MEMBERS_ROLE` members|
+|<a href="#getintercoinaddress">getIntercoinAddress</a>|everyone||
 |<a href="#getroles">getRoles</a>|everyone|all roles|
 |<a href="#getroles">getRoles</a>|everyone|member's roles|
-|<a href="#getroles">getRoles</a>|everyone|member's roles|
-|<a href="#grantroles">grantRoles</a>|everyone|Added new Roles for members|
 |<a href="#granted">granted</a>|everyone||
 |<a href="#grantedby">grantedBy</a>|everyone||
-|<a href="#init">init</a>|everyone||
-|<a href="#inviteaccept">inviteAccept</a>|everyone|accepting invite|
-|<a href="#inviteprepare">invitePrepare</a>|everyone|registering invite |
+|<a href="#hook">hook</a>|everyone||
 |<a href="#inviteview">inviteView</a>|everyone|viewing invite by admin signature|
 |<a href="#invitedby">invitedBy</a>|everyone||
+|<a href="#isaccounthasrole">isAccountHasRole</a>|everyone|checking is member belong to role|
 |<a href="#isapprovedforall">isApprovedForAll</a>|everyone|part of ERC721|
-|<a href="#managerole">manageRole</a>|everyone|allow managing another role|
-|<a href="#membercount">memberCount</a>|everyone|all members count|
-|<a href="#membercount">memberCount</a>|everyone|count of members for role|
+|<a href="#istrustedforwarder">isTrustedForwarder</a>|everyone|checking if forwarder is trusted|
+|<a href="#name">name</a>|everyone||
 |<a href="#ownerof">ownerOf</a>|everyone|part of ERC721|
-|<a href="#removemembers">removeMembers</a>|owners|Removed participants from  role members|
-|<a href="#revokeroles">revokeRoles</a>|everyone|Removed Role for member|
 |<a href="#revoked">revoked</a>|everyone||
 |<a href="#revokedby">revokedBy</a>|everyone||
 |<a href="#safetransferfrom">safeTransferFrom</a>|everyone|part of ERC721|
 |<a href="#safetransferfrom">safeTransferFrom</a>|everyone|part of ERC721|
 |<a href="#setapprovalforall">setApprovalForAll</a>|everyone|part of ERC721|
-|<a href="#setextrauri">setExtraURI</a>|any who belong to role||
 |<a href="#setintercoinaddress">setIntercoinAddress</a>|everyone||
-|<a href="#setroleuri">setRoleURI</a>|any who can manage this role|setting tokenURI for role|
+|<a href="#settrustedforwarder">setTrustedForwarder</a>|everyone||
 |<a href="#supportsinterface">supportsInterface</a>|everyone|part of ERC721|
+|<a href="#symbol">symbol</a>|everyone||
 |<a href="#tokenuri">tokenURI</a>|everyone|getting tokenURI|
 |<a href="#transferfrom">transferFrom</a>|everyone|part of ERC721|
 ## *Events*
@@ -75,6 +68,16 @@ Arguments
 | owner | address | indexed |
 | operator | address | indexed |
 | approved | bool | not indexed |
+
+
+
+### Initialized
+
+Arguments
+
+| **name** | **type** | **description** |
+|-|-|-|
+| version | uint8 | not indexed |
 
 
 
@@ -118,8 +121,13 @@ Arguments
 
 | **name** | **type** | **description** |
 |-|-|-|
-| sourceRole | bytes32 | indexed |
-| targetRole | bytes32 | indexed |
+| sourceRole | uint8 | indexed |
+| targetRole | uint8 | indexed |
+| canGrantRole | bool | not indexed |
+| canRevokeRole | bool | not indexed |
+| requireRole | uint8 | not indexed |
+| maxAddresses | uint256 | not indexed |
+| duration | uint64 | not indexed |
 | sender | address | indexed |
 
 
@@ -148,33 +156,22 @@ Arguments
 
 
 
-## *StateVariables*
-### name
-
-> Notice: getting name
-
-
-| **type** |
-|-|
-|string|
-
-
-
-### symbol
-
-> Notice: getting symbol
-
-
-| **type** |
-|-|
-|string|
-
-
-
 ## *Functions*
 ### DEFAULT_ADMINS_ROLE
 
 > Notice: constant role name "admins" in bytes32
+
+Outputs
+
+| **name** | **type** | **description** |
+|-|-|-|
+| -/- | bytes32 |  |
+
+
+
+### DEFAULT_ALUMNI_ROLE
+
+> Notice: constant role name "alumni" in bytes32
 
 Outputs
 
@@ -220,15 +217,15 @@ Outputs
 
 
 
-### ETHDonate
+### DEFAULT_VISITORS_ROLE
 
-> Notice: one of the way to donate ETH to the contract in separate method. Second way is send directly `receive()`
+> Notice: constant role name "visitors" in bytes32
 
+Outputs
 
-
-### ETHWithdraw
-
-> Notice: the way to withdraw ETH from the contract. called by owners only 
+| **name** | **type** | **description** |
+|-|-|-|
+| -/- | bytes32 |  |
 
 
 
@@ -256,15 +253,33 @@ Outputs
 
 
 
-### addMembers
+### addressesCount
 
-> Notice: Added participants to role members
+> Notice: if call without params then returns count of all users which have at least one role
+
+Outputs
+
+| **name** | **type** | **description** |
+|-|-|-|
+| -/- | uint256 | count of members |
+
+
+
+### addressesCount
+
+> Notice: count of members for that role
 
 Arguments
 
 | **name** | **type** | **description** |
 |-|-|-|
-| members | address[] | participant's addresses |
+| roleIndex | uint8 | role index |
+
+Outputs
+
+| **name** | **type** | **description** |
+|-|-|-|
+| -/- | uint256 | count of members for that role |
 
 
 
@@ -299,15 +314,23 @@ Outputs
 
 
 
-### createRole
+### getAddresses
 
-> Notice: creating new role. can called owners role only
+> Notice: Returns all addresses belong to Role
+
+> Details: can be duplicate items in output. see https://github.com/Intercoin/CommunityContract/issues/4#issuecomment-1049797389
 
 Arguments
 
 | **name** | **type** | **description** |
 |-|-|-|
-| role | string | role name |
+| rolesIndexes | uint8[] | array of roles indexes |
+
+Outputs
+
+| **name** | **type** | **description** |
+|-|-|-|
+| -/- | address[] | array of address  |
 
 
 
@@ -329,53 +352,15 @@ Outputs
 
 
 
-### getMembers
+### getIntercoinAddress
 
-> Notice: Returns all members belong to Role
-
-> Details: can be duplicate items in output. see https://github.com/Intercoin/CommunityContract/issues/4#issuecomment-1049797389
-
-Arguments
-
-| **name** | **type** | **description** |
-|-|-|-|
-| roles | string[] | array of roles name |
+> Notice: got stored intercoin address
 
 Outputs
 
 | **name** | **type** | **description** |
 |-|-|-|
-| l | address[] | array of address  |
-
-
-
-### getMembers
-
-> Notice: Returns all members belong to Role
-
-Arguments
-
-| **name** | **type** | **description** |
-|-|-|-|
-| role | string | role name |
-
-Outputs
-
-| **name** | **type** | **description** |
-|-|-|-|
-| -/- | address[] | array of address  |
-
-
-
-### getMembers
-
-> Notice: if call without params then returns all members belong to `DEFAULT_MEMBERS_ROLE`
-
-Outputs
-
-| **name** | **type** | **description** |
-|-|-|-|
-| -/- | address[] | array of address  |
+| -/- | address |  |
 
 
 
@@ -389,7 +374,9 @@ Outputs
 
 | **name** | **type** | **description** |
 |-|-|-|
-| -/- | string[] | array of roles  |
+| -/- | uint8[] | array of roles  |
+| -/- | string[] |  |
+| -/- | string[] |  |
 
 
 
@@ -409,38 +396,7 @@ Outputs
 
 | **name** | **type** | **description** |
 |-|-|-|
-| l | string[] | array of roles  |
-
-
-
-### getRoles
-
-> Notice: Returns all roles which member belong to
-
-Arguments
-
-| **name** | **type** | **description** |
-|-|-|-|
-| member | address | member's address |
-
-Outputs
-
-| **name** | **type** | **description** |
-|-|-|-|
-| -/- | string[] | array of roles  |
-
-
-
-### grantRoles
-
-> Notice: Added new Roles for members
-
-Arguments
-
-| **name** | **type** | **description** |
-|-|-|-|
-| members | address[] | participant's addresses |
-| roles | string[] | Roles name |
+| -/- | uint8[] | l array of roles  |
 
 
 
@@ -486,44 +442,13 @@ Outputs
 
 
 
-### init
+### hook
 
-Arguments
-
-| **name** | **type** | **description** |
-|-|-|-|
-| name_ | string | erc721 name |
-| symbol_ | string | erc721 symbol |
-
-
-
-### inviteAccept
-
-> Notice: accepting invite
-
-> Details: @dev ==P==  format is "<some string data>:<address of communityContract>:<array of rolenames (sep=',')>:<some string data>"          invite:0x0A098Eda01Ce92ff4A4CCb7A4fFFb5A43EBC70DC:judges,guests,admins:GregMagarshak  ==R==  format is "<address of R wallet>:<name of user>"  0x5B38Da6a701c568545dCfcB03FcB875f56beddC4:John Doe  
-
-Arguments
+Outputs
 
 | **name** | **type** | **description** |
 |-|-|-|
-| p | string | invite message of admin whom generate messageHash and signed it |
-| pSig | bytes | signature of admin whom generate invite and signed it |
-| rp | string | message of recipient whom generate messageHash and signed it |
-| rpSig | bytes | signature of recipient |
-
-
-
-### invitePrepare
-
-> Notice: registering invite,. calling by relayers
-
-Arguments
-
-| **name** | **type** | **description** |
-|-|-|-|
-| pSig | bytes | signature of admin whom generate invite and signed it |
-| rpSig | bytes | signature of recipient |
+| -/- | address |  |
 
 
 
@@ -535,7 +460,7 @@ Arguments
 
 | **name** | **type** | **description** |
 |-|-|-|
-| pSig | bytes | signature of admin whom generate invite and signed it |
+| sSig | bytes | signature of admin whom generate invite and signed it |
 
 Outputs
 
@@ -561,6 +486,25 @@ Outputs
 
 
 
+### isAccountHasRole
+
+> Notice: is member has role
+
+Arguments
+
+| **name** | **type** | **description** |
+|-|-|-|
+| account | address | user address |
+| rolename | string | role name |
+
+Outputs
+
+| **name** | **type** | **description** |
+|-|-|-|
+| -/- | bool | bool  |
+
+
+
 ### isApprovedForAll
 
 > Notice: getting part of ERC721
@@ -580,46 +524,33 @@ Outputs
 
 
 
-### manageRole
+### isTrustedForwarder
 
-> Notice: allow account with sourceRole setup targetRole to another account with default role(members)
-
-Arguments
-
-| **name** | **type** | **description** |
-|-|-|-|
-| sourceRole | string | role which will manage targetRole |
-| targetRole | string | role will have been managed by sourceRole |
-
-
-
-### memberCount
-
-> Notice: if call without params then returns count of all members with default role
-
-Outputs
-
-| **name** | **type** | **description** |
-|-|-|-|
-| -/- | uint256 | count of members |
-
-
-
-### memberCount
-
-> Notice: count of members for that role
+> Details: checking if forwarder is trusted
 
 Arguments
 
 | **name** | **type** | **description** |
 |-|-|-|
-| role | string | role name |
+| forwarder | address | trustedforwarder's address to check |
 
 Outputs
 
 | **name** | **type** | **description** |
 |-|-|-|
-| -/- | uint256 | count of members for that role |
+| -/- | bool |  |
+
+
+
+### name
+
+> Notice: getting name
+
+Outputs
+
+| **name** | **type** | **description** |
+|-|-|-|
+| -/- | string |  |
 
 
 
@@ -638,31 +569,6 @@ Outputs
 | **name** | **type** | **description** |
 |-|-|-|
 | owner | address |  |
-
-
-
-### removeMembers
-
-> Notice: Removed participants from  role members
-
-Arguments
-
-| **name** | **type** | **description** |
-|-|-|-|
-| members | address[] | participant's addresses |
-
-
-
-### revokeRoles
-
-> Notice: Removed Role for member
-
-Arguments
-
-| **name** | **type** | **description** |
-|-|-|-|
-| members | address[] | participant's addresses |
-| roles | string[] | Roles name |
 
 
 
@@ -750,19 +656,6 @@ Arguments
 
 
 
-### setExtraURI
-
-> Notice: setting extraURI for role.
-
-Arguments
-
-| **name** | **type** | **description** |
-|-|-|-|
-| role | string |  |
-| extraURI | string |  |
-
-
-
 ### setIntercoinAddress
 
 > Notice: setup intercoin contract's address. happens once while initialization through factory
@@ -781,16 +674,13 @@ Outputs
 
 
 
-### setRoleURI
-
-> Notice: setting tokenURI for role
+### setTrustedForwarder
 
 Arguments
 
 | **name** | **type** | **description** |
 |-|-|-|
-| role | string | role name |
-| roleURI | string | token URI |
+| forwarder | address |  |
 
 
 
@@ -809,6 +699,18 @@ Outputs
 | **name** | **type** | **description** |
 |-|-|-|
 | -/- | bool |  |
+
+
+
+### symbol
+
+> Notice: getting symbol
+
+Outputs
+
+| **name** | **type** | **description** |
+|-|-|-|
+| -/- | string |  |
 
 
 

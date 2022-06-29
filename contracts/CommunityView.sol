@@ -82,7 +82,7 @@ contract CommunityView is CommunityStorage {
         }
         
     }
-    
+
     ///////////////////////////////////////////////////////////
     /// public  section
     ///////////////////////////////////////////////////////////
@@ -129,12 +129,12 @@ contract CommunityView is CommunityStorage {
     /**
      * @dev can be duplicate items in output. see https://github.com/Intercoin/CommunityContract/issues/4#issuecomment-1049797389
      * @notice Returns all roles which member belong to
-     * @custom:shortd member's roles
-     * @param members member's addresses
+     * @custom:shortd account's roles
+     * @param accounts account's addresses
      * @return l array of roles 
      */
     function getRoles(
-        address[] memory members
+        address[] memory accounts
     ) 
         public 
         view
@@ -145,21 +145,21 @@ contract CommunityView is CommunityStorage {
         uint256 len;
         uint256 tmplen;
 
-            for (uint256 j = 0; j < members.length; j++) {
-                tmplen = _rolesByMember[members[j]].length();
+            for (uint256 j = 0; j < accounts.length; j++) {
+                tmplen = _rolesByMember[accounts[j]].length();
                 len += tmplen;
             }
 
             l = new uint8[](len);
             
             uint256 ilen;
-            for (uint256 j = 0; j < members.length; j++) {
+            for (uint256 j = 0; j < accounts.length; j++) {
                 uint256 i;
 
-                tmplen = _rolesByMember[members[j]].length();
+                tmplen = _rolesByMember[accounts[j]].length();
 
                 for (i = 0; i < tmplen; i++) {
-                    l[ilen] = _rolesByMember[members[j]].get(i);
+                    l[ilen] = _rolesByMember[accounts[j]].get(i);
                     ilen += 1;
                 }
             }
@@ -192,10 +192,10 @@ contract CommunityView is CommunityStorage {
     }
     
     /**
-     * @notice count of members for that role
-     * @custom:shortd count of members for role
+     * @notice count of accounts for that role
+     * @custom:shortd count of accounts for role
      * @param roleIndex role index
-     * @return count of members for that role
+     * @return count of accounts for that role
      */
     function addressesCount(
         uint8 roleIndex
@@ -209,8 +209,8 @@ contract CommunityView is CommunityStorage {
         
     /**
      * @notice if call without params then returns count of all users which have at least one role
-     * @custom:shortd all members count
-     * @return count of members
+     * @custom:shortd all accounts count
+     * @return count of accounts
      */
     function addressesCount(
     )

@@ -8,19 +8,13 @@ Once installed will be use methods:
 
 | **method name** | **called by** | **description** |
 |-|-|-|
+|<a href="#implementationstate">implementationState</a>|everyone||
+|<a href="#implementationview">implementationView</a>|everyone||
 |<a href="#instances">instances</a>|everyone||
 |<a href="#instancescount">instancesCount</a>|everyone|view amount of created instances|
-|<a href="#produce">produce</a>|everyone|creation Community instance|
 |<a href="#produce">produce</a>|everyone|creation CommunityERC721 instance|
 ## *Constructor*
 
-
-Arguments
-
-| **name** | **type** | **description** |
-|-|-|-|
-| communityImpl | address | address of Community implementation |
-| communityerc721Impl | address | address of CommunityERC721 implementation |
 
 
 
@@ -37,7 +31,7 @@ Arguments
 
 
 ## *StateVariables*
-### communityImplementation
+### implementation
 
 > Notice: Community implementation address
 
@@ -48,18 +42,27 @@ Arguments
 
 
 
-### communityerc721Implementation
-
-> Notice: CommunityERC721 implementation address
-
-
-| **type** |
-|-|
-|address|
-
-
-
 ## *Functions*
+### implementationState
+
+Outputs
+
+| **name** | **type** | **description** |
+|-|-|-|
+| -/- | address |  |
+
+
+
+### implementationView
+
+Outputs
+
+| **name** | **type** | **description** |
+|-|-|-|
+| -/- | address |  |
+
+
+
 ### instances
 
 Arguments
@@ -90,20 +93,11 @@ Outputs
 
 ### produce
 
-Outputs
-
-| **name** | **type** | **description** |
-|-|-|-|
-| instance | address | address of created instance `Community` |
-
-
-
-### produce
-
 Arguments
 
 | **name** | **type** | **description** |
 |-|-|-|
+| hook | address | address of contract implemented ICommunityHook interface. Can be address(0) |
 | name | string | erc721 name |
 | symbol | string | erc721 symbol |
 

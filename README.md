@@ -1,40 +1,34 @@
 # CommunityContract
-Smart contract for managing community membership and roles.   
-There are two versions: [Community](docs/contracts/Community.md) and [CommunityERC721](docs/contracts/CommunityERC721.md).   
-Community is a contract for managing community membership and roles.    
-CommunityERC721 - the same as Community but create NFT for each role. User can customize own NFT and specify ExtraURI    
-
-# Deploy Initial 
-Deployer will create two implementations and deploy CommunityFactory that produced Community and CommunityERC721.
+Smart contract for managing community membership and roles. Also has implemented NFT Interface. 
+When role granted to user, user obtained NFT for each role. 
+User can customize own NFT and specify ExtraURI    
 
 # Deploy
-Any user can create own community by call method produce of CommunityFactory contract: [produce](docs/contracts/CommunityFactory.md#produce) and [produce(name, symbol)](docs/contracts/CommunityFactory.md#produce-1) respectively
+Any user can create own community by call method produce of CommunityFactory contract: [produce(hook, name, symbol)](docs/contracts/CommunityFactory.md#produce)
 
 # Overview
-There are 4 predefined roles:   
+There are 6 predefined roles:   
 
 role name| role index
 --|--
-`owners`|1
-`admins`|2
-`members`|3
-`relayers`|4
+`relayers`|1
+`owners`|2
+`admins`|3
+`members`|4
+`alumni`|5
+`visitors`|6
 
+Role `relayers` is web servers X which can register new accounts in community via invite by owners/admins or some who can manage.
 
-Role `members` is starting role for any new accounts.   
-Roles `owners` and `admins` can manage `members` and any newly created roles.   
-Role `relayers` is web servers X which can register member in community via invite by owners/admins or some who can manage.   
 Roles `owners` is a single role that can magage itself. means one owner can add(or remove) other owner.   
    
-   
-Contract can be used as external storage for getting list of memebers.   
-   
+Contract can be used as external storage for getting list of members.   
 
-In cases with CommunityERC721 any user obtain NFT with tokenID = `(roleid <<160)+walletaddress`   
-Any who can manage certain role can setup tokenURI for this role by calling `setRoleURI` .  
-Also any member can setup personal URI for this role by calling `setExtraURI`.   
+Any user obtain NFT with tokenID = `(roleid <<160)+walletaddress`
+Any who can manage certain role can setup tokenURI for this role by calling `setRoleURI`.  
+Also any member can setup personal URI for his role by calling `setExtraURI`.   
 
-Full methods for each contracts can be find here [Community](docs/contracts/Community.md) and here [CommunityERC721](docs/contracts/CommunityERC721.md)   
+Full methods for each contracts can be find here [Community](docs/contracts/Community.md)
 Most usable method methods will be described below:
 
 <table>
@@ -46,16 +40,6 @@ Most usable method methods will be described below:
 	</tr>
 </thead>
 <tbody>
-	<tr>
-		<td><a href="#addmembers">addMembers</a></td>
-		<td>Any role which manage role "members"</td>
-		<td>adding new members</td>
-	</tr>
-	<tr>
-		<td><a href="#removemembers">removeMembers</a></td>
-		<td>Any role which manage role "members"</td>
-		<td>removing exists members</td>
-	</tr>
 	<tr>
 		<td><a href="#grantroles">grantRoles</a></td>
 		<td>Any role which manage "roles"</td>
@@ -74,20 +58,20 @@ Most usable method methods will be described below:
 	<tr>
 		<td><a href="#managerole">manageRole</a></td>
 		<td>only `owners`</td>
-		<td>allow account with "sourceRole" setup "targetRole" to another account with default role("members")</td>
+		<td>allow account with "byRole" setup "ofRole" to any another account</td>
 	</tr>
 	<tr>
-		<td><a href="#getmembers">getMembers</a></td>
+		<td><a href="#getaddresses">getAddresses</a></td>
 		<td>anyone</td>
-		<td>Returns all members belong to "role"</td>
+		<td>Returns all accounts belong to "role"</td>
 	</tr>
 	<tr>
 		<td><a href="#getroles">getRoles</a></td>
 		<td>anyone</td>
-		<td>Returns all roles which member belong to</td>
+		<td>Returns all roles which account belong to</td>
 	</tr>
 	<tr>
-		<td><a href="#membercount">memberCount</a></td>
+		<td><a href="#addressescount">addressesCount</a></td>
 		<td>anyone</td>
 		<td>Returns number of all members belong to "role"</td>
 	</tr>
@@ -111,42 +95,26 @@ Most usable method methods will be described below:
 
 ## Methods
 
-#### addMembers
-adding new members. Can be called any role which manage role `members`
-
-Params:
-name  | type | description
---|--|--
-members|address[]| member's addresses
-
-#### removeMembers
-removing exists members. Can be called any role which manage role `members`
-
-Params:
-name  | type | description
---|--|--
-members|address[]| member's addresses 
-
 #### grantRoles
-adding members to new `roles`.  Can  be called any role which manage `roles`. Revert if any roles can not be managed by sender
+adding accounts to new `roles`.  Can  be called any role which manage `roles`. Revert if any roles can not be managed by sender
 
 Params:
 name  | type | description
 --|--|--
-members|address[]| member's address    
-roles|string[]| names of roles
+accounts|address[]| account's address    
+roles|uint8[]| indexes of roles
 
 #### revokeRoles
-removing members to new `roles`.  Can  be called any role which manage `roles`. Revert if any roles can not be managed by sender
+removing `roles` from certain accounts.  Can  be called any role which manage `roles`. Revert if any roles can not be managed by sender
 
 Params:
 name  | type | description
 --|--|--
-members|address[]| member's address    
-roles|string[]| names of roles
+accounts|address[]| accounts's address    
+roles|uint8[]| indexes of roles
 
 #### createRole
-Creating new role. Сan called `owners`
+Creating new role. Сan called by `owners`
 
 Params:
 name  | type | description
@@ -154,21 +122,26 @@ name  | type | description
 role|string| name of role
 
 #### manageRole
-allow account with `sourceRole` setup `targetRole` to another account with default role(`members`). Сan called only by `owners`.
+allow account with `byRole` setup `ofRole` to another account with default role(`members`). Сan called only by `owners`.
 
 Params:
 name  | type | description
 --|--|--
-sourceRole|string| name of source role
-targetRole|string| name of target role
+byRole|uint8| index of source role
+ofRole|uint8| index of target role
+canGrantRole|bool| if true then `byRole` can grant `ofRole` to account, overwise - disabled
+canRevokeRole|bool| if true then `byRole` can revoke `ofRole` from account, overwise - disabled
+requireRole|uint8| target account should be in role `requireRole` to be able to obtain `ofRole`. if zero - then available to everyone
+maxAddresses|uint256| amount of addresses that be available to grant in `duration` period(bucket) if zero - then no limit
+duration|uint64| if zero - then no buckets. but if `maxAddresses` != 0 then it's real total maximum addresses available to grant
  
-#### getMembers
-Returns all members belong to `role`
+#### getAddresses
+Returns all accounts belong to `role`
 
 Params:
 name  | type | description
 --|--|--
-role|string| name of role. [optional] if not specified returned all participants with role `members`
+role|uint8| index of role.
 
 #### getRoles
 Returns all roles which member belong to
@@ -176,15 +149,15 @@ Returns all roles which member belong to
 Params:
 name  | type | description
 --|--|--
-member|address | member's address. [optional] if not specified returned all roles
+account|address | account's address. [optional] if not specified returned all roles
 
-#### memberCount
-Returns number of all members belong to `role`
+#### addressesCount
+Returns number of all accounts belong to `role`
 
 Params:
 name  | type | description
 --|--|--
-role|string| name of role. [optional] if not specified returned number of all participants with role `members`
+role|uint8| index of role.
 
 #### invitePrepare
 Storing signatures of invite
