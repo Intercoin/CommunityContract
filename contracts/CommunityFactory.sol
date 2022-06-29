@@ -4,7 +4,10 @@ pragma solidity ^0.8.11;
 import "@openzeppelin/contracts/proxy/Clones.sol";
 import "./interfaces/ICommunityTransfer.sol";
 import "./interfaces/ICommunity.sol";
-import "./interfaces/ICommunityERC721.sol";
+
+import "./Community.sol";
+import "./CommunityState.sol";
+import "./CommunityView.sol";
 
 contract CommunityFactory {
     using Clones for address;
@@ -13,29 +16,22 @@ contract CommunityFactory {
     * @custom:shortd Community implementation address
     * @notice Community implementation address
     */
-    address public immutable communityImplementation;
+    Community public immutable implementation;
 
-    /**
-    * @custom:shortd CommunityERC721 implementation address
-    * @notice CommunityERC721 implementation address
-    */
-    address public immutable communityERC721Implementation;
+    CommunityView public immutable implementationView;
+    CommunityState public immutable implementationState;
 
     address[] public instances;
     
     event InstanceCreated(address instance, uint instancesCount);
 
     /**
-    * @param communityImpl address of Community implementation
-    * @param communityERC721Impl address of CommunityERC721 implementation
     */
-    constructor(
-        address communityImpl,
-        address communityERC721Impl
-    ) 
-    {
-        communityImplementation = communityImpl;
-        communityERC721Implementation = communityERC721Impl;
+    constructor() {
+        implementation      = new Community();
+        implementationState = new CommunityState();
+        implementationView  = new CommunityView();
+        
     }
 
     ////////////////////////////////////////////////////////////////////////
@@ -61,28 +57,6 @@ contract CommunityFactory {
 
     /**
     * @param hook address of contract implemented ICommunityHook interface. Can be address(0)
-    * @return instance address of created instance `Community`
-    * @custom:shortd creation Community instance
-    */
-    function produce(
-        address hook
-    ) 
-        public 
-        returns (address instance) 
-    {
-        
-        instance = communityImplementation.clone();
-
-        _produce(instance);
-
-        ICommunity(instance).init(hook);
-        
-        _postProduce(instance);
-    }
-
-
-    /**
-    * @param hook address of contract implemented ICommunityHook interface. Can be address(0)
     * @param name erc721 name
     * @param symbol erc721 symbol
     * @return instance address of created instance `CommunityERC721`
@@ -97,11 +71,11 @@ contract CommunityFactory {
         returns (address instance) 
     {
         
-        instance = communityERC721Implementation.clone();
+        instance = address(implementation).clone();
 
         _produce(instance);
 
-        ICommunityERC721(instance).init(hook, name, symbol);
+        ICommunity(instance).initialize(address(implementationState), address(implementationView), hook, name, symbol);
         
         _postProduce(instance);
         
@@ -131,12 +105,10 @@ contract CommunityFactory {
         address[] memory s = new address[](1);
         s[0] = msg.sender;
 
-        string[] memory r = new string[](3);
-        r[0] = "owners";
-        r[1] = "admins";
-        r[2] = "relayers";
+        uint8[] memory r = new uint8[](1);
+        r[0] = 2;//"owners";
 
-        ICommunityTransfer(instance).addMembers(s);
+        //ICommunityTransfer(instance).addMembers(s);
         ICommunityTransfer(instance).grantRoles(s, r);
 
     }

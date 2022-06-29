@@ -108,15 +108,15 @@ library PackedSet {
 
     }
 
-    function get(Set storage _set, uint256 key) internal view returns (uint16 ret) {
-        ret = uint16(_get(_set, key));
+    function get(Set storage _set, uint256 key) internal view returns (uint8 ret) {
+        ret = uint8(_get(_set, key));
     }
 
-    function add(Set storage _set, uint16 value) internal {
+    function add(Set storage _set, uint8 value) internal {
         _push(_set, uint256(value));
     }
 
-    function remove(Set storage _set, uint16 value) internal {
+    function remove(Set storage _set, uint8 value) internal {
         _pop(_set, uint256(value));
     }
 
