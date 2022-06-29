@@ -11,6 +11,81 @@ contract CommunityView is CommunityStorage {
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;    
 
+    ///////////////////////////////////////////////////////////
+    /// external section
+    ///////////////////////////////////////////////////////////
+    /**
+    * @notice getting balance of owner address
+    * @param account user's address
+    * @custom:shortd part of ERC721
+    */
+    function balanceOf(
+        address account
+    ) 
+        external 
+        view 
+        override
+        returns (uint256 balance) 
+    {
+        
+        for (uint8 i = 1; i < rolesCount; i++) {
+            if (_isTargetInRole(account, i)) {
+                balance += 1;
+            }
+        }
+    }
+
+    /**
+    * @notice getting owner of tokenId
+    * @param tokenId tokenId
+    * @custom:shortd part of ERC721
+    */
+    function ownerOf(
+        uint256 tokenId
+    ) 
+        external 
+        view 
+        override
+        returns (address owner) 
+    {
+        uint8 roleId = uint8(tokenId >> 160);
+        address w = address(uint160(tokenId - (roleId << 160)));
+        
+        owner = (_isTargetInRole(w, roleId)) ? w : address(0);
+
+    }
+    
+     /**
+    * @notice getting tokenURI(part of ERC721)
+    * @custom:shortd getting tokenURI
+    * @param tokenId token ID
+    * @return tokenuri
+    */
+    function tokenURI(
+        uint256 tokenId
+    ) 
+        external 
+        view 
+        override 
+        returns (string memory)
+    {
+        //_rolesByIndex[_roles[role.stringToBytes32()]].roleURI = roleURI;
+        uint8 roleId = uint8(tokenId >> 160);
+        address w = address(uint160(tokenId - (roleId << 160)));
+
+        bytes memory bytesExtraURI = bytes(_rolesByIndex[roleId].extraURI[w]);
+
+        if (bytesExtraURI.length != 0) {
+            return _rolesByIndex[roleId].extraURI[w];
+        } else {
+            return _rolesByIndex[roleId].roleURI;
+        }
+        
+    }
+    
+    ///////////////////////////////////////////////////////////
+    /// public  section
+    ///////////////////////////////////////////////////////////
     /**
      * @dev can be duplicate items in output. see https://github.com/Intercoin/CommunityContract/issues/4#issuecomment-1049797389
      * @notice Returns all addresses belong to Role
@@ -186,74 +261,5 @@ contract CommunityView is CommunityStorage {
 
     }
 
-    
-    /**
-    * @notice getting balance of owner address
-    * @param account user's address
-    * @custom:shortd part of ERC721
-    */
-    function balanceOf(
-        address account
-    ) 
-        external 
-        view 
-        override
-        returns (uint256 balance) 
-    {
-        
-        for (uint8 i = 1; i < rolesCount; i++) {
-            if (_isTargetInRole(account, i)) {
-                balance += 1;
-            }
-        }
-    }
-
-    /**
-    * @notice getting owner of tokenId
-    * @param tokenId tokenId
-    * @custom:shortd part of ERC721
-    */
-    function ownerOf(
-        uint256 tokenId
-    ) 
-        external 
-        view 
-        override
-        returns (address owner) 
-    {
-        uint8 roleId = uint8(tokenId >> 160);
-        address w = address(uint160(tokenId - (roleId << 160)));
-        
-        owner = (_isTargetInRole(w, roleId)) ? w : address(0);
-
-    }
-    
-     /**
-    * @notice getting tokenURI(part of ERC721)
-    * @custom:shortd getting tokenURI
-    * @param tokenId token ID
-    * @return tokenuri
-    */
-    function tokenURI(
-        uint256 tokenId
-    ) 
-        external 
-        view 
-        override 
-        returns (string memory)
-    {
-        //_rolesByIndex[_roles[role.stringToBytes32()]].roleURI = roleURI;
-        uint8 roleId = uint8(tokenId >> 160);
-        address w = address(uint160(tokenId - (roleId << 160)));
-
-        bytes memory bytesExtraURI = bytes(_rolesByIndex[roleId].extraURI[w]);
-
-        if (bytesExtraURI.length != 0) {
-            return _rolesByIndex[roleId].extraURI[w];
-        } else {
-            return _rolesByIndex[roleId].roleURI;
-        }
-        
-    }
 }
     

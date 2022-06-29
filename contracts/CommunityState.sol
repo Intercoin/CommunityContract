@@ -17,10 +17,8 @@ contract CommunityState is CommunityStorage {
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
 
-
-
     ///////////////////////////////////////////////////////////
-    /// public  section
+    /// external section
     ///////////////////////////////////////////////////////////
     /**
     * @param hook address of contract implemented ICommunityHook interface. Can be address(0)
@@ -40,6 +38,10 @@ contract CommunityState is CommunityStorage {
         __CommunityBase_init(hook);
     }
 
+    ///////////////////////////////////////////////////////////
+    /// public  section
+    ///////////////////////////////////////////////////////////
+    
     /**
     * @notice the way to withdraw remaining ETH from the contract. called by owners only 
     * @custom:shortd the way to withdraw ETH from the contract.
@@ -85,94 +87,10 @@ contract CommunityState is CommunityStorage {
 
             roleIndexWhichWillGrant = validateGrantSettings(rolesIndexWhichWillGrant, rolesIndexes[i], FlagFork.REVERT);
 
-
             for (uint256 j = 0; j < accounts.length; j++) {
                 _grantRole(roleIndexWhichWillGrant, _msgSender(), rolesIndexes[i], accounts[j]);
             }
         }
-
-    }
-    
-    /**
-    * @dev find which role can grant `targetRoleIndex` to account
-    * @param rolesWhichCanGrant array of role indexes which want to grant `targetRoleIndex` to account
-    * @param targetRoleIndex target role index
-    * @param flag flag which indicated what is need to do when error happens. 
-    *   if FlagFork.REVERT - when transaction will reverts, 
-    *   if FlagFork.EMIT - emit event `RoleAddedErrorMessage` 
-    *   otherwise - do nothing
-    * @return uint8 role index which can grant `targetRoleIndex` to account without error
-    */
-    function validateGrantSettings(
-        uint8[] memory rolesWhichCanGrant,
-        uint8 targetRoleIndex,
-        FlagFork flag
-
-    ) 
-        internal 
-        returns(uint8) 
-    {
-
-        uint8 roleWhichCanGrant = NONE_ROLE_INDEX;
-
-        for (uint256 i = 0; i < rolesWhichCanGrant.length; i++) {
-            if (
-                (_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].maxAddresses == 0)
-            ) {
-                roleWhichCanGrant = rolesWhichCanGrant[i];
-            } else {
-                if (_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].duration == 0 ) {
-                    if (_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].grantedAddressesCounter+1 <= _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].maxAddresses) {
-                        roleWhichCanGrant = rolesWhichCanGrant[i];
-                    }
-                } else {
-                    // if (lastIntervalIndex = 0) {
-
-                    // } else {
-                        // get current interval index
-                        uint64 interval = uint64(block.timestamp)/(_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].duration)*(_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].duration);
-                        if (interval == _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].lastIntervalIndex) {
-                            if (
-                                _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].grantedAddressesCounter+1 
-                                <= 
-                                _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].maxAddresses
-                            ) {
-                                roleWhichCanGrant = rolesWhichCanGrant[i];
-                            }
-                        } else {
-                            roleWhichCanGrant = rolesWhichCanGrant[i];
-                            _rolesByIndex[roleWhichCanGrant].grantSettings[targetRoleIndex].lastIntervalIndex = interval;
-                            _rolesByIndex[roleWhichCanGrant].grantSettings[targetRoleIndex].grantedAddressesCounter = 0;
-
-                        }
-
-                        
-
-
-                    // }
-                    
-                    
-                }
-            }
-
-            if (roleWhichCanGrant != NONE_ROLE_INDEX) {
-                _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].grantedAddressesCounter += 1;
-                break;
-            }
-
-        }
-
-        if (roleWhichCanGrant == NONE_ROLE_INDEX) {
-            
-            if (flag == FlagFork.REVERT) {
-                revert("Max amount addresses exceeded");
-            } else if (flag == FlagFork.EMIT) {
-                emit RoleAddedErrorMessage(_msgSender(), "Max amount addresses exceeded");
-            }
-        }
-
-        return roleWhichCanGrant;
-
     }
     
     /**
@@ -188,9 +106,6 @@ contract CommunityState is CommunityStorage {
         public 
     {
 
-
-        //uint256 lengthMembers = accounts.length;
-        //uint256 lenRoles = rolesIndexes.length;
         uint8 roleWhichWillRevoke;
         address sender = _msgSender();
 
@@ -380,12 +295,11 @@ contract CommunityState is CommunityStorage {
         if (invitedBy[rpAddr] == address(0)) {
             invitedBy[rpAddr] = pAddr;
         }
-        
+
         invited[pAddr].add(rpAddr);
         
         _rewardCaller();
         _replenishRecipient(rpAddr);
-            
     }
 
     
@@ -435,33 +349,84 @@ contract CommunityState is CommunityStorage {
         ifTargetInRole(_msgSender(), roleIndex);
         _rolesByIndex[roleIndex].extraURI[_msgSender()] = extraURI;
     }
-
     ///////////////////////////////////////////////////////////
-    /// external section
+    /// public  section that are view
     ///////////////////////////////////////////////////////////
-    
-    // use for delegate calls
 
-    // fallback() external virtual payable {}
-    // receive() external virtual payable {}
-    
-    
     ///////////////////////////////////////////////////////////
     /// internal section
     ///////////////////////////////////////////////////////////
     
     
     /**
-     * @notice does address belong to role
-     * @param target address
-     * @param targetRoleIndex role index
-     */
-    function ifTargetInRole(address target, uint8 targetRoleIndex) internal view {
-        
-        require(
-            _isTargetInRole(target, targetRoleIndex),
-            string(abi.encodePacked("Missing role '", _rolesByIndex[targetRoleIndex].name.bytes32ToString(),"'"))
-        );
+    * @dev find which role can grant `targetRoleIndex` to account
+    * @param rolesWhichCanGrant array of role indexes which want to grant `targetRoleIndex` to account
+    * @param targetRoleIndex target role index
+    * @param flag flag which indicated what is need to do when error happens. 
+    *   if FlagFork.REVERT - when transaction will reverts, 
+    *   if FlagFork.EMIT - emit event `RoleAddedErrorMessage` 
+    *   otherwise - do nothing
+    * @return uint8 role index which can grant `targetRoleIndex` to account without error
+    */
+    function validateGrantSettings(
+        uint8[] memory rolesWhichCanGrant,
+        uint8 targetRoleIndex,
+        FlagFork flag
+    ) 
+        internal 
+        returns(uint8) 
+    {
+
+        uint8 roleWhichCanGrant = NONE_ROLE_INDEX;
+
+        for (uint256 i = 0; i < rolesWhichCanGrant.length; i++) {
+            if (
+                (_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].maxAddresses == 0)
+            ) {
+                roleWhichCanGrant = rolesWhichCanGrant[i];
+            } else {
+                if (_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].duration == 0 ) {
+                    if (_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].grantedAddressesCounter+1 <= _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].maxAddresses) {
+                        roleWhichCanGrant = rolesWhichCanGrant[i];
+                    }
+                } else {
+
+                    // get current interval index
+                    uint64 interval = uint64(block.timestamp)/(_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].duration)*(_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].duration);
+                    if (interval == _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].lastIntervalIndex) {
+                        if (
+                            _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].grantedAddressesCounter+1 
+                            <= 
+                            _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].maxAddresses
+                        ) {
+                            roleWhichCanGrant = rolesWhichCanGrant[i];
+                        }
+                    } else {
+                        roleWhichCanGrant = rolesWhichCanGrant[i];
+                        _rolesByIndex[roleWhichCanGrant].grantSettings[targetRoleIndex].lastIntervalIndex = interval;
+                        _rolesByIndex[roleWhichCanGrant].grantSettings[targetRoleIndex].grantedAddressesCounter = 0;
+
+                    }
+                    
+                }
+            }
+
+            if (roleWhichCanGrant != NONE_ROLE_INDEX) {
+                _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].grantedAddressesCounter += 1;
+                break;
+            }
+        }
+
+        if (roleWhichCanGrant == NONE_ROLE_INDEX) {
+            
+            if (flag == FlagFork.REVERT) {
+                revert("Max amount addresses exceeded");
+            } else if (flag == FlagFork.EMIT) {
+                emit RoleAddedErrorMessage(_msgSender(), "Max amount addresses exceeded");
+            }
+        }
+
+        return roleWhichCanGrant;
 
     }
     
@@ -470,7 +435,12 @@ contract CommunityState is CommunityStorage {
      * @param sender sender
      * @param targetRoleIndex role index
      */
-    function ifCanGrant(address sender, uint8 targetRoleIndex) internal {
+    function ifCanGrant(
+        address sender, 
+        uint8 targetRoleIndex
+    ) 
+        internal 
+    {
      
         _isCanGrant(sender, targetRoleIndex,FlagFork.REVERT);
       
@@ -479,7 +449,11 @@ contract CommunityState is CommunityStorage {
     /**
      * @param role role name
      */
-    function _createRole(bytes32 role) internal {
+    function _createRole(
+        bytes32 role
+    ) 
+        internal 
+    {
         _roles[role] = rolesCount;
         _rolesByIndex[rolesCount].name = role;
         rolesCount += 1;
@@ -547,7 +521,14 @@ contract CommunityState is CommunityStorage {
      * @param targetRoleIndex target role index
      * @param targetAccount target account's address
      */
-    function _grantRole(uint8 sourceRoleIndex, address sourceAccount, uint8 targetRoleIndex, address targetAccount) internal {
+    function _grantRole(
+        uint8 sourceRoleIndex, 
+        address sourceAccount, 
+        uint8 targetRoleIndex, 
+        address targetAccount
+    ) 
+        internal 
+    {
 
         if (_rolesByMember[targetAccount].length() == 0) {
             addressesCounter++;
@@ -589,7 +570,9 @@ contract CommunityState is CommunityStorage {
      */
     function _revokeRole(
         //uint8 sourceRoleIndex, 
-        address sourceAccount, uint8 targetRoleIndex, address targetAccount
+        address sourceAccount, 
+        uint8 targetRoleIndex, 
+        address targetAccount
         //address account, bytes32 targetRole
     ) 
         internal 
@@ -627,7 +610,14 @@ contract CommunityState is CommunityStorage {
         emit RoleRevoked(_rolesByIndex[targetRoleIndex].name, targetAccount, sourceAccount);
     }
  
-    function _isCanGrant(address sender, uint8 targetRoleIndex, FlagFork flag) internal returns (uint8[] memory) {
+    function _isCanGrant(
+        address sender, 
+        uint8 targetRoleIndex, 
+        FlagFork flag
+    ) 
+        internal 
+        returns (uint8[] memory) 
+    {
 
         //uint256 targetRoleID = uint256(targetRoleIndex);
        
@@ -671,14 +661,6 @@ contract CommunityState is CommunityStorage {
         return rolesWhichCan;
     }
 
-    
-    function _isRoleValid(uint8 index) internal view {
-        require(
-            (rolesCount > index), 
-            "invalid role"
-        ); 
-    }
-
     function __CommunityBase_init(address hook_) internal onlyInitializing {
         __TrustedForwarder_init();
         __ReentrancyGuard_init();
@@ -692,7 +674,6 @@ contract CommunityState is CommunityStorage {
         _createRole(DEFAULT_ALUMNI_ROLE);
         _createRole(DEFAULT_VISITORS_ROLE);
         
-        
         //_grantRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]);
         _grantRole(_roles[DEFAULT_OWNERS_ROLE], _msgSender(), _roles[DEFAULT_OWNERS_ROLE], _msgSender());
         
@@ -703,7 +684,6 @@ contract CommunityState is CommunityStorage {
         _manageRole(_roles[DEFAULT_ADMINS_ROLE], _roles[DEFAULT_MEMBERS_ROLE],  true, true, 0, 0, 0);
         _manageRole(_roles[DEFAULT_ADMINS_ROLE], _roles[DEFAULT_ALUMNI_ROLE],   true, true, 0, 0, 0);
         _manageRole(_roles[DEFAULT_ADMINS_ROLE], _roles[DEFAULT_VISITORS_ROLE], true, true, 0, 0, 0);
-        
 
         // avoiding hook's trigger for built-in roles
         // so define hook address in the end
@@ -711,30 +691,44 @@ contract CommunityState is CommunityStorage {
     }
 
     ///////////////////////////////////////////////////////////
+    /// internal section that are view
+    ///////////////////////////////////////////////////////////
+    
+    /**
+     * @notice does address belong to role
+     * @param target address
+     * @param targetRoleIndex role index
+     */
+    function ifTargetInRole(
+        address target, 
+        uint8 targetRoleIndex
+    ) 
+        internal 
+        view 
+    {
+        
+        require(
+            _isTargetInRole(target, targetRoleIndex),
+            string(abi.encodePacked("Missing role '", _rolesByIndex[targetRoleIndex].name.bytes32ToString(),"'"))
+        );
+
+    }
+    
+    function _isRoleValid(
+        uint8 index
+    ) 
+        internal 
+        view 
+    {
+        require(
+            (rolesCount > index), 
+            "invalid role"
+        ); 
+    }
+
+    ///////////////////////////////////////////////////////////
     /// private section
     ///////////////////////////////////////////////////////////
-    /**
-     * @param p invite message of admin whom generate messageHash and signed it
-     * @param sSig signature of admin whom generate invite and signed it
-     * @param rp message of recipient whom generate messageHash and signed it
-     * @param rSig signature of recipient
-     */
-    function _recoverAddresses(
-        string memory p, 
-        bytes memory sSig, 
-        string memory rp, 
-        bytes memory rSig
-    ) 
-        private 
-        pure
-        returns(address, address)
-    {
-        bytes32 pHash = p.recreateMessageHash();
-        bytes32 rpHash = rp.recreateMessageHash();
-        address pAddr = pHash.recover(sSig);
-        address rpAddr = rpHash.recover(rSig);
-        return (pAddr, rpAddr);
-    }
     
     /**
      * reward caller(relayers)
@@ -761,7 +755,29 @@ contract CommunityState is CommunityStorage {
             payable(rpAddr).transfer(REPLENISH_AMOUNT);
         }
     }
-   
+    
+    function _recoverAddresses(
+        string memory p, 
+        bytes memory sSig, 
+        string memory rp, 
+        bytes memory rSig
+    ) 
+        private 
+        pure
+        returns(address, address)
+    {
+        // bytes32 pHash = p.recreateMessageHash();
+        // bytes32 rpHash = rp.recreateMessageHash();
+        // address pAddr = pHash.recover(sSig);
+        // address rpAddr = rpHash.recover(rSig);
+        // return (pAddr, rpAddr);
+
+        return (
+            p.recreateMessageHash().recover(sSig), 
+            rp.recreateMessageHash().recover(rSig)
+        );
+    }
+    
 
 }
     
