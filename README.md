@@ -6,6 +6,32 @@ User can customize own NFT and specify ExtraURI
 # Deploy
 Any user can create own community by call method produce of CommunityFactory contract: [produce(hook, name, symbol)](docs/contracts/CommunityFactory.md#produce)
 
+
+# Latest contract instances in test networks
+
+20220630 <br>
+Ethereum Rinkeby Testnet<br>
+<a href="https://rinkeby.etherscan.io/address/0xb9AbFA008348Bd3f96819B57c23052f90cca9221#contracts">CommunityFactory</a><br>
+
+Binance SmartChain TestNet<br>
+<a href="https://testnet.bscscan.com/address/0x3044c30ede2200260FD2f3E785b448F6C18f7F0A#contracts">CommunityFactory</a><br>
+
+ABI<br>
+<a href="https://gist.githubusercontent.com/artman325/6d91ded075ce36a18ff6774fd0b29440/raw/973eb1227992486126196c6a5021b670ddbf515f/communityfactory-abi">factory abi</a>
+<a href="https://gist.githubusercontent.com/artman325/9fa6f692d203ad11c7969f7d5e4e123a/raw/90bad3895c084ed8ee961ad2048f13aff6dae157/community-abi">instance abi</a>
+
+
+<br>
+Binance SmartChain TestNet<br>
+TBD
+
+<details>
+<summary>
+# Old versions
+</summary>
+</details>
+
+
 # Overview
 There are 6 predefined roles:   
 
