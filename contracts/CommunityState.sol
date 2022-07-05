@@ -3,7 +3,7 @@ pragma solidity ^0.8.11;
 
 import "./CommunityStorage.sol";
 
-import "hardhat/console.sol";
+//import "hardhat/console.sol";
 
 contract CommunityState is CommunityStorage {
     
