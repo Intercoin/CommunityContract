@@ -87,14 +87,22 @@ describe("Community", function () {
 
     beforeEach("deploying", async() => {
         const CommunityFactoryF = await ethers.getContractFactory("CommunityFactory");
-        // const CommunityF = await ethers.getContractFactory("Community");
-        // const CommunityERC721F = await ethers.getContractFactory("CommunityERC721");
 
-        // let implementationCommunity = await CommunityF.deploy();
-        // let implementationCommunityERC721 = await CommunityERC721F.deploy();
+        const CommunityF = await ethers.getContractFactory("Community");
+        const CommunityStateF = await ethers.getContractFactory("CommunityState");
+        const CommunityViewF = await ethers.getContractFactory("CommunityView");
+        
+        let implementationCommunity         = await CommunityF.deploy();
+        let implementationCommunityState    = await CommunityStateF.deploy();
+        let implementationCommunityView     = await CommunityViewF.deploy();
+        
 
         // CommunityFactory = await CommunityFactoryF.deploy(implementationCommunity.address, implementationCommunityERC721.address);
-        CommunityFactory = await CommunityFactoryF.deploy();
+        CommunityFactory = await CommunityFactoryF.deploy(
+            implementationCommunity.address,
+            implementationCommunityState.address,
+            implementationCommunityView.address
+        );
 
     });
 

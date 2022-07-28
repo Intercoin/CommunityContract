@@ -5,9 +5,6 @@ import "@openzeppelin/contracts/proxy/Clones.sol";
 import "./interfaces/ICommunityTransfer.sol";
 import "./interfaces/ICommunity.sol";
 
-import "./Community.sol";
-import "./CommunityState.sol";
-import "./CommunityView.sol";
 
 contract CommunityFactory {
     using Clones for address;
@@ -16,10 +13,11 @@ contract CommunityFactory {
     * @custom:shortd Community implementation address
     * @notice Community implementation address
     */
-    Community public immutable implementation;
+    address public immutable implementation;
 
-    CommunityView public immutable implementationView;
-    CommunityState public immutable implementationState;
+    address public immutable implementationState;
+    address public immutable implementationView;
+    
 
     address[] public instances;
     
@@ -27,10 +25,14 @@ contract CommunityFactory {
 
     /**
     */
-    constructor() {
-        implementation      = new Community();
-        implementationState = new CommunityState();
-        implementationView  = new CommunityView();
+    constructor(
+        address _implementation,
+        address _implementationState,
+        address _implementationView
+    ) {
+        implementation      = _implementation;
+        implementationState = _implementationState;
+        implementationView  = _implementationView;
         
     }
 
