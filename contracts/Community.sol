@@ -8,7 +8,6 @@ import "./CommunityView.sol";
 import "./interfaces/ICommunity.sol";
 
 
-
 contract Community is CommunityStorage, ICommunity {
     using PackedSet for PackedSet.Set;
 
@@ -31,6 +30,7 @@ contract Community is CommunityStorage, ICommunity {
         address implCommunityState_,
         address implCommunityView_,
         address hook,
+        address costManager_,
         string memory name, 
         string memory symbol
     ) 
@@ -41,7 +41,8 @@ contract Community is CommunityStorage, ICommunity {
 
         implCommunityState = CommunityState(implCommunityState_);
         implCommunityView = CommunityView(implCommunityView_);
-
+        costManager = costManager_;
+        
         _functionDelegateCall(
             address(implCommunityState), 
             abi.encodeWithSelector(
@@ -299,7 +300,7 @@ contract Community is CommunityStorage, ICommunity {
             msg.data
         );
     }
-    
+
     ///////////////////////////////////////////////////////////
     /// public (view)section
     ///////////////////////////////////////////////////////////

@@ -6,21 +6,16 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/IERC721MetadataUpgradeable.sol";
-
-
+import "releasemanager/contracts/CostManagerHelper.sol";
 import "./lib/ECDSAExt.sol";
 import "./lib/StringUtils.sol";
 import "./IntercoinTrait.sol";
-
 import "./lib/PackedSet.sol";
 import "./access/TrustedForwarder.sol";
-
 import "./interfaces/ICommunityHook.sol";
-
-
 //import "hardhat/console.sol";
 
-abstract contract CommunityStorage is Initializable, ReentrancyGuardUpgradeable, IntercoinTrait, TrustedForwarder, IERC721Upgradeable, IERC721MetadataUpgradeable {
+abstract contract CommunityStorage is Initializable, ReentrancyGuardUpgradeable, IntercoinTrait, TrustedForwarder, CostManagerHelper, IERC721Upgradeable, IERC721MetadataUpgradeable {
     
     using PackedSet for PackedSet.Set;
 
@@ -144,6 +139,21 @@ abstract contract CommunityStorage is Initializable, ReentrancyGuardUpgradeable,
     * @custom:shortd reward amount that user-recepient will replenish
     */
     uint256 public constant REPLENISH_AMOUNT = 1000000000000000; // 0.001 * 1e18
+
+    uint8 internal constant OPERATION_SHIFT_BITS = 240;  // 256 - 16
+    // Constants representing operations
+    uint8 internal constant OPERATION_INITIALIZE = 0x0;
+    // uint8 internal constant OPERATION_SETMETADATA = 0x1;
+    // uint8 internal constant OPERATION_SETSERIESINFO = 0x2;
+    // uint8 internal constant OPERATION_SETOWNERCOMMISSION = 0x3;
+    // uint8 internal constant OPERATION_SETCOMMISSION = 0x4;
+    // uint8 internal constant OPERATION_REMOVECOMMISSION = 0x5;
+    // uint8 internal constant OPERATION_LISTFORSALE = 0x6;
+    // uint8 internal constant OPERATION_REMOVEFROMSALE = 0x7;
+    // uint8 internal constant OPERATION_MINTANDDISTRIBUTE = 0x8;
+    // uint8 internal constant OPERATION_BURN = 0x9;
+    // uint8 internal constant OPERATION_BUY = 0xA;
+    // uint8 internal constant OPERATION_TRANSFER = 0xB;
 
     enum ReimburseStatus{ NONE, PENDING, CLAIMED }
 

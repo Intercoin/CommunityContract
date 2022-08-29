@@ -25,6 +25,7 @@ const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const DEAD_ADDRESS = '0x000000000000000000000000000000000000dEaD';
 
 const NO_HOOK = ZERO_ADDRESS;
+const NO_COSTMANAGER = ZERO_ADDRESS;
 
 const TOKEN_NAME = 'TOKEN_NAME';
 const TOKEN_SYMBOL = 'TOKEN_SYMBOL';
@@ -84,26 +85,52 @@ describe("Community", function () {
       ['cc_admins', 13]
     ]);
     var CommunityFactory;
+    
 
     beforeEach("deploying", async() => {
+        const ReleaseManagerFactoryF = await ethers.getContractFactory("MockReleaseManagerFactory");
         const CommunityFactoryF = await ethers.getContractFactory("CommunityFactory");
 
+        const ReleaseManagerF = await ethers.getContractFactory("MockReleaseManager");
         const CommunityF = await ethers.getContractFactory("Community");
         const CommunityStateF = await ethers.getContractFactory("CommunityState");
         const CommunityViewF = await ethers.getContractFactory("CommunityView");
         
+        let implementationReleaseManager    = await ReleaseManagerF.deploy();
         let implementationCommunity         = await CommunityF.deploy();
         let implementationCommunityState    = await CommunityStateF.deploy();
         let implementationCommunityView     = await CommunityViewF.deploy();
         
+        let releaseManagerFactory   = await ReleaseManagerFactoryF.connect(owner).deploy(implementationReleaseManager.address);
+        let tx,rc,event,instance,instancesCount;
+        //
+        tx = await releaseManagerFactory.connect(owner).produce();
+        rc = await tx.wait(); // 0ms, as tx is already confirmed
+        event = rc.events.find(event => event.event === 'InstanceProduced');
+        [instance, instancesCount] = event.args;
+        let releaseManager = await ethers.getContractAt("MockReleaseManager",instance);
+
+        // 
 
         // CommunityFactory = await CommunityFactoryF.deploy(implementationCommunity.address, implementationCommunityERC721.address);
-        CommunityFactory = await CommunityFactoryF.deploy(
+        CommunityFactory = await CommunityFactoryF.connect(owner).deploy(
             implementationCommunity.address,
             implementationCommunityState.address,
-            implementationCommunityView.address
+            implementationCommunityView.address,
+            NO_COSTMANAGER
         );
 
+        // 
+        const factoriesList = [CommunityFactory.address];
+        const factoryInfo = [
+            [
+                1,//uint8 factoryIndex; 
+                1,//uint16 releaseTag; 
+                "0x53696c766572000000000000000000000000000000000000"//bytes24 factoryChangeNotes;
+            ]
+        ]
+        await CommunityFactory.connect(owner).registerReleaseManager(releaseManager.address);
+        await releaseManager.connect(owner).newRelease(factoriesList, factoryInfo);
     });
 
     describe("TrustedForwarder", function () {
@@ -159,6 +186,58 @@ describe("Community", function () {
             }
         }
     }
+
+    describe(`${trustedForwardMode ? '[trusted forwarder]' : ''} CostManager test`, function () {
+        
+        it("should set costmanager", async () => {
+            let tx,rc,event,instance,instancesCount;
+            //
+            tx = await CommunityFactory.connect(owner)["produce(address,string,string)"](NO_HOOK,TOKEN_NAME,TOKEN_SYMBOL);
+            rc = await tx.wait(); // 0ms, as tx is already confirmed
+            event = rc.events.find(event => event.event === 'InstanceCreated');
+            [instance, instancesCount] = event.args;
+            let communityInstance1 = await ethers.getContractAt("Community",instance);
+
+            await CommunityFactory.connect(owner).setCostManager(DEAD_ADDRESS);
+
+            tx = await CommunityFactory.connect(owner)["produce(address,string,string)"](NO_HOOK,TOKEN_NAME,TOKEN_SYMBOL);
+            rc = await tx.wait(); // 0ms, as tx is already confirmed
+            event = rc.events.find(event => event.event === 'InstanceCreated');
+            [instance, instancesCount] = event.args;
+            let communityInstance2 = await ethers.getContractAt("Community",instance);
+
+            expect(await communityInstance1.costManager()).to.be.eq(ZERO_ADDRESS);
+            expect(await communityInstance2.costManager()).to.be.eq(DEAD_ADDRESS);
+
+        }); 
+
+        // describe('test', function () {
+        
+        //     var CommunityInstance;
+        //     var communityHook;
+        //     beforeEach("deploying", async() => {
+                
+        //         let tx,rc,event,instance,instancesCount;
+        //         //
+        //         tx = await CommunityFactory.connect(owner)["produce(address,string,string)"](NO_HOOK,TOKEN_NAME,TOKEN_SYMBOL);
+        //         rc = await tx.wait(); // 0ms, as tx is already confirmed
+        //         event = rc.events.find(event => event.event === 'InstanceCreated');
+        //         [instance, instancesCount] = event.args;
+        //         CommunityInstance = await ethers.getContractAt("Community",instance);
+
+        //         if (trustedForwardMode) {
+        //             await CommunityInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
+        //         }
+
+        //     }); 
+
+        //     // it("should renounce costmanager", async () => {}); 
+        //     // it("should renounce costmanager", async () => {}); 
+
+        // });     
+
+        
+    });
 
     describe(`${trustedForwardMode ? '[trusted forwarder]' : ''} Community Hooks tests`, function () {
         

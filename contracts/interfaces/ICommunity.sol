@@ -7,6 +7,7 @@ interface ICommunity {
         address implState,
         address implView,
         address hook, 
+        address costManager, 
         string memory name, 
         string memory symbol
     ) external;

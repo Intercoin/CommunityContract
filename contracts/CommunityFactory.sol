@@ -4,9 +4,11 @@ pragma solidity ^0.8.11;
 import "@openzeppelin/contracts/proxy/Clones.sol";
 import "./interfaces/ICommunityTransfer.sol";
 import "./interfaces/ICommunity.sol";
+import "releasemanager/contracts/CostManagerFactoryHelper.sol";
+import "releasemanager/contracts/ReleaseManagerHelper.sol";
 
 
-contract CommunityFactory {
+contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
     using Clones for address;
 
     /**
@@ -28,8 +30,9 @@ contract CommunityFactory {
     constructor(
         address _implementation,
         address _implementationState,
-        address _implementationView
-    ) {
+        address _implementationView,
+        address _costManager
+    ) CostManagerFactoryHelper(_costManager) {
         implementation      = _implementation;
         implementationState = _implementationState;
         implementationView  = _implementationView;
@@ -77,7 +80,7 @@ contract CommunityFactory {
 
         _produce(instance);
 
-        ICommunity(instance).initialize(address(implementationState), address(implementationView), hook, name, symbol);
+        ICommunity(instance).initialize(address(implementationState), address(implementationView), hook, address(costManager), name, symbol);
         
         _postProduce(instance);
         
@@ -113,5 +116,8 @@ contract CommunityFactory {
         //ICommunityTransfer(instance).addMembers(s);
         ICommunityTransfer(instance).grantRoles(s, r);
 
+        // register instance in release manager
+        registerInstance(instance);
+        
     }
 }
