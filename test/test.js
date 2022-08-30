@@ -87,15 +87,21 @@ describe("Community", function () {
     var CommunityFactory;
     
 
+    var CostManagerBad, CostManagerGood;
     beforeEach("deploying", async() => {
         const ReleaseManagerFactoryF = await ethers.getContractFactory("MockReleaseManagerFactory");
         const CommunityFactoryF = await ethers.getContractFactory("CommunityFactory");
+        const CostManagerGoodF = await ethers.getContractFactory("MockCostManagerGood");
+        const CostManagerBadF = await ethers.getContractFactory("MockCostManagerBad");
 
         const ReleaseManagerF = await ethers.getContractFactory("MockReleaseManager");
         const CommunityF = await ethers.getContractFactory("Community");
         const CommunityStateF = await ethers.getContractFactory("CommunityState");
         const CommunityViewF = await ethers.getContractFactory("CommunityView");
         
+        CostManagerGood = await CostManagerGoodF.deploy();
+        CostManagerBad = await CostManagerBadF.deploy();
+
         let implementationReleaseManager    = await ReleaseManagerF.deploy();
         let implementationCommunity         = await CommunityF.deploy();
         let implementationCommunityState    = await CommunityStateF.deploy();
@@ -189,7 +195,7 @@ describe("Community", function () {
 
     describe(`${trustedForwardMode ? '[trusted forwarder]' : ''} CostManager test`, function () {
         
-        it("should set costmanager", async () => {
+        it("should set costmanager while factory produce", async () => {
             let tx,rc,event,instance,instancesCount;
             //
             tx = await CommunityFactory.connect(owner)["produce(address,string,string)"](NO_HOOK,TOKEN_NAME,TOKEN_SYMBOL);
@@ -198,7 +204,7 @@ describe("Community", function () {
             [instance, instancesCount] = event.args;
             let communityInstance1 = await ethers.getContractAt("Community",instance);
 
-            await CommunityFactory.connect(owner).setCostManager(DEAD_ADDRESS);
+            await CommunityFactory.connect(owner).setCostManager(CostManagerGood.address);
 
             tx = await CommunityFactory.connect(owner)["produce(address,string,string)"](NO_HOOK,TOKEN_NAME,TOKEN_SYMBOL);
             rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -207,34 +213,95 @@ describe("Community", function () {
             let communityInstance2 = await ethers.getContractAt("Community",instance);
 
             expect(await communityInstance1.costManager()).to.be.eq(ZERO_ADDRESS);
-            expect(await communityInstance2.costManager()).to.be.eq(DEAD_ADDRESS);
+            expect(await communityInstance2.costManager()).to.be.eq(CostManagerGood.address);
 
         }); 
 
-        // describe('test', function () {
+
+        describe('costmanager', function () {
         
-        //     var CommunityInstance;
-        //     var communityHook;
-        //     beforeEach("deploying", async() => {
+            var CommunityInstance;
+            var communityHook;
+            beforeEach("deploying", async() => {
                 
-        //         let tx,rc,event,instance,instancesCount;
-        //         //
-        //         tx = await CommunityFactory.connect(owner)["produce(address,string,string)"](NO_HOOK,TOKEN_NAME,TOKEN_SYMBOL);
-        //         rc = await tx.wait(); // 0ms, as tx is already confirmed
-        //         event = rc.events.find(event => event.event === 'InstanceCreated');
-        //         [instance, instancesCount] = event.args;
-        //         CommunityInstance = await ethers.getContractAt("Community",instance);
+                let tx,rc,event,instance,instancesCount;
+                //
+                tx = await CommunityFactory.connect(owner)["produce(address,string,string)"](NO_HOOK,TOKEN_NAME,TOKEN_SYMBOL);
+                rc = await tx.wait(); // 0ms, as tx is already confirmed
+                event = rc.events.find(event => event.event === 'InstanceCreated');
+                [instance, instancesCount] = event.args;
+                CommunityInstance = await ethers.getContractAt("Community",instance);
 
-        //         if (trustedForwardMode) {
-        //             await CommunityInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
-        //         }
+                if (trustedForwardMode) {
+                    await CommunityInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
+                }
 
-        //     }); 
+            }); 
 
-        //     // it("should renounce costmanager", async () => {}); 
-        //     // it("should renounce costmanager", async () => {}); 
+            it("shouldnt override costmanager", async () => {
+                // await expect(
+                //     CommunityInstance.connect(accountSix).overrideCostManager(CostManagerGood.address)
+                // ).to.be.revertedWith("cannot override");
+                await mixedCall(CommunityInstance, trustedForwardMode, accountSix, 'overrideCostManager(address)', [CostManagerGood.address], "cannot override");
+            }); 
 
-        // });     
+            it("shouldnt override costmanager if `factory's owner` lost ownership", async () => {
+                await CommunityFactory.connect(owner).transferOwnership(accountSix.address);
+                // await expect(
+                //     CommunityInstance.connect(owner).overrideCostManager(CostManagerGood.address)
+                // ).to.be.revertedWith("cannot override");
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'overrideCostManager(address)', [CostManagerGood.address], "cannot override");
+            }); 
+
+            it("should override costmanager", async () => {
+                let oldCostManager = await CommunityInstance.costManager();
+                
+                // here owner it's factory owner
+                //await CommunityInstance.connect(owner).overrideCostManager(CostManagerGood.address);
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'overrideCostManager(address)', [CostManagerGood.address]);
+
+                let newCostManager = await CommunityInstance.costManager();
+
+                expect(oldCostManager).not.to.be.eq(newCostManager);
+                expect(newCostManager).to.be.eq(CostManagerGood.address);
+
+            }); 
+            
+            it("should override costmanager for new factory's owner", async () => {
+                let oldCostManager = await CommunityInstance.costManager();
+                
+                // here owner it's factory owner
+                await CommunityFactory.connect(owner).transferOwnership(accountSix.address);
+
+                //await CommunityInstance.connect(accountSix).overrideCostManager(CostManagerGood.address);
+                await mixedCall(CommunityInstance, trustedForwardMode, accountSix, 'overrideCostManager(address)', [CostManagerGood.address]);
+
+                let newCostManager = await CommunityInstance.costManager();
+
+                expect(oldCostManager).not.to.be.eq(newCostManager);
+                expect(newCostManager).to.be.eq(CostManagerGood.address);
+
+            }); 
+
+            it("should call renounceOverrideCostManager by owner only", async () => {
+                await expect(
+                    CommunityFactory.connect(accountSix).renounceOverrideCostManager(CommunityInstance.address)
+                ).to.be.revertedWith("Ownable: caller is not the owner");
+
+                await CommunityFactory.connect(owner).renounceOverrideCostManager(CommunityInstance.address)
+
+                // await expect(
+                //     CommunityInstance.connect(owner).overrideCostManager(CostManagerGood.address)
+                // ).to.be.revertedWith("cannot override");
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'overrideCostManager(address)', [CostManagerGood.address], "cannot override");
+                
+            }); 
+
+            // xit("should renounceOverrideCostManager", async () => {}); 
+            // xit("should renounceOverrideCostManager", async () => {}); 
+            // xit("should renounceOverrideCostManager", async () => {}); 
+
+        });     
 
         
     });

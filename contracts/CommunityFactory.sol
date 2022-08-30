@@ -80,7 +80,7 @@ contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
 
         _produce(instance);
 
-        ICommunity(instance).initialize(address(implementationState), address(implementationView), hook, address(costManager), name, symbol);
+        ICommunity(instance).initialize(address(implementationState), address(implementationView), hook, costManager, name, symbol);
         
         _postProduce(instance);
         

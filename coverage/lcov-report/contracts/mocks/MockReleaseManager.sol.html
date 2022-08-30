@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-    <title>Code coverage report for contracts\interfaces\ICommunityHook.sol</title>
+    <title>Code coverage report for contracts\mocks\MockReleaseManager.sol</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../../prettify.css" />
     <link rel="stylesheet" href="../../base.css" />
@@ -16,7 +16,7 @@
 <div class='wrapper'>
   <div class='pad1'>
     <h1>
-      <a href="../../index.html">all files</a> / <a href="index.html">contracts/interfaces/</a> ICommunityHook.sol
+      <a href="../../index.html">all files</a> / <a href="index.html">contracts/mocks/</a> MockReleaseManager.sol
     </h1>
     <div class='clearfix'>
       <div class='fl pad1y space-right2'>
@@ -51,15 +51,7 @@
 6
 7
 8
-9
-10
-11
-12
-13</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+9</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -69,17 +61,13 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.11;
-import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 &nbsp;
-/**
-* @title interface represents hook contract that can be called every time when role created/granted/revoked
-*/
-interface ICommunityHook  is IERC165 {
-    function roleGranted(bytes32 role, uint8 roleIndex, address account) external;
-    function roleRevoked(bytes32 role, uint8 roleIndex, address account) external;
-    function roleCreated(bytes32 role, uint8 roleIndex) external;
+import "releasemanager/contracts/ReleaseManager.sol";
 &nbsp;
-}</pre></td></tr>
+contract MockReleaseManager is ReleaseManager {
+    
+}
+&nbsp;</pre></td></tr>
 </table></pre>
 <div class='push'></div><!-- for sticky footer -->
 </div><!-- /wrapper -->

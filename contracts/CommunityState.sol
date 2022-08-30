@@ -37,11 +37,6 @@ contract CommunityState is CommunityStorage {
 
         __CommunityBase_init(hook);
 
-        _accountForOperation(
-            OPERATION_INITIALIZE << OPERATION_SHIFT_BITS,
-            uint256(uint160(hook)),
-            0
-        );
     }
 
     ///////////////////////////////////////////////////////////
@@ -669,7 +664,6 @@ contract CommunityState is CommunityStorage {
 
     function __CommunityBase_init(address hook_) internal onlyInitializing {
         
-        __CostManagerHelper_init(_msgSender());
         __TrustedForwarder_init();
         __ReentrancyGuard_init();
         

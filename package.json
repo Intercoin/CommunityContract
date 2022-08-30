@@ -3,6 +3,11 @@
   "version": "1.0.0",
   "description": "Smart contract for managing community membership and roles",
   "main": "index.js",
+  "files": [
+    "/contracts/**/*.sol",
+    "/build/contracts/*.json",
+    "!/contracts/mocks/**/*"
+  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -53,6 +58,7 @@
     "@openzeppelin/contracts-upgradeable": "^4.1.0",
     "@openzeppelin/test-helpers": "^0.5.15",
     "@uniswap/lib": "^4.0.1-alpha",
-    "releasemanager": "^1.0.1"
+    "trustedforwarder": "^1.0.0",
+    "releasemanager": "^1.0.5"
   }
 }

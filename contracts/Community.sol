@@ -7,7 +7,6 @@ import "./CommunityState.sol";
 import "./CommunityView.sol";
 import "./interfaces/ICommunity.sol";
 
-
 contract Community is CommunityStorage, ICommunity {
     using PackedSet for PackedSet.Set;
 
@@ -41,7 +40,9 @@ contract Community is CommunityStorage, ICommunity {
 
         implCommunityState = CommunityState(implCommunityState_);
         implCommunityView = CommunityView(implCommunityView_);
-        costManager = costManager_;
+
+        __CostManagerHelper_init(_msgSender());
+        _setCostManager(costManager_);
         
         _functionDelegateCall(
             address(implCommunityState), 
@@ -51,7 +52,13 @@ contract Community is CommunityStorage, ICommunity {
             )
             //msg.data
         );
-
+        
+        
+        _accountForOperation(
+            OPERATION_INITIALIZE << OPERATION_SHIFT_BITS,
+            uint256(uint160(hook)),
+            uint256(uint160(costManager_))
+        );
     }
 
 
@@ -99,6 +106,11 @@ contract Community is CommunityStorage, ICommunity {
             msg.data
         );
 
+        _accountForOperation(
+            OPERATION_GRANT_ROLES << OPERATION_SHIFT_BITS,
+            0,
+            0
+        );
     }
     
     /**
@@ -122,6 +134,12 @@ contract Community is CommunityStorage, ICommunity {
             // )
             msg.data
         );
+
+        _accountForOperation(
+            OPERATION_REVOKE_ROLES << OPERATION_SHIFT_BITS,
+            0,
+            0
+        );
     }
     
     /**
@@ -144,6 +162,12 @@ contract Community is CommunityStorage, ICommunity {
             msg.data
         );
         
+        _accountForOperation(
+            OPERATION_CREATE_ROLE << OPERATION_SHIFT_BITS,
+            0,
+            0
+        );
+
     }
     
     /**
@@ -175,6 +199,11 @@ contract Community is CommunityStorage, ICommunity {
             msg.data
         );
         
+        _accountForOperation(
+            OPERATION_MANAGE_ROLE << OPERATION_SHIFT_BITS,
+            0,
+            0
+        );
     }
       
     function setTrustedForwarder(
@@ -190,6 +219,12 @@ contract Community is CommunityStorage, ICommunity {
             //     forwarder
             // )
             msg.data
+        );
+
+        _accountForOperation(
+            OPERATION_SET_TRUSTED_FORWARDER << OPERATION_SHIFT_BITS,
+            0,
+            0
         );
     }
 
@@ -214,6 +249,13 @@ contract Community is CommunityStorage, ICommunity {
             //     sSig, rSig
             // )
             msg.data
+        );
+
+        
+        _accountForOperation(
+            OPERATION_INVITE_PREPARE << OPERATION_SHIFT_BITS,
+            0,
+            0
         );
 
     }
@@ -251,6 +293,12 @@ contract Community is CommunityStorage, ICommunity {
             // )
             msg.data
         );
+        
+        _accountForOperation(
+            OPERATION_INVITE_ACCEPT << OPERATION_SHIFT_BITS,
+            0,
+            0
+        );
 
     }
 
@@ -276,6 +324,12 @@ contract Community is CommunityStorage, ICommunity {
             msg.data
         );
 
+        _accountForOperation(
+            OPERATION_SET_ROLE_URI << OPERATION_SHIFT_BITS,
+            0,
+            0
+        );
+
     }
 
     /**
@@ -298,6 +352,12 @@ contract Community is CommunityStorage, ICommunity {
             //     roleIndex, extraURI
             // )
             msg.data
+        );
+
+        _accountForOperation(
+            OPERATION_SET_EXTRA_URI << OPERATION_SHIFT_BITS,
+            0,
+            0
         );
     }
 
