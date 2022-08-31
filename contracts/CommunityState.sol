@@ -223,27 +223,7 @@ contract CommunityState is CommunityStorage {
     function _rewardCaller() private {
         if (REWARD_AMOUNT <= address(this).balance) {payable(_msgSender()).transfer(REWARD_AMOUNT);}}
     function _replenishRecipient(address rpAddr) private {if (REPLENISH_AMOUNT <= address(this).balance) {payable(rpAddr).transfer(REPLENISH_AMOUNT);}}
-    function _recoverAddresses(
-        string memory p, 
-        bytes memory sSig, 
-        string memory rp, 
-        bytes memory rSig
-    ) 
-        private 
-        pure
-        returns(address, address){
-        // bytes32 pHash = p.recreateMessageHash();
-        // bytes32 rpHash = rp.recreateMessageHash();
-        // address pAddr = pHash.recover(sSig);
-        // address rpAddr = rpHash.recover(rSig);
-        // return (pAddr, rpAddr);
-
-        return (
-            p.recreateMessageHash().recover(sSig), 
-            rp.recreateMessageHash().recover(rSig)
-        );
-    }
-    
-
+    function _recoverAddresses(string memory p, bytes memory sSig, string memory rp, bytes memory rSig) private pure returns(address, address) {
+        return (p.recreateMessageHash().recover(sSig), rp.recreateMessageHash().recover(rSig));}
 }
     
