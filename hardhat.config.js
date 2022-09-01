@@ -63,7 +63,7 @@ module.exports = {
     bsc: {
       url: bscURL,
       chainId: 56,
-      //gasPrice: "auto",
+      gasPrice: "auto",
       accounts: [process.env.private_key],
       saveDeployments: true
     },

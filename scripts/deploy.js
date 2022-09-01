@@ -35,9 +35,11 @@ async function main() {
 		typeof data_object.implementationCommunity === 'undefined' ||
 		typeof data_object.implementationCommunityState === 'undefined' ||
 		typeof data_object.implementationCommunityView === 'undefined' ||
+		typeof data_object.releaseManager === 'undefined' ||
 		!data_object.implementationCommunity ||
 		!data_object.implementationCommunityState ||
-		!data_object.implementationCommunityView
+		!data_object.implementationCommunityView ||
+		!data_object.releaseManager
 	) {
 		throw("Arguments file: wrong addresses");
 	}
@@ -52,12 +54,13 @@ async function main() {
 
 	var options = {
 		//gasPrice: ethers.utils.parseUnits('50', 'gwei'), 
-		gasLimit: 5e6
+		//gasLimit: 5e6
 	};
 	let _params = [
 		data_object.implementationCommunity,
 		data_object.implementationCommunityState,
-		data_object.implementationCommunityView
+		data_object.implementationCommunityView,
+		ZERO_ADDRESS //costmanager
 	]
 	let params = [
 		..._params,
@@ -70,8 +73,12 @@ async function main() {
 
 	this.factory = await CommunityF.connect(deployer).deploy(...params);
 
+	await this.factory.connect(deployer).registerReleaseManager(data_object.releaseManager);
+
 	console.log("Factory deployed at:", this.factory.address);
 	console.log("with params:", [..._params]);
+
+	console.log("registered with release manager:", data_object.releaseManager);
 }
 
 main()

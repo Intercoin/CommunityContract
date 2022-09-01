@@ -47,6 +47,7 @@ async function main() {
 	const [deployer] = await ethers.getSigners();
 	
 	const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+    const RELEASE_MANAGER = '0x2a525908a057D8fFe0F5ed2c43Dce9aA607E2DDe';
 	console.log(
 		"Deploying contracts with the account:",
 		deployer.address
@@ -71,10 +72,13 @@ async function main() {
 	console.log("  Community deployed at:       ", implementationCommunity.address);
 	console.log("  CommunityState deployed at:  ", implementationCommunityState.address);
 	console.log("  CommunityView deployed at:   ", implementationCommunityView.address);
+    console.log("Linked with manager:");
+    console.log("  Release manager:", RELEASE_MANAGER);
 
 	data_object.implementationCommunity 	= implementationCommunity.address;
 	data_object.implementationCommunityState= implementationCommunityState.address;
 	data_object.implementationCommunityView	= implementationCommunityView.address;
+    data_object.releaseManager	            = RELEASE_MANAGER;
 
 
 	//---
