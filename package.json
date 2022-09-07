@@ -1,5 +1,5 @@
 {
-  "name": "Community",
+  "name": "@artman325/community",
   "version": "1.0.0",
   "description": "Smart contract for managing community membership and roles",
   "main": "index.js",
