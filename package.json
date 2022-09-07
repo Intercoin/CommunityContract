@@ -1,6 +1,6 @@
 {
   "name": "@artman325/community",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Smart contract for managing community membership and roles",
   "main": "index.js",
   "files": [
