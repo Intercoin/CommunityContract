@@ -6,8 +6,8 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/IERC721MetadataUpgradeable.sol";
-import "trustedforwarder/contracts/TrustedForwarder.sol";
-import "releasemanager/contracts/CostManagerHelperERC2771Support.sol";
+import "@artman325/trustedforwarder/contracts/TrustedForwarder.sol";
+import "@artman325/releasemanager/contracts/CostManagerHelperERC2771Support.sol";
 import "./lib/ECDSAExt.sol";
 import "./lib/StringUtils.sol";
 import "./lib/PackedSet.sol";
