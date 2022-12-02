@@ -444,7 +444,7 @@ contract Community is CommunityStorage, ICommunity {
     ) 
         public 
         view
-        returns(uint256[][] memory)
+        returns(address[][] memory)
     {
         return abi.decode(
             _functionDelegateCallView(
@@ -455,7 +455,7 @@ contract Community is CommunityStorage, ICommunity {
                 ), 
                 ""
             ), 
-            (uint256[][])
+            (address[][])
         );  
 
     }
@@ -472,7 +472,7 @@ contract Community is CommunityStorage, ICommunity {
     ) 
         public 
         view
-        returns(uint256[][] memory)
+        returns(uint8[][] memory)
     {
         return abi.decode(
             _functionDelegateCallView(
@@ -484,7 +484,7 @@ contract Community is CommunityStorage, ICommunity {
                 ), 
                 ""
             ), 
-            (uint256[][])
+            (uint8[][])
         );  
 
     }
