@@ -82,49 +82,36 @@ contract CommunityView is CommunityStorage {
         }
         
     }
+    
+    
 
     ///////////////////////////////////////////////////////////
     /// public  section
     ///////////////////////////////////////////////////////////
     /**
-     * @dev can be duplicate items in output. see https://github.com/Intercoin/CommunityContract/issues/4#issuecomment-1049797389
+     * @dev since user will be in several roles then addresses in output can be duplicated.
      * @notice Returns all addresses belong to Role
      * @custom:shortd all addresses belong to Role
      * @param rolesIndexes array of roles indexes
-     * @return array of address 
+     * @return array of array addresses ([uint256][uint160(address)])
      */
-    function getAddresses(
-        uint8[] memory rolesIndexes
-    ) 
-        public 
-        view
-        returns(address[] memory)
-    {
-        address[] memory l;
+    function getAddresses(uint8[] memory rolesIndexes) public view returns(uint256[][] memory) {
+        uint256[][] memory l;
 
-        if (rolesIndexes.length == 0) {
-            l = new address[](0);
-        } else {
-            uint256 len;
-            for (uint256 j = 0; j < rolesIndexes.length; j++) {
-                len += _rolesByIndex[rolesIndexes[j]].members.length();
-            }
-
-            l = new address[](len);
+        l = new uint256[][](rolesIndexes.length);
+        if (rolesIndexes.length != 0) {
             
-            uint256 ilen;
             uint256 tmplen;
             for (uint256 j = 0; j < rolesIndexes.length; j++) {
                 tmplen = _rolesByIndex[rolesIndexes[j]].members.length();
+                l[j] = new uint256[](tmplen);
                 for (uint256 i = 0; i < tmplen; i++) {
-                    l[ilen] = _rolesByIndex[rolesIndexes[j]].members.at(i);
-                    ilen += 1;
+                    l[j][i] = uint160(_rolesByIndex[rolesIndexes[j]].members.at(i));
                 }
             }
         }
         return l;
     }
-    
     
     /**
      * @dev can be duplicate items in output. see https://github.com/Intercoin/CommunityContract/issues/4#issuecomment-1049797389
@@ -133,40 +120,25 @@ contract CommunityView is CommunityStorage {
      * @param accounts account's addresses
      * @return l array of roles 
      */
-    function getRoles(
-        address[] memory accounts
-    ) 
-        public 
-        view
-        returns(uint8[] memory)
-    {
-        uint8[] memory l;
+    function getRoles(address[] memory accounts) public view returns(uint256[][] memory) {
+        uint256[][] memory l;
 
-        uint256 len;
-        uint256 tmplen;
-
+        l = new uint256[][](accounts.length);
+        if (accounts.length != 0) {
+        
+            uint256 tmplen;
             for (uint256 j = 0; j < accounts.length; j++) {
                 tmplen = _rolesByMember[accounts[j]].length();
-                len += tmplen;
-            }
+                l[j] = new uint256[](tmplen);
+                for (uint256 i = 0; i < tmplen; i++) {
+                    l[j][i] = _rolesByMember[accounts[j]].get(i);
 
-            l = new uint8[](len);
-            
-            uint256 ilen;
-            for (uint256 j = 0; j < accounts.length; j++) {
-                uint256 i;
-
-                tmplen = _rolesByMember[accounts[j]].length();
-
-                for (i = 0; i < tmplen; i++) {
-                    l[ilen] = _rolesByMember[accounts[j]].get(i);
-                    ilen += 1;
                 }
             }
-
+        }
         return l;
     }
-  
+    
     /**
      * @dev can be duplicate items in output. see https://github.com/Intercoin/CommunityContract/issues/4#issuecomment-1049797389
      * @notice if call without params then returns all existing roles 
