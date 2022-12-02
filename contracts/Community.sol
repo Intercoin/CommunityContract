@@ -431,37 +431,7 @@ contract Community is CommunityStorage, ICommunity {
     ///////////////////////////////////////////////////////////
     /// public (view)section
     ///////////////////////////////////////////////////////////
-    /**
-     * @notice Returns all addresses belong to Role
-     * @custom:shortd all addresses belong to Role
-     * @param rolesIndex role index
-     * @return array of address 
-     */
-    function getAddresses(
-        uint8 rolesIndex
-    ) 
-        public 
-        view
-        returns(address[] memory)
-    {
-        uint8[] memory rolesIndexes = new uint8[](1);
-        rolesIndexes[0] = rolesIndex;
-
-        return abi.decode(
-            _functionDelegateCallView(
-                address(implCommunityView), 
-                abi.encodeWithSelector(
-                    CommunityView.getAddresses.selector,
-                    rolesIndexes
-                ), 
-                ""
-            ), 
-            (address[])
-        );  
-
-    }
-    
-
+ 
     /**
      * @dev can be duplicate items in output. see https://github.com/Intercoin/CommunityContract/issues/4#issuecomment-1049797389
      * @notice Returns all addresses belong to Role
@@ -470,11 +440,11 @@ contract Community is CommunityStorage, ICommunity {
      * @return array of address 
      */
     function getAddresses(
-        uint8[] memory rolesIndexes
+        uint8[] calldata rolesIndexes
     ) 
         public 
         view
-        returns(address[] memory)
+        returns(uint256[][] memory)
     {
         return abi.decode(
             _functionDelegateCallView(
@@ -485,42 +455,10 @@ contract Community is CommunityStorage, ICommunity {
                 ), 
                 ""
             ), 
-            (address[])
+            (uint256[][])
         );  
 
     }
-    
-    /**
-     * @notice Returns all roles which member belong to
-     * @custom:shortd member's roles
-     * @param member member's address
-     * @return array of roles 
-     */
-    function getRoles(
-        address member
-    ) 
-        public 
-        view
-        returns(uint8[] memory)
-    {
-        address[] memory members = new address[](1);
-        members[0] = member;
-
-        return abi.decode(
-            _functionDelegateCallView(
-                address(implCommunityView), 
-                abi.encodeWithSelector(
-                    //CommunityView.getRoles().selector,
-                    bytes4(keccak256("getRoles(address[])")),
-                    members
-                ), 
-                ""
-            ), 
-            (uint8[])
-        );  
-
-    }
-
     
     /**
      * @dev can be duplicate items in output. see https://github.com/Intercoin/CommunityContract/issues/4#issuecomment-1049797389
@@ -534,7 +472,7 @@ contract Community is CommunityStorage, ICommunity {
     ) 
         public 
         view
-        returns(uint8[] memory)
+        returns(uint256[][] memory)
     {
         return abi.decode(
             _functionDelegateCallView(
@@ -546,7 +484,7 @@ contract Community is CommunityStorage, ICommunity {
                 ), 
                 ""
             ), 
-            (uint8[])
+            (uint256[][])
         );  
 
     }

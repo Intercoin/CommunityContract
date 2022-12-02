@@ -519,8 +519,8 @@ describe("Community", function () {
 
         it("creator must be owner", async () => {
             
-            var rolesList = (await CommunityInstance.connect(owner)["getRoles(address)"](owner.address));
-            expect(rolesList.includes(rolesIndex.get('owners'))).to.be.eq(true); // outside OWNERS role
+            var rolesList = (await CommunityInstance.connect(owner)["getRoles(address[])"]([owner.address]));
+            expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('owners'))).to.be.eq(true); // outside OWNERS role
 
         });
 
@@ -594,10 +594,10 @@ describe("Community", function () {
             expect(allMembersCount).to.be.eq(EIGHT); // accounts - One,Two,Three,Four,Five,Six,Seven and OWNER
 
             let allMembersInRole1 = await CommunityInstance.connect(owner)["getAddresses(uint8[])"]([rolesIndex.get('role1')]);
-            expect(allMembersInRole1.length).to.be.eq(FIVE); // accounts - Two,Three,Four,Five,Six
+            expect(allMembersInRole1[0].length).to.be.eq(FIVE); // accounts - Two,Three,Four,Five,Six
 
-            let allMembersInRole2 = await CommunityInstance.connect(owner)["getAddresses(uint8)"](rolesIndex.get('role2'));
-            expect(allMembersInRole2.length).to.be.eq(THREE); // accounts - Five,Six,Seven
+            let allMembersInRole2 = await CommunityInstance.connect(owner)["getAddresses(uint8[])"]([rolesIndex.get('role2')]);
+            expect(allMembersInRole2[0].length).to.be.eq(THREE); // accounts - Five,Six,Seven
 
 
         }); 
@@ -712,6 +712,7 @@ describe("Community", function () {
             ], "Sender can not revoke role '" +rolesTitle.get('role2')+"'");
 
         }); 
+
         it("can remove account from role", async () => {
 
             var rolesList;
@@ -724,8 +725,8 @@ describe("Community", function () {
             ]);
             
             // check that accountTwo got `get('role1')`
-            rolesList = (await CommunityInstance.connect(owner)["getRoles(address)"](accountTwo.address));
-            expect(rolesList.includes(rolesIndex.get('role1'))).to.be.eq(true); // 'outside role'
+            rolesList = (await CommunityInstance.connect(owner)["getRoles(address[])"]([accountTwo.address]));
+            expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role1'))).to.be.eq(true); // 'outside role'
             
             await mixedCall(CommunityInstance, trustedForwardMode, accountThree, 'revokeRoles(address[],uint8[])', [
                 [accountTwo.address], [rolesIndex.get('role1')]
@@ -737,8 +738,8 @@ describe("Community", function () {
             ]);
 
             // check removing
-            rolesList = (await CommunityInstance.connect(owner)["getRoles(address)"](accountTwo.address));
-            expect(rolesList.includes(rolesIndex.get('role1'))).to.be.eq(false); // 'outside role'
+            rolesList = (await CommunityInstance.connect(owner)["getRoles(address[])"]([accountTwo.address]));
+            expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role1'))).to.be.eq(false); // 'outside role'
             
         });
 
@@ -785,8 +786,8 @@ describe("Community", function () {
             ]);
             
             // check
-            rolesList = await CommunityInstance.connect(owner)["getRoles(address)"](accountTwo.address);
-            expect(rolesList.includes(rolesIndex.get('role2'))).to.be.eq(true); 
+            rolesList = await CommunityInstance.connect(owner)["getRoles(address[])"]([accountTwo.address]);
+            expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role2'))).to.be.eq(true); 
             
             // check via isAccountHasRole
             expect(await CommunityInstance.connect(owner).isAccountHasRole(accountTwo.address, rolesIndex.get('role2'))).to.be.eq(true);
@@ -813,8 +814,8 @@ describe("Community", function () {
             ]);
             
             // check again
-            rolesList = await CommunityInstance.connect(owner)["getRoles(address)"](accountTwo.address);
-            expect(rolesList.includes(rolesIndex.get('role2'))).to.be.eq(false); 
+            rolesList = await CommunityInstance.connect(owner)["getRoles(address[])"]([accountTwo.address]);
+            expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role2'))).to.be.eq(false); 
 
             // check via isAccountHasRole
             expect(await CommunityInstance.connect(owner).isAccountHasRole(accountTwo.address, rolesIndex.get('role2'))).to.be.eq(false);
@@ -829,9 +830,9 @@ describe("Community", function () {
                 [accountFive.address], [rolesIndex.get('role1')]
             ]);
             
-            var rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountFive.address));
+            var rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address[])"]([accountFive.address]));
 
-            expect(rolesList.length).to.be.eq(ZERO);
+            expect(rolesList[0].map(x => x.toNumber()).length).to.be.eq(ZERO);
 
         });
 
@@ -856,8 +857,8 @@ describe("Community", function () {
             
             var rolesList;
 
-            rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountFive.address));
-            expect(rolesList.length).to.be.eq(ZERO);
+            rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address[])"]([accountFive.address]));
+            expect(rolesList[0].map(x => x.toNumber()).length).to.be.eq(ZERO);
             await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],uint8[])', [
                 [accountFive.address], 
                 [rolesIndex.get('role1'),rolesIndex.get('role2')]
@@ -871,8 +872,8 @@ describe("Community", function () {
                 [rolesIndex.get('role5'),rolesIndex.get('role6')]
             ]);
 
-            rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountFive.address));
-            expect(rolesList.length).to.be.eq(SIX); // role#1,role#2,role#3,role#4,role#5,role#6
+            rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address[])"]([accountFive.address]));
+            expect(rolesList[0].map(x => x.toNumber()).length).to.be.eq(SIX); // role#1,role#2,role#3,role#4,role#5,role#6
 
             await mixedCall(CommunityInstance, trustedForwardMode, owner, 'revokeRoles(address[],uint8[])', [
                 [accountFive.address], 
@@ -887,8 +888,8 @@ describe("Community", function () {
                 [rolesIndex.get('role4'),rolesIndex.get('role5')]
             ]);
 
-            rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountFive.address));
-            expect(rolesList.length).to.be.eq(ZERO); 
+            rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address[])"]([accountFive.address]));
+            expect(rolesList[0].map(x => x.toNumber()).length).to.be.eq(ZERO); 
         });
 
         describe("test using params as array", function () {
@@ -941,47 +942,47 @@ describe("Community", function () {
                 ///// checking by Members
                 var rolesList;
                 // owner
-                rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](owner.address));
-                expect(rolesList.includes(rolesIndex.get('role1'))).to.be.eq(true); 
-                expect(rolesList.includes(rolesIndex.get('role2'))).to.be.eq(true); 
-                expect(rolesList.includes(rolesIndex.get('role3'))).to.be.eq(true); 
-                expect(rolesList.includes(rolesIndex.get('role4'))).to.be.eq(false); 
+                rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address[])"]([owner.address]));
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role1'))).to.be.eq(true); 
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role2'))).to.be.eq(true); 
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role3'))).to.be.eq(true); 
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role4'))).to.be.eq(false); 
                 // accountTwo
-                rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountTwo.address));
-                expect(rolesList.includes(rolesIndex.get('role1'))).to.be.eq(true); 
-                expect(rolesList.includes(rolesIndex.get('role2'))).to.be.eq(true); 
-                expect(rolesList.includes(rolesIndex.get('role3'))).to.be.eq(true); 
-                expect(rolesList.includes(rolesIndex.get('role4'))).to.be.eq(false); 
+                rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address[])"]([accountTwo.address]));
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role1'))).to.be.eq(true); 
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role2'))).to.be.eq(true); 
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role3'))).to.be.eq(true); 
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role4'))).to.be.eq(false); 
                 // accountThree
-                rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountThree.address));
-                expect(rolesList.includes(rolesIndex.get('role1'))).to.be.eq(true); 
-                expect(rolesList.includes(rolesIndex.get('role2'))).to.be.eq(true); 
-                expect(rolesList.includes(rolesIndex.get('role3'))).to.be.eq(true); 
-                expect(rolesList.includes(rolesIndex.get('role4'))).to.be.eq(false); 
+                rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address[])"]([accountThree.address]));
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role1'))).to.be.eq(true); 
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role2'))).to.be.eq(true); 
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role3'))).to.be.eq(true); 
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role4'))).to.be.eq(false); 
                 // accountFourth
-                rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountFourth.address));
-                expect(rolesList.includes(rolesIndex.get('role1'))).to.be.eq(false); 
-                expect(rolesList.includes(rolesIndex.get('role2'))).to.be.eq(true); 
-                expect(rolesList.includes(rolesIndex.get('role3'))).to.be.eq(true); 
-                expect(rolesList.includes(rolesIndex.get('role4'))).to.be.eq(false); 
+                rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address[])"]([accountFourth.address]));
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role1'))).to.be.eq(false); 
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role2'))).to.be.eq(true); 
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role3'))).to.be.eq(true); 
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role4'))).to.be.eq(false); 
                 // accountFive
-                rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountFive.address));
-                expect(rolesList.includes(rolesIndex.get('role1'))).to.be.eq(false); 
-                expect(rolesList.includes(rolesIndex.get('role2'))).to.be.eq(true); 
-                expect(rolesList.includes(rolesIndex.get('role3'))).to.be.eq(true); 
-                expect(rolesList.includes(rolesIndex.get('role4'))).to.be.eq(false); 
+                rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address[])"]([accountFive.address]));
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role1'))).to.be.eq(false); 
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role2'))).to.be.eq(true); 
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role3'))).to.be.eq(true); 
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role4'))).to.be.eq(false); 
                 // accountSix
-                rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountSix.address));
-                expect(rolesList.includes(rolesIndex.get('role1'))).to.be.eq(true); 
-                expect(rolesList.includes(rolesIndex.get('role2'))).to.be.eq(true); 
-                expect(rolesList.includes(rolesIndex.get('role3'))).to.be.eq(false); 
-                expect(rolesList.includes(rolesIndex.get('role4'))).to.be.eq(false); 
+                rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address[])"]([accountSix.address]));
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role1'))).to.be.eq(true); 
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role2'))).to.be.eq(true); 
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role3'))).to.be.eq(false); 
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role4'))).to.be.eq(false); 
                 // accountSeven
-                rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address)"](accountSeven.address));
-                expect(rolesList.includes(rolesIndex.get('role1'))).to.be.eq(true); 
-                expect(rolesList.includes(rolesIndex.get('role2'))).to.be.eq(true); 
-                expect(rolesList.includes(rolesIndex.get('role3'))).to.be.eq(false); 
-                expect(rolesList.includes(rolesIndex.get('role4'))).to.be.eq(false); 
+                rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address[])"]([accountSeven.address]));
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role1'))).to.be.eq(true); 
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role2'))).to.be.eq(true); 
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role3'))).to.be.eq(false); 
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role4'))).to.be.eq(false); 
 
             });
 
@@ -989,22 +990,22 @@ describe("Community", function () {
                 let rolesList;
 
                 rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address[])"]([accountTwo.address, accountThree.address]));
-                expect(rolesList.includes(rolesIndex.get('role1'))).to.be.eq(true); 
-                expect(rolesList.includes(rolesIndex.get('role2'))).to.be.eq(true); 
-                expect(rolesList.includes(rolesIndex.get('role3'))).to.be.eq(true); 
-                expect(rolesList.includes(rolesIndex.get('role4'))).to.be.eq(false); 
+                expect((rolesList[0].concat(rolesList[1]).map(x => x.toNumber())).includes(rolesIndex.get('role1'))).to.be.eq(true); 
+                expect((rolesList[0].concat(rolesList[1]).map(x => x.toNumber())).includes(rolesIndex.get('role2'))).to.be.eq(true); 
+                expect((rolesList[0].concat(rolesList[1]).map(x => x.toNumber())).includes(rolesIndex.get('role3'))).to.be.eq(true); 
+                expect((rolesList[0].concat(rolesList[1]).map(x => x.toNumber())).includes(rolesIndex.get('role4'))).to.be.eq(false); 
 
                 // 6
-                expect(rolesList.length).to.be.eq(6);
+                expect(rolesList[0].concat(rolesList[1]).length).to.be.eq(6);
                 
                 rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address[])"]([accountThree.address, accountFive.address]));
-                expect(rolesList.includes(rolesIndex.get('role1'))).to.be.eq(true); 
-                expect(rolesList.includes(rolesIndex.get('role2'))).to.be.eq(true); 
-                expect(rolesList.includes(rolesIndex.get('role3'))).to.be.eq(true); 
-                expect(rolesList.includes(rolesIndex.get('role4'))).to.be.eq(false); 
+                expect((rolesList[0].concat(rolesList[1]).map(x => x.toNumber())).includes(rolesIndex.get('role1'))).to.be.eq(true); 
+                expect((rolesList[0].concat(rolesList[1]).map(x => x.toNumber())).includes(rolesIndex.get('role2'))).to.be.eq(true); 
+                expect((rolesList[0].concat(rolesList[1]).map(x => x.toNumber())).includes(rolesIndex.get('role3'))).to.be.eq(true); 
+                expect((rolesList[0].concat(rolesList[1]).map(x => x.toNumber())).includes(rolesIndex.get('role4'))).to.be.eq(false); 
 
                 // 5
-                expect(rolesList.length).to.be.eq(5);
+                expect(rolesList[0].concat(rolesList[1]).length).to.be.eq(5);
             });
 
             it("check addressesCount(uint8)", async () => {
@@ -1172,9 +1173,9 @@ describe("Community", function () {
                 await mixedCall(CommunityInstance, trustedForwardMode, relayer, 'inviteAccept(string,bytes,string,bytes)', [adminMsg, sSig, recipientMsg, rSig]);
                 
                 // check roles of accountTwo
-                rolesList = await CommunityInstance.connect(owner)["getRoles(address)"](accountTwo.address);
-                expect(rolesList.includes(rolesIndex.get('role1'))).to.be.eq(false); 
-                expect(rolesList.includes(rolesIndex.get('role2'))).to.be.eq(true); 
+                rolesList = await CommunityInstance.connect(owner)["getRoles(address[])"]([accountTwo.address]);
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role1'))).to.be.eq(false); 
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role2'))).to.be.eq(true); 
 
             }); 
 
@@ -1182,8 +1183,8 @@ describe("Community", function () {
 
                 var rolesList;
             
-                rolesList = (await CommunityInstance.connect(owner)["getRoles(address)"](relayer.address));
-                expect(rolesList.includes(rolesIndex.get('relayers'))).to.be.eq(true); 
+                rolesList = (await CommunityInstance.connect(owner)["getRoles(address[])"]([relayer.address]));
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('relayers'))).to.be.eq(true); 
 
                 
                 // generate messages and signatures
@@ -1224,10 +1225,10 @@ describe("Community", function () {
                 const CommunityInstanceEndingBalance = (await ethers.provider.getBalance(CommunityInstance.address));
                 
                 // check roles of accountTwo
-                rolesList = await CommunityInstance.connect(owner)["getRoles(address)"](accountTwo.address);
-                expect(rolesList.includes(rolesIndex.get('role1'))).to.be.eq(true); 
-                expect(rolesList.includes(rolesIndex.get('role2'))).to.be.eq(true); 
-                expect(rolesList.includes(rolesIndex.get('role3'))).to.be.eq(true); 
+                rolesList = await CommunityInstance.connect(owner)["getRoles(address[])"]([accountTwo.address]);
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role1'))).to.be.eq(true); 
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role2'))).to.be.eq(true); 
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role3'))).to.be.eq(true); 
                 
 
                 let rewardAmount = await CommunityInstance.REWARD_AMOUNT();
@@ -1296,10 +1297,10 @@ describe("Community", function () {
                 await expect(await CommunityInstance.invitedBy(accountTwo.address)).not.to.be.eq(accountNine.address); //'store wrong keys in invited mapping'
 
                 // check roles of accountTwo
-                rolesList = await CommunityInstance.connect(owner)["getRoles(address)"](accountTwo.address);
-                expect(rolesList.includes(rolesIndex.get('role1'))).to.be.eq(true); 
-                expect(rolesList.includes(rolesIndex.get('role2'))).to.be.eq(true); 
-                expect(rolesList.includes(rolesIndex.get('role3'))).to.be.eq(false); 
+                rolesList = await CommunityInstance.connect(owner)["getRoles(address[])"]([accountTwo.address]);
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role1'))).to.be.eq(true); 
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role2'))).to.be.eq(true); 
+                expect(rolesList[0].map(x => x.toNumber()).includes(rolesIndex.get('role3'))).to.be.eq(false); 
             });
         });
 
