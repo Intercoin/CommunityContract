@@ -61,35 +61,35 @@ contract CommunityState is CommunityStorage {
      * @notice Added new Roles for each account
      * @custom:shortd Added new Roles for each account
      * @param accounts participant's addresses
-     * @param rolesIndexes Roles indexes
+     * @param roleIndexes Role indexes
      */
     function grantRoles(
         address[] memory accounts, 
-        uint8[] memory rolesIndexes
+        uint8[] memory roleIndexes
     )
         public 
     {
         // uint256 lengthAccounts = accounts.length;
-        // uint256 lenRoles = rolesIndexes.length;
+        // uint256 lenRoles = roleIndexes.length;
         uint8[] memory rolesIndexWhichWillGrant;
         uint8 roleIndexWhichWillGrant;
 
         //address sender = _msgSender();
 
-        for (uint256 i = 0; i < rolesIndexes.length; i++) {
-            _isRoleValid(rolesIndexes[i]); 
+        for (uint256 i = 0; i < roleIndexes.length; i++) {
+            _isRoleValid(roleIndexes[i]); 
 
-            rolesIndexWhichWillGrant = _isCanGrant(_msgSender(), rolesIndexes[i], FlagFork.NONE);
+            rolesIndexWhichWillGrant = _isCanGrant(_msgSender(), roleIndexes[i], FlagFork.NONE);
 
             require(
                 rolesIndexWhichWillGrant.length != 0,
-                string(abi.encodePacked("Sender can not grant role '",_rolesByIndex[rolesIndexes[i]].name.bytes32ToString(),"'"))
+                string(abi.encodePacked("Sender can not grant role '",_rolesByIndex[roleIndexes[i]].name.bytes32ToString(),"'"))
             );
 
-            roleIndexWhichWillGrant = validateGrantSettings(rolesIndexWhichWillGrant, rolesIndexes[i], FlagFork.REVERT);
+            roleIndexWhichWillGrant = validateGrantSettings(rolesIndexWhichWillGrant, roleIndexes[i], FlagFork.REVERT);
 
             for (uint256 j = 0; j < accounts.length; j++) {
-                _grantRole(roleIndexWhichWillGrant, _msgSender(), rolesIndexes[i], accounts[j]);
+                _grantRole(roleIndexWhichWillGrant, _msgSender(), roleIndexes[i], accounts[j]);
             }
         }
     }
@@ -98,11 +98,11 @@ contract CommunityState is CommunityStorage {
      * @notice Removed Roles from each member
      * @custom:shortd Removed Roles from each member
      * @param accounts participant's addresses
-     * @param rolesIndexes Roles indexes
+     * @param roleIndexes Role indexes
      */
     function revokeRoles(
         address[] memory accounts, 
-        uint8[] memory rolesIndexes
+        uint8[] memory roleIndexes
     ) 
         public 
     {
@@ -110,8 +110,8 @@ contract CommunityState is CommunityStorage {
         uint8 roleWhichWillRevoke;
         address sender = _msgSender();
 
-        for (uint256 i = 0; i < rolesIndexes.length; i++) {
-            _isRoleValid(rolesIndexes[i]); 
+        for (uint256 i = 0; i < roleIndexes.length; i++) {
+            _isRoleValid(roleIndexes[i]); 
 
             roleWhichWillRevoke = NONE_ROLE_INDEX;
             if (_isTargetInRole(sender, _roles[DEFAULT_OWNERS_ROLE])) {
@@ -119,15 +119,15 @@ contract CommunityState is CommunityStorage {
                 roleWhichWillRevoke = _roles[DEFAULT_OWNERS_ROLE];
             } else {
                 for (uint256 j = 0; j<_rolesByMember[sender].length(); j++) {
-                    if (_rolesByIndex[uint8(_rolesByMember[sender].get(j))].canRevokeRoles.contains(rolesIndexes[i]) == true) {
+                    if (_rolesByIndex[uint8(_rolesByMember[sender].get(j))].canRevokeRoles.contains(roleIndexes[i]) == true) {
                         roleWhichWillRevoke = _rolesByMember[sender].get(j);
                         break;
                     }
                 }
             }
-            require(roleWhichWillRevoke != NONE_ROLE_INDEX, string(abi.encodePacked("Sender can not revoke role '",_rolesByIndex[rolesIndexes[i]].name.bytes32ToString(),"'")));
+            require(roleWhichWillRevoke != NONE_ROLE_INDEX, string(abi.encodePacked("Sender can not revoke role '",_rolesByIndex[roleIndexes[i]].name.bytes32ToString(),"'")));
             for (uint256 k = 0; k < accounts.length; k++) {
-                _revokeRole(/*roleWhichWillRevoke, */sender, rolesIndexes[i], accounts[k]);
+                _revokeRole(/*roleWhichWillRevoke, */sender, roleIndexes[i], accounts[k]);
             }
 
         }

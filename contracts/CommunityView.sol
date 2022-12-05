@@ -90,27 +90,110 @@ contract CommunityView is CommunityStorage {
     ///////////////////////////////////////////////////////////
     /**
      * @dev since user will be in several roles then addresses in output can be duplicated.
-     * @notice Returns all addresses belong to Role
-     * @custom:shortd all addresses belong to Role
-     * @param rolesIndexes array of roles indexes
-     * @return array of array addresses ([uint256][uint160(address)])
+     * @notice Returns all addresses accross all roles
+     * @custom:shortd all addresses accross all roles
+     * @return array of array addresses 
      */
-    function getAddresses(uint8[] memory rolesIndexes) public view returns(address[][] memory) {
+    function getAddresses() public view returns(address[][] memory) {
         address[][] memory l;
 
-        l = new address[][](rolesIndexes.length);
-        if (rolesIndexes.length != 0) {
+        l = new address[][](rolesCount-1);
+            
+        uint256 tmplen;
+        for (uint8 j = 0; j < rolesCount-1; j++) {
+            tmplen = _rolesByIndex[j].members.length();
+            l[j] = new address[](tmplen);
+            for (uint256 i = 0; i < tmplen; i++) {
+                l[j][i] = address(_rolesByIndex[j].members.at(i));
+            }
+        }
+        return l;
+    }
+
+    /**
+     * @dev since user will be in several roles then addresses in output can be duplicated.
+     * @notice Returns all addresses belong to Role
+     * @custom:shortd all addresses belong to Role
+     * @param roleIndexes array of role indexes
+     * @return array of array addresses
+     */
+    function getAddresses(uint8[] memory roleIndexes) public view returns(address[][] memory) {
+        address[][] memory l;
+
+        l = new address[][](roleIndexes.length);
+        if (roleIndexes.length != 0) {
             
             uint256 tmplen;
-            for (uint256 j = 0; j < rolesIndexes.length; j++) {
-                tmplen = _rolesByIndex[rolesIndexes[j]].members.length();
+            for (uint256 j = 0; j < roleIndexes.length; j++) {
+                tmplen = _rolesByIndex[roleIndexes[j]].members.length();
                 l[j] = new address[](tmplen);
                 for (uint256 i = 0; i < tmplen; i++) {
-                    l[j][i] = address(_rolesByIndex[rolesIndexes[j]].members.at(i));
+                    l[j][i] = address(_rolesByIndex[roleIndexes[j]].members.at(i));
                 }
             }
         }
         return l;
+    }
+
+    function getAddressesByRole(
+        uint8 roleIndex, 
+        uint256 offset, 
+        uint256 limit
+    ) 
+        public 
+        view
+        returns(address[][] memory)
+    {
+        address[][] memory l;
+
+        l = new address[][](1);
+        uint256 j = 0;
+        uint256 tmplen = _rolesByIndex[roleIndex].members.length();
+
+        uint256 count = 
+            offset > tmplen ? 
+            0 : 
+            (
+                limit > (tmplen - offset) ? 
+                (tmplen - offset) : 
+                limit
+            ) ;
+
+        l[j] = new address[](count);
+        uint256 k = 0;
+        for (uint256 i = offset; i < offset + count; i++) {
+            l[j][k] = address(_rolesByIndex[roleIndex].members.at(i));
+            k++;
+        }
+        
+        return l;
+
+
+
+        /*
+        if (page == 0 || count == 0) {
+            revert IncorrectInputParameters();
+        }
+
+        uint256 len = specialPurchasesList.length();
+        uint256 ifrom = page*count-count;
+
+        if (
+            len == 0 || 
+            ifrom >= len
+        ) {
+            ret = new address[](0);
+        } else {
+
+            count = ifrom+count > len ? len-ifrom : count ;
+            ret = new address[](count);
+
+            for (uint256 i = ifrom; i<ifrom+count; i++) {
+                ret[i-ifrom] = specialPurchasesList.at(i);
+                
+            }
+        }
+        */
     }
     
     /**
