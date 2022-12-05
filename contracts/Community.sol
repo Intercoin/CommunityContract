@@ -628,8 +628,7 @@ contract Community is CommunityStorage, ICommunity {
      * @param roleIndex role index
      * @return bool 
      */
-    //function isMemberHasRole(
-    function isAccountHasRole(
+    function hasRole(
         address account, 
         uint8 roleIndex
     ) 
@@ -639,7 +638,6 @@ contract Community is CommunityStorage, ICommunity {
     {
 
         //require(_roles[rolename.stringToBytes32()] != 0, "Such role does not exists");
-
         return _rolesByMember[account].contains(roleIndex);
 
     }

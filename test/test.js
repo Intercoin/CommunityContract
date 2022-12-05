@@ -790,8 +790,8 @@ describe("Community", function () {
             rolesList = await CommunityInstance.connect(owner)["getRoles(address[])"]([accountTwo.address]);
             expect(rolesList[0].includes(rolesIndex.get('role2'))).to.be.eq(true); 
             
-            // check via isAccountHasRole
-            expect(await CommunityInstance.connect(owner).isAccountHasRole(accountTwo.address, rolesIndex.get('role2'))).to.be.eq(true);
+            // check via hasRole
+            expect(await CommunityInstance.connect(owner).hasRole(accountTwo.address, rolesIndex.get('role2'))).to.be.eq(true);
             expect(await CommunityInstance.connect(owner).getRoleIndex(rolesTitle.get('role2'))).to.be.eq(rolesIndex.get('role2'));
 
             // account 3
@@ -818,8 +818,8 @@ describe("Community", function () {
             rolesList = await CommunityInstance.connect(owner)["getRoles(address[])"]([accountTwo.address]);
             expect(rolesList[0].includes(rolesIndex.get('role2'))).to.be.eq(false); 
 
-            // check via isAccountHasRole
-            expect(await CommunityInstance.connect(owner).isAccountHasRole(accountTwo.address, rolesIndex.get('role2'))).to.be.eq(false);
+            // check via hasRole
+            expect(await CommunityInstance.connect(owner).hasRole(accountTwo.address, rolesIndex.get('role2'))).to.be.eq(false);
         });
 
         it("check amount of roles after revoke(empty strings)", async () => {
