@@ -134,6 +134,67 @@ contract CommunityView is CommunityStorage {
         }
         return l;
     }
+
+    function getAddressesByRole(
+        uint8 roleIndex, 
+        uint256 offset, 
+        uint256 limit
+    ) 
+        public 
+        view
+        returns(address[][] memory)
+    {
+        address[][] memory l;
+
+        l = new address[][](1);
+        uint256 j = 0;
+        uint256 tmplen = _rolesByIndex[roleIndex].members.length();
+
+        uint256 count = 
+            offset > tmplen ? 
+            0 : 
+            (
+                limit > (tmplen - offset) ? 
+                (tmplen - offset) : 
+                limit
+            ) ;
+
+        l[j] = new address[](count);
+        uint256 k = 0;
+        for (uint256 i = offset; i < offset + count; i++) {
+            l[j][k] = address(_rolesByIndex[roleIndex].members.at(i));
+            k++;
+        }
+        
+        return l;
+
+
+
+        /*
+        if (page == 0 || count == 0) {
+            revert IncorrectInputParameters();
+        }
+
+        uint256 len = specialPurchasesList.length();
+        uint256 ifrom = page*count-count;
+
+        if (
+            len == 0 || 
+            ifrom >= len
+        ) {
+            ret = new address[](0);
+        } else {
+
+            count = ifrom+count > len ? len-ifrom : count ;
+            ret = new address[](count);
+
+            for (uint256 i = ifrom; i<ifrom+count; i++) {
+                ret[i-ifrom] = specialPurchasesList.at(i);
+                
+            }
+        }
+        */
+    }
     
     /**
      * @dev can be duplicate items in output. see https://github.com/Intercoin/CommunityContract/issues/4#issuecomment-1049797389

@@ -1041,7 +1041,55 @@ describe("Community", function () {
                 expect(allMembersInRole1.add(allMembersInRole2)).to.be.eq(12); 
                 
             });
-            
+            it("check getAddressesByRole(address[])", async () => {
+                let arr;
+
+                arr = await CommunityInstance.connect(accountTen).getAddressesByRole(rolesIndex.get('role2'),0,10);
+                expect(arr.length).to.be.eq(ONE);
+                expect(arr[0].length).to.be.eq(SEVEN);
+                expect(arr[0][0]).to.be.eq(owner.address);
+                expect(arr[0][1]).to.be.eq(accountTwo.address);
+                expect(arr[0][2]).to.be.eq(accountThree.address);
+                expect(arr[0][3]).to.be.eq(accountFourth.address);
+                expect(arr[0][4]).to.be.eq(accountFive.address);
+                expect(arr[0][5]).to.be.eq(accountSix.address);
+                expect(arr[0][6]).to.be.eq(accountSeven.address);
+
+                arr = await CommunityInstance.connect(accountTen).getAddressesByRole(rolesIndex.get('role2'),1,10);
+                expect(arr.length).to.be.eq(ONE);
+                expect(arr[0].length).to.be.eq(SIX);
+                expect(arr[0][0]).to.be.eq(accountTwo.address);
+                expect(arr[0][1]).to.be.eq(accountThree.address);
+                expect(arr[0][2]).to.be.eq(accountFourth.address);
+                expect(arr[0][3]).to.be.eq(accountFive.address);
+                expect(arr[0][4]).to.be.eq(accountSix.address);
+                expect(arr[0][5]).to.be.eq(accountSeven.address);
+
+                arr = await CommunityInstance.connect(accountTen).getAddressesByRole(rolesIndex.get('role2'),5,10);
+                expect(arr.length).to.be.eq(ONE);
+                expect(arr[0].length).to.be.eq(TWO);
+                expect(arr[0][0]).to.be.eq(accountSix.address);
+                expect(arr[0][1]).to.be.eq(accountSeven.address);
+
+                arr = await CommunityInstance.connect(accountTen).getAddressesByRole(rolesIndex.get('role2'),2,3);
+                expect(arr.length).to.be.eq(ONE);
+                expect(arr[0].length).to.be.eq(THREE);
+                expect(arr[0][0]).to.be.eq(accountThree.address);
+                expect(arr[0][1]).to.be.eq(accountFourth.address);
+                expect(arr[0][2]).to.be.eq(accountFive.address);
+                
+                arr = await CommunityInstance.connect(accountTen).getAddressesByRole(rolesIndex.get('role2'),5,0);
+                expect(arr.length).to.be.eq(ONE);
+                expect(arr[0].length).to.be.eq(ZERO);
+
+                arr = await CommunityInstance.connect(accountTen).getAddressesByRole(rolesIndex.get('role2'),0,0);
+                expect(arr.length).to.be.eq(ONE);
+                expect(arr[0].length).to.be.eq(ZERO);
+
+                arr = await CommunityInstance.connect(accountTen).getAddressesByRole(rolesIndex.get('role2'),100,100);
+                expect(arr.length).to.be.eq(ONE);
+                expect(arr[0].length).to.be.eq(ZERO);
+            });
         }); 
 
         describe("invites", function () {

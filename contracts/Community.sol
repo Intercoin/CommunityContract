@@ -483,6 +483,28 @@ contract Community is CommunityStorage, ICommunity {
         );  
 
     }
+
+    function getAddressesByRole(
+        uint8 roleIndex, 
+        uint256 offset, 
+        uint256 limit
+    ) 
+        public 
+        view
+        returns(address[][] memory)
+    {
+        return abi.decode(
+            _functionDelegateCallView(
+                address(implCommunityView), 
+                abi.encodeWithSelector(
+                    CommunityView.getAddressesByRole.selector,
+                    roleIndex, offset, limit
+                ), 
+                ""
+            ), 
+            (address[][])
+        );  
+    }
     
     /**
      * @dev can be duplicate items in output. see https://github.com/Intercoin/CommunityContract/issues/4#issuecomment-1049797389
