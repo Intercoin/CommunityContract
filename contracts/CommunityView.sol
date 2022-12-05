@@ -92,21 +92,21 @@ contract CommunityView is CommunityStorage {
      * @dev since user will be in several roles then addresses in output can be duplicated.
      * @notice Returns all addresses belong to Role
      * @custom:shortd all addresses belong to Role
-     * @param rolesIndexes array of roles indexes
+     * @param roleIndexes array of role indexes
      * @return array of array addresses ([uint256][uint160(address)])
      */
-    function getAddresses(uint8[] memory rolesIndexes) public view returns(address[][] memory) {
+    function getAddresses(uint8[] memory roleIndexes) public view returns(address[][] memory) {
         address[][] memory l;
 
-        l = new address[][](rolesIndexes.length);
-        if (rolesIndexes.length != 0) {
+        l = new address[][](roleIndexes.length);
+        if (roleIndexes.length != 0) {
             
             uint256 tmplen;
-            for (uint256 j = 0; j < rolesIndexes.length; j++) {
-                tmplen = _rolesByIndex[rolesIndexes[j]].members.length();
+            for (uint256 j = 0; j < roleIndexes.length; j++) {
+                tmplen = _rolesByIndex[roleIndexes[j]].members.length();
                 l[j] = new address[](tmplen);
                 for (uint256 i = 0; i < tmplen; i++) {
-                    l[j][i] = address(_rolesByIndex[rolesIndexes[j]].members.at(i));
+                    l[j][i] = address(_rolesByIndex[roleIndexes[j]].members.at(i));
                 }
             }
         }

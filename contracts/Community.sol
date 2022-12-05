@@ -156,11 +156,11 @@ contract Community is CommunityStorage, ICommunity {
      * @notice Added new Roles for each account
      * @custom:shortd Added new Roles for each account
      * @param accounts participant's addresses
-     * @param rolesIndexes Roles indexes
+     * @param roleIndexes Role indexes
      */
     function grantRoles(
         address[] memory accounts, 
-        uint8[] memory rolesIndexes
+        uint8[] memory roleIndexes
     )
         public 
     {
@@ -168,7 +168,7 @@ contract Community is CommunityStorage, ICommunity {
             address(implCommunityState), 
             // abi.encodeWithSelector(
             //     CommunityState.grantRoles.selector,
-            //     accounts, rolesIndexes
+            //     accounts, roleIndexes
             // )
             msg.data
         );
@@ -184,11 +184,11 @@ contract Community is CommunityStorage, ICommunity {
      * @notice Removed Roles from each member
      * @custom:shortd Removed Roles from each member
      * @param accounts participant's addresses
-     * @param rolesIndexes Roles indexes
+     * @param roleIndexes Role indexes
      */
     function revokeRoles(
         address[] memory accounts, 
-        uint8[] memory rolesIndexes
+        uint8[] memory roleIndexes
     ) 
         public 
     {
@@ -197,7 +197,7 @@ contract Community is CommunityStorage, ICommunity {
             address(implCommunityState), 
             // abi.encodeWithSelector(
             //     CommunityState.revokeRoles.selector,
-            //     accounts, rolesIndexes
+            //     accounts, roleIndexes
             // )
             msg.data
         );
@@ -436,11 +436,11 @@ contract Community is CommunityStorage, ICommunity {
      * @dev can be duplicate items in output. see https://github.com/Intercoin/CommunityContract/issues/4#issuecomment-1049797389
      * @notice Returns all addresses belong to Role
      * @custom:shortd all addresses belong to Role
-     * @param rolesIndexes array of roles indexes
+     * @param roleIndexes array of role's indexes
      * @return array of address 
      */
     function getAddresses(
-        uint8[] calldata rolesIndexes
+        uint8[] calldata roleIndexes
     ) 
         public 
         view
@@ -451,7 +451,7 @@ contract Community is CommunityStorage, ICommunity {
                 address(implCommunityView), 
                 abi.encodeWithSelector(
                     CommunityView.getAddresses.selector,
-                    rolesIndexes
+                    roleIndexes
                 ), 
                 ""
             ), 
