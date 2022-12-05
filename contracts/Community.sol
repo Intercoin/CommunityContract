@@ -431,13 +431,36 @@ contract Community is CommunityStorage, ICommunity {
     ///////////////////////////////////////////////////////////
     /// public (view)section
     ///////////////////////////////////////////////////////////
- 
+    /**
+     * @dev can be duplicate items in output. see https://github.com/Intercoin/CommunityContract/issues/4#issuecomment-1049797389
+     * @notice Returns all addresses across all roles
+     * @custom:shortd all addresses across all roles
+     * @return two-dimensional array of addresses 
+     */
+    function getAddresses(
+    ) 
+        public 
+        view
+        returns(address[][] memory)
+    {
+        return abi.decode(
+            _functionDelegateCallView(
+                address(implCommunityView), 
+                abi.encodeWithSelector(
+                    bytes4(keccak256("getAddresses()"))
+                ), 
+                ""
+            ), 
+            (address[][])
+        );  
+
+    }
     /**
      * @dev can be duplicate items in output. see https://github.com/Intercoin/CommunityContract/issues/4#issuecomment-1049797389
      * @notice Returns all addresses belong to Role
      * @custom:shortd all addresses belong to Role
      * @param roleIndexes array of role's indexes
-     * @return array of address 
+     * @return two-dimensional array of addresses 
      */
     function getAddresses(
         uint8[] calldata roleIndexes
@@ -450,7 +473,8 @@ contract Community is CommunityStorage, ICommunity {
             _functionDelegateCallView(
                 address(implCommunityView), 
                 abi.encodeWithSelector(
-                    CommunityView.getAddresses.selector,
+                    //CommunityView.getAddresses.selector,
+                    bytes4(keccak256("getAddresses(uint8[])")),
                     roleIndexes
                 ), 
                 ""
@@ -465,7 +489,7 @@ contract Community is CommunityStorage, ICommunity {
      * @notice Returns all roles which member belong to
      * @custom:shortd member's roles
      * @param members member's addresses
-     * @return l array of roles 
+     * @return l two-dimensional array of roles 
      */
     function getRoles(
         address[] memory members
@@ -493,7 +517,7 @@ contract Community is CommunityStorage, ICommunity {
      * @dev can be duplicate items in output. see https://github.com/Intercoin/CommunityContract/issues/4#issuecomment-1049797389
      * @notice if call without params then returns all existing roles 
      * @custom:shortd all roles
-     * @return array of roles 
+     * @return arrays of (indexes, names, roleURIs)  
      */
     function getRoles(
     ) 
