@@ -357,8 +357,36 @@ contract CommunityState is CommunityStorage {
     ///////////////////////////////////////////////////////////
     /// internal section
     ///////////////////////////////////////////////////////////
-    
-    
+
+    ///////////////////////////////////
+    // ownable implementation with diff semantic
+    /**
+    * @dev will grantRoles([address], OWNERS_ROLE) and then revokeRoles(msg.caller, OWNERS_ROLE). 
+    * There is no need to have transferRole() function because normally no one can transfer their own roles unilaterally, except owners. 
+    * Instead they manage roles under them.
+    */
+    // The function renounceOwnership() will simply revokeRoles(getAddresses(OWNERS_ROLE), OWNERS_ROLE) from everyone who has it, including the caller. 
+    // This function is irreversible. The contract will be ownerless. The trackers should see the appropriate events/logs as from any Ownable interface.
+    function _transferOwnership(address newOwner) internal override {
+        address sender = _msgSender();
+        if (newOwner == address(0)) {
+            // if newOwner == address(0) it's just renounceOwnership()    
+            // we will simply revokeRoles(getAddresses(OWNERS_ROLE), OWNERS_ROLE) from everyone who has it, including the caller. 
+            EnumerableSetUpgradeable.AddressSet storage ownersList = _rolesByIndex[_roles[DEFAULT_OWNERS_ROLE]].members;
+            uint256 len = ownersList.length();
+            // loop through stack, due to reducing members in role, we just get address from zero position `len` times
+            for (uint256 i = 0; i < len; i++) {
+                _revokeRole(sender, _roles[DEFAULT_OWNERS_ROLE], ownersList.at(0));
+            }
+            emit RenounceOwnership();
+        } else {
+            _grantRole(_roles[DEFAULT_OWNERS_ROLE], sender, _roles[DEFAULT_OWNERS_ROLE], newOwner);
+            _revokeRole(sender, _roles[DEFAULT_OWNERS_ROLE], sender);
+            emit OwnershipTransferred(sender, newOwner);
+        }
+    }
+
+    ///////////////////////////////////
     /**
     * @dev find which role can grant `targetRoleIndex` to account
     * @param rolesWhichCanGrant array of role indexes which want to grant `targetRoleIndex` to account

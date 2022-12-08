@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.11;
 pragma experimental ABIEncoderV2;
-//import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/IERC721MetadataUpgradeable.sol";
 import "@artman325/trustedforwarder/contracts/TrustedForwarder.sol";
 import "@artman325/releasemanager/contracts/CostManagerHelperERC2771Support.sol";
+
 import "./lib/ECDSAExt.sol";
 import "./lib/StringUtils.sol";
 import "./lib/PackedSet.sol";
@@ -15,7 +16,7 @@ import "./lib/PackedSet.sol";
 import "./interfaces/ICommunityHook.sol";
 //import "hardhat/console.sol";
 
-abstract contract CommunityStorage is Initializable, ReentrancyGuardUpgradeable, TrustedForwarder, CostManagerHelperERC2771Support, IERC721Upgradeable, IERC721MetadataUpgradeable {
+abstract contract CommunityStorage is Initializable, ReentrancyGuardUpgradeable, TrustedForwarder, CostManagerHelperERC2771Support, IERC721Upgradeable, IERC721MetadataUpgradeable, OwnableUpgradeable {
     
     using PackedSet for PackedSet.Set;
 
@@ -87,7 +88,7 @@ abstract contract CommunityStorage is Initializable, ReentrancyGuardUpgradeable,
     * @return symbol 
     */
     string public symbol;
-
+    
     uint8 internal rolesCount;
     address public hook;
     uint256 addressesCounter;
@@ -152,6 +153,9 @@ abstract contract CommunityStorage is Initializable, ReentrancyGuardUpgradeable,
     uint8 internal constant OPERATION_INVITE_ACCEPT = 0x7;
     uint8 internal constant OPERATION_SET_ROLE_URI = 0x8;
     uint8 internal constant OPERATION_SET_EXTRA_URI = 0x9;
+    uint8 internal constant OPERATION_TRANSFEROWNERSHIP = 0xa;
+    uint8 internal constant OPERATION_RENOUNCEOWNERSHIP = 0xb;
+    
     
     enum ReimburseStatus{ NONE, PENDING, CLAIMED }
 
@@ -210,7 +214,7 @@ abstract contract CommunityStorage is Initializable, ReentrancyGuardUpgradeable,
         address indexed sender
     );
     event RoleAddedErrorMessage(address indexed sender, string msg);
-    
+    event RenounceOwnership();
     ///////////////////////////////////////////////////////////
     /// modifiers  section
     ///////////////////////////////////////////////////////////
@@ -280,13 +284,40 @@ abstract contract CommunityStorage is Initializable, ReentrancyGuardUpgradeable,
         
         
     }
+
     ///////////////////////////////////////////////////
     // common to use
     //////////////////////////////////////////////////
+    /**
+     * @dev Returns the first address in getAddresses(OWNERS_ROLE). usually(if not transferownership/renounceownership) it's always will be deployer.
+     * @return address first address on owners role list.
+     */
+    function owner() public view override returns (address) {
+        return _rolesByIndex[_roles[DEFAULT_OWNERS_ROLE]].members.at(0);
+    }
+
+    /**
+     * @dev Returns true if account is belong to DEFAULT_OWNERS_ROLE
+     * @param account account address
+     * @return bool 
+     */
+    function isOwner(address account) public view returns(bool) {
+        //hasRole(address, OWNERS_ROLE)
+        return _isTargetInRole(account, _roles[DEFAULT_OWNERS_ROLE]);
+    }
     function _isTargetInRole(address target, uint8 targetRoleIndex) internal view returns(bool) {
         return _rolesByMember[target].contains(targetRoleIndex);
     }
-    
+    /**
+     * @dev Throws if the sender is not in the DEFAULT_OWNERS_ROLE.
+     */
+    function _checkOwner() internal view override {
+        require(_isTargetInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]), "Ownable: caller is not the owner");
+    }
+
+    function _msgSender() internal view override(ContextUpgradeable, TrustedForwarder) returns (address)  {
+        return TrustedForwarder._msgSender();
+    }
 
 
     ///////////////////////////////////////////////////
@@ -318,7 +349,7 @@ abstract contract CommunityStorage is Initializable, ReentrancyGuardUpgradeable,
         external 
         view 
         virtual
-        returns (address owner) 
+        returns (address) 
     {
     }
 
