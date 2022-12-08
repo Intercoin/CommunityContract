@@ -153,6 +153,9 @@ abstract contract CommunityStorage is Initializable, ReentrancyGuardUpgradeable,
     uint8 internal constant OPERATION_INVITE_ACCEPT = 0x7;
     uint8 internal constant OPERATION_SET_ROLE_URI = 0x8;
     uint8 internal constant OPERATION_SET_EXTRA_URI = 0x9;
+    uint8 internal constant OPERATION_TRANSFEROWNERSHIP = 0xa;
+    uint8 internal constant OPERATION_RENOUNCEOWNERSHIP = 0xb;
+    
     
     enum ReimburseStatus{ NONE, PENDING, CLAIMED }
 
@@ -282,23 +285,31 @@ abstract contract CommunityStorage is Initializable, ReentrancyGuardUpgradeable,
         
     }
 
-
-    ///////////////////////////////////
-    // ownable implementation with diff semantic
+    ///////////////////////////////////////////////////
+    // common to use
+    //////////////////////////////////////////////////
     /**
-     * @dev Returns the first address in getAddresses(OWNERS_ROLE)
+     * @dev Returns the first address in getAddresses(OWNERS_ROLE). usually(if not transferownership/renounceownership) it's always will be deployer.
+     * @return address first address on owners role list.
      */
     function owner() public view override returns (address) {
         return _rolesByIndex[_roles[DEFAULT_OWNERS_ROLE]].members.at(0);
     }
 
+    /**
+     * @dev Returns true if account is belong to DEFAULT_OWNERS_ROLE
+     * @param account account address
+     * @return bool 
+     */
     function isOwner(address account) public view returns(bool) {
         //hasRole(address, OWNERS_ROLE)
         return _isTargetInRole(account, _roles[DEFAULT_OWNERS_ROLE]);
     }
-
+    function _isTargetInRole(address target, uint8 targetRoleIndex) internal view returns(bool) {
+        return _rolesByMember[target].contains(targetRoleIndex);
+    }
     /**
-     * @dev Throws if the sender is not the owner.
+     * @dev Throws if the sender is not in the DEFAULT_OWNERS_ROLE.
      */
     function _checkOwner() internal view override {
         require(_isTargetInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]), "Ownable: caller is not the owner");
@@ -307,17 +318,6 @@ abstract contract CommunityStorage is Initializable, ReentrancyGuardUpgradeable,
     function _msgSender() internal view override(ContextUpgradeable, TrustedForwarder) returns (address)  {
         return TrustedForwarder._msgSender();
     }
-
-///////////////////////////////////
-
-
-    ///////////////////////////////////////////////////
-    // common to use
-    //////////////////////////////////////////////////
-    function _isTargetInRole(address target, uint8 targetRoleIndex) internal view returns(bool) {
-        return _rolesByMember[target].contains(targetRoleIndex);
-    }
-    
 
 
     ///////////////////////////////////////////////////

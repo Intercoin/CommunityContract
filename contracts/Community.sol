@@ -428,6 +428,51 @@ contract Community is CommunityStorage, ICommunity {
         );
     }
 
+    function transferOwnership(
+        address newOwner
+    ) 
+        public 
+        override
+        onlyOwner 
+    {
+        _functionDelegateCall(
+            address(implCommunityState), 
+            // abi.encodeWithSelector(
+            //     CommunityState.setExtraURI.selector,
+            //     roleIndex, extraURI
+            // )
+            msg.data
+        );
+
+        _accountForOperation(
+            OPERATION_TRANSFEROWNERSHIP << OPERATION_SHIFT_BITS,
+            uint160(_msgSender()),
+            uint160(newOwner)
+        );
+    }
+
+    function renounceOwnership(
+    ) 
+        public 
+        override
+        onlyOwner 
+    {
+        _functionDelegateCall(
+            address(implCommunityState), 
+            // abi.encodeWithSelector(
+            //     CommunityState.setExtraURI.selector,
+            //     roleIndex, extraURI
+            // )
+            msg.data
+        );
+
+        _accountForOperation(
+            OPERATION_RENOUNCEOWNERSHIP << OPERATION_SHIFT_BITS,
+            uint160(_msgSender()),
+            0
+        );
+    }
+
     ///////////////////////////////////////////////////////////
     /// public (view)section
     ///////////////////////////////////////////////////////////

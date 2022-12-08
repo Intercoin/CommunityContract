@@ -373,8 +373,10 @@ contract CommunityState is CommunityStorage {
             // if newOwner == address(0) it's just renounceOwnership()    
             // we will simply revokeRoles(getAddresses(OWNERS_ROLE), OWNERS_ROLE) from everyone who has it, including the caller. 
             EnumerableSetUpgradeable.AddressSet storage ownersList = _rolesByIndex[_roles[DEFAULT_OWNERS_ROLE]].members;
-            for (uint256 i = 0; i < ownersList.length(); i++) {
-                _revokeRole(sender, _roles[DEFAULT_OWNERS_ROLE], ownersList.at(i));
+            uint256 len = ownersList.length();
+            // loop through stack, due to reducing members in role, we just get address from zero position `len` times
+            for (uint256 i = 0; i < len; i++) {
+                _revokeRole(sender, _roles[DEFAULT_OWNERS_ROLE], ownersList.at(0));
             }
             emit RenounceOwnership();
         } else {

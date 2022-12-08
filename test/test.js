@@ -1580,6 +1580,88 @@ describe("Community", function () {
         });
     });
 
+    describe(`${trustedForwardMode ? '[trusted forwarder]' : ''} Ownable with different semantics tests`, function () {
+        var CommunityInstance;
+        
+        beforeEach("deploying", async() => {
+            
+            let tx,rc,event,instance,instancesCount;
+            //
+            tx = await CommunityFactory.connect(owner)["produce(address,string,string)"](NO_HOOK, TOKEN_NAME, TOKEN_SYMBOL);
+            rc = await tx.wait(); // 0ms, as tx is already confirmed
+            event = rc.events.find(event => event.event === 'InstanceCreated');
+            [instance, instancesCount] = event.args;
+            CommunityInstance = await ethers.getContractAt("Community",instance);
+
+            if (trustedForwardMode) {
+                await CommunityInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
+            }
+
+        });
+
+        it("should renounce ownership", async () => {
+            var rolesList;
+            const addressesForTest = [accountTwo, accountThree, accountFourth];
+
+            //grant owners role to several users
+            for (var i in addressesForTest) {
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],uint8[])', [[addressesForTest[i].address], [rolesIndex.get('owners')]]);
+            };
+
+            // all addresses should have owners role
+            for (var i in addressesForTest) {
+                rolesList = (await CommunityInstance.connect(owner)["getRoles(address[])"]([addressesForTest[i].address]));
+                expect(rolesList[0].includes(rolesIndex.get('owners'))).to.be.eq(true); // else outside OWNERS role            
+            };
+
+            // try to renounceownership from last owners on the list
+            await mixedCall(CommunityInstance, trustedForwardMode, addressesForTest[addressesForTest.length-1], 'renounceOwnership()', []);    
+
+            // now all addresses shouldn't have owners role.
+            for (var i in addressesForTest) {
+                rolesList = (await CommunityInstance.connect(owner)["getRoles(address[])"]([addressesForTest[i].address]));
+                expect(rolesList[0].includes(rolesIndex.get('owners'))).to.be.eq(false); // else outside OWNERS role            
+            };
+            // and initial owner too
+            rolesList = (await CommunityInstance.connect(owner)["getRoles(address[])"]([owner.address]));
+            expect(rolesList[0].includes(rolesIndex.get('owners'))).to.be.eq(false); // else outside OWNERS role            
+
+        });
+
+        it("should transfer ownership", async () => {
+            const addressesForTest = [accountTwo.address, accountThree.address, accountFourth.address];
+
+            //grant owners role to several users
+            for (var i in addressesForTest) {
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],uint8[])', [[addressesForTest[i]], [rolesIndex.get('owners')]]);
+            };
+
+            // calculate members on the owner role
+            let ownersAmountBefore = await CommunityInstance.connect(owner)["getAddresses(uint8[])"]([rolesIndex.get('owners')]);
+
+            // owner should have `owner`role .
+            expect(await CommunityInstance.connect(owner).isOwner(owner.address)).to.be.eq(true);
+            // accountFive shouldn't have `owner`role. before transfer ownership
+            expect(await CommunityInstance.connect(owner).isOwner(accountFive.address)).to.be.eq(false);
+
+            // try to transferOwnership to accountFive
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'transferOwnership(address)', [accountFive.address]);
+
+            // calculate members on the owner role after transferOwnership
+            let ownersAmountAfter = await CommunityInstance.connect(owner)["getAddresses(uint8[])"]([rolesIndex.get('owners')]);
+
+            // owner should loss `owner`role .
+            expect(await CommunityInstance.connect(owner).isOwner(owner.address)).to.be.eq(false);
+            // accountFive should obtain `owner`role .
+            expect(await CommunityInstance.connect(owner).isOwner(accountFive.address)).to.be.eq(true);
+            // total amount of `owners` members should left the same
+            expect(ownersAmountBefore[0].length).to.be.eq(ownersAmountAfter[0].length);
+
+
+        });
+        
+    });
+
     }
 
 });
