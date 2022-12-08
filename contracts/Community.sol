@@ -696,7 +696,7 @@ contract Community is CommunityStorage, ICommunity {
         external 
         view 
         override
-        returns (address owner) 
+        returns (address) 
     {
         return abi.decode(
             _functionDelegateCallView(
