@@ -1,0 +1,3 @@
+[submodule "Whitelist"]
+	path = Whitelist
+	url = https://github.com/Intercoin/Whitelist
