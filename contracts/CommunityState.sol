@@ -118,9 +118,9 @@ contract CommunityState is CommunityStorage {
                 // owner can do anything. so no need to calculate or loop
                 roleWhichWillRevoke = _roles[DEFAULT_OWNERS_ROLE];
             } else {
-                for (uint256 j = 0; j<_rolesByMember[sender].length(); j++) {
-                    if (_rolesByIndex[uint8(_rolesByMember[sender].get(j))].canRevokeRoles.contains(roleIndexes[i]) == true) {
-                        roleWhichWillRevoke = _rolesByMember[sender].get(j);
+                for (uint256 j = 0; j<_rolesByAddress[sender].length(); j++) {
+                    if (_rolesByIndex[uint8(_rolesByAddress[sender].get(j))].canRevokeRoles.contains(roleIndexes[i]) == true) {
+                        roleWhichWillRevoke = _rolesByAddress[sender].get(j);
                         break;
                     }
                 }
@@ -559,11 +559,11 @@ contract CommunityState is CommunityStorage {
         internal 
     {
 
-        if (_rolesByMember[targetAccount].length() == 0) {
+        if (_rolesByAddress[targetAccount].length() == 0) {
             addressesCounter++;
         }
 
-       _rolesByMember[targetAccount].add(targetRoleIndex);
+       _rolesByAddress[targetAccount].add(targetRoleIndex);
        _rolesByIndex[targetRoleIndex].members.add(targetAccount);
        
         grantedBy[targetAccount].push(ActionInfo({
@@ -607,11 +607,11 @@ contract CommunityState is CommunityStorage {
         internal 
     {
         
-        _rolesByMember[targetAccount].remove(targetRoleIndex);
+        _rolesByAddress[targetAccount].remove(targetRoleIndex);
         _rolesByIndex[targetRoleIndex].members.remove(targetAccount);
        
         if (
-            _rolesByMember[targetAccount].length() == 0 &&
+            _rolesByAddress[targetAccount].length() == 0 &&
             addressesCounter != 0
         ) {
             addressesCounter--;
@@ -660,8 +660,8 @@ contract CommunityState is CommunityStorage {
         } else {
 
             iLen = 0;
-            for (uint256 i = 0; i<_rolesByMember[sender].length(); i++) {
-                if (_rolesByIndex[uint8(_rolesByMember[sender].get(i))].canGrantRoles.contains(targetRoleIndex) == true) {
+            for (uint256 i = 0; i<_rolesByAddress[sender].length(); i++) {
+                if (_rolesByIndex[uint8(_rolesByAddress[sender].get(i))].canGrantRoles.contains(targetRoleIndex) == true) {
                     iLen++;
                 }
             }
@@ -669,9 +669,9 @@ contract CommunityState is CommunityStorage {
             rolesWhichCan = new uint8[](iLen);
 
             iLen = 0;
-            for (uint256 i = 0; i<_rolesByMember[sender].length(); i++) {
-                if (_rolesByIndex[uint8(_rolesByMember[sender].get(i))].canGrantRoles.contains(targetRoleIndex) == true) {
-                    rolesWhichCan[iLen] = _rolesByMember[sender].get(i);
+            for (uint256 i = 0; i<_rolesByAddress[sender].length(); i++) {
+                if (_rolesByIndex[uint8(_rolesByAddress[sender].get(i))].canGrantRoles.contains(targetRoleIndex) == true) {
+                    rolesWhichCan[iLen] = _rolesByAddress[sender].get(i);
                     iLen++;
                 }
             }

@@ -683,7 +683,7 @@ contract Community is CommunityStorage, ICommunity {
     {
 
         //require(_roles[rolename.stringToBytes32()] != 0, "Such role does not exists");
-        return _rolesByMember[account].contains(roleIndex);
+        return _rolesByAddress[account].contains(roleIndex);
 
     }
 

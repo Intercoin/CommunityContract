@@ -211,10 +211,10 @@ contract CommunityView is CommunityStorage {
         
             uint256 tmplen;
             for (uint256 j = 0; j < accounts.length; j++) {
-                tmplen = _rolesByMember[accounts[j]].length();
+                tmplen = _rolesByAddress[accounts[j]].length();
                 l[j] = new uint8[](tmplen);
                 for (uint256 i = 0; i < tmplen; i++) {
-                    l[j][i] = _rolesByMember[accounts[j]].get(i);
+                    l[j][i] = _rolesByAddress[accounts[j]].get(i);
 
                 }
             }
