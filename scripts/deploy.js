@@ -60,7 +60,8 @@ async function main() {
 		data_object.implementationCommunity,
 		data_object.implementationCommunityState,
 		data_object.implementationCommunityView,
-		ZERO_ADDRESS //costmanager
+		ZERO_ADDRESS, //costmanager
+		data_object.releaseManager
 	]
 	let params = [
 		..._params,
@@ -72,8 +73,6 @@ async function main() {
 	const CommunityF = await ethers.getContractFactory("CommunityFactory");
 
 	this.factory = await CommunityF.connect(deployer).deploy(...params);
-
-	await this.factory.connect(deployer).registerReleaseManager(data_object.releaseManager);
 
 	console.log("Factory deployed at:", this.factory.address);
 	console.log("with params:", [..._params]);
