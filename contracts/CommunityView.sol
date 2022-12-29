@@ -211,15 +211,31 @@ contract CommunityView is CommunityStorage {
         
             uint256 tmplen;
             for (uint256 j = 0; j < accounts.length; j++) {
-                tmplen = _rolesByMember[accounts[j]].length();
+                tmplen = _rolesByAddress[accounts[j]].length();
                 l[j] = new uint8[](tmplen);
                 for (uint256 i = 0; i < tmplen; i++) {
-                    l[j][i] = _rolesByMember[accounts[j]].get(i);
+                    l[j][i] = _rolesByAddress[accounts[j]].get(i);
 
                 }
             }
         }
         return l;
+    }
+
+    /**
+     * @dev can be duplicate items in output. see https://github.com/Intercoin/CommunityContract/issues/4#issuecomment-1049797389
+     * @notice Returns all roles which member belong to
+     * @custom:shortd account's roles
+     * @param accounts account's addresses
+     * @return uint256
+     */
+    function getRolesPacked(address account) public view returns(uint256) {
+        uint256 result = 0;
+        uint256 tmplen = _rolesByAddress[account].length();
+        for (uint256 i = 0; i < tmplen; i++) {
+            result = result | (2 ** _rolesByAddress[accounts[j]].get(i));
+        }
+        return result;
     }
     
     /**

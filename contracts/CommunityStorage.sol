@@ -172,7 +172,7 @@ abstract contract CommunityStorage is Initializable, ReentrancyGuardUpgradeable,
     mapping(address => EnumerableSetUpgradeable.AddressSet) internal invited;
     
     mapping (bytes32 => uint8) internal _roles;
-    mapping (address => PackedSet.Set) internal _rolesByMember;
+    mapping (address => PackedSet.Set) internal _rolesByAddress;
     mapping (uint8 => Role) internal _rolesByIndex;
     mapping (bytes => inviteSignature) inviteSignatures;          
     
@@ -306,7 +306,7 @@ abstract contract CommunityStorage is Initializable, ReentrancyGuardUpgradeable,
         return _isTargetInRole(account, _roles[DEFAULT_OWNERS_ROLE]);
     }
     function _isTargetInRole(address target, uint8 targetRoleIndex) internal view returns(bool) {
-        return _rolesByMember[target].contains(targetRoleIndex);
+        return _rolesByAddress[target].contains(targetRoleIndex);
     }
     /**
      * @dev Throws if the sender is not in the DEFAULT_OWNERS_ROLE.
