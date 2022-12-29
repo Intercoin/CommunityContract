@@ -140,7 +140,7 @@ describe("Community", function () {
         await releaseManager.connect(owner).newRelease(factoriesList, factoryInfo);
     });
 
-    describe.only("factory produce", function () {
+    describe("factory produce", function () {
         const salt    = "0x00112233445566778899AABBCCDDEEFF00000000000000000000000000000000";
         const salt2   = "0x00112233445566778899AABBCCDDEEFF00000000000000000000000000000001";
         it("should produce", async() => {
