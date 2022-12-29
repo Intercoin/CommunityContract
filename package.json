@@ -1,6 +1,6 @@
 {
   "name": "@artman325/community",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Smart contract for managing community membership and roles",
   "main": "index.js",
   "files": [
@@ -59,6 +59,6 @@
     "@openzeppelin/test-helpers": "^0.5.15",
     "@uniswap/lib": "^4.0.1-alpha",
     "@artman325/trustedforwarder": "^1.0.1",
-    "@artman325/releasemanager": "^1.1.0"
+    "@artman325/releasemanager": "^2.0.0"
   }
 }

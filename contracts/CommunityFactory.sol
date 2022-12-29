@@ -89,6 +89,7 @@ contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
 
     address[] public instances;
     
+    error InstanceCreatedFailed();
     event InstanceCreated(address instance, uint instancesCount);
 
     /**
@@ -97,8 +98,12 @@ contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
         address _implementation,
         address _implementationState,
         address _implementationView,
-        address _costManager
-    ) CostManagerFactoryHelper(_costManager) {
+        address _costManager,
+        address _releaseManager
+    ) 
+        CostManagerFactoryHelper(_costManager) 
+        ReleaseManagerHelper(_releaseManager) 
+    {
         implementation      = _implementation;
         implementationState = _implementationState;
         implementationView  = _implementationView;
@@ -141,49 +146,50 @@ contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
         public 
         returns (address instance) 
     {
-        
         instance = address(implementation).clone();
+        _produce(instance, hook, name, symbol);
+    }
 
-        _produce(instance);
-
-        ICommunity(instance).initialize(address(implementationState), address(implementationView), hook, costManager, name, symbol);
-        
-        _postProduce(instance);
-        
+    function produceDeterministic(
+        bytes32 salt,
+        address hook,
+        string memory name,
+        string memory symbol
+    ) public {
+        address instance = address(implementation).cloneDeterministic(salt);
+        _produce(instance, hook, name, symbol);
     }
 
     ////////////////////////////////////////////////////////////////////////
     // internal section ////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////
-
     function _produce(
-        address instance
+        address instance,
+        address hook,
+        string memory name,
+        string memory symbol
     ) 
         internal
     {
-        require(instance != address(0), "CommunityCoinFactory: INSTANCE_CREATION_FAILED");
-
+        //before initialize
+        if (instance == address(0)) {
+            revert InstanceCreatedFailed();
+        }
         instances.push(instance);
-        
         emit InstanceCreated(instance, instances.length);
-    }
 
-     function _postProduce(
-        address instance
-    ) 
-        internal
-    {
+        //initialize
+        ICommunity(instance).initialize(address(implementationState), address(implementationView), hook, costManager, name, symbol);
+
+        //after initialize
         address[] memory s = new address[](1);
         s[0] = msg.sender;
-
         uint8[] memory r = new uint8[](1);
         r[0] = 2;//"owners";
-
-        //ICommunityTransfer(instance).addMembers(s);
         ICommunityTransfer(instance).grantRoles(s, r);
-
-        // register instance in release manager
+        //-- register instance in release manager
         registerInstance(instance);
-        
+        //-----------------
     }
+
 }

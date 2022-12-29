@@ -123,7 +123,8 @@ describe("Community", function () {
             implementationCommunity.address,
             implementationCommunityState.address,
             implementationCommunityView.address,
-            NO_COSTMANAGER
+            NO_COSTMANAGER,
+            releaseManager.address
         );
 
         // 
@@ -135,8 +136,70 @@ describe("Community", function () {
                 "0x53696c766572000000000000000000000000000000000000"//bytes24 factoryChangeNotes;
             ]
         ]
-        await CommunityFactory.connect(owner).registerReleaseManager(releaseManager.address);
+        
         await releaseManager.connect(owner).newRelease(factoriesList, factoryInfo);
+    });
+
+    describe.only("factory produce", function () {
+        const salt    = "0x00112233445566778899AABBCCDDEEFF00000000000000000000000000000000";
+        const salt2   = "0x00112233445566778899AABBCCDDEEFF00000000000000000000000000000001";
+        it("should produce", async() => {
+             
+            let tx = await CommunityFactory.connect(owner).produce(NO_HOOK,TOKEN_NAME,TOKEN_SYMBOL);
+
+            const rc = await tx.wait(); // 0ms, as tx is already confirmed
+            const event = rc.events.find(event => event.event === 'InstanceCreated');
+            const [instance,] = event.args;
+            console.log("instance=", instance);
+            //simpleContract = await ethers.getContractAt("MockSimpleContract",instance);   
+        });
+        it("should produce deterministic", async() => {
+
+            let tx = await CommunityFactory.connect(owner).produceDeterministic(salt,NO_HOOK,TOKEN_NAME,TOKEN_SYMBOL);
+
+            let rc = await tx.wait(); // 0ms, as tx is already confirmed
+            let event = rc.events.find(event => event.event === 'InstanceCreated');
+            let [instance,] = event.args;
+            
+            await expect(CommunityFactory.connect(owner).produceDeterministic(salt,NO_HOOK,TOKEN_NAME,TOKEN_SYMBOL)).to.be.revertedWith('ERC1167: create2 failed');
+
+        });
+
+        it("can't create2 if created before with the same salt, even if different sender", async() => {
+            let tx,event,instanceWithSaltAgain, instanceWithSalt, instanceWithSalt2;
+
+            //make snapshot
+            let snapId = await ethers.provider.send('evm_snapshot', []);
+
+            tx = await CommunityFactory.connect(owner).produceDeterministic(salt,NO_HOOK,TOKEN_NAME,TOKEN_SYMBOL);
+            rc = await tx.wait(); // 0ms, as tx is already confirmed
+            event = rc.events.find(event => event.event === 'InstanceCreated');
+            [instanceWithSalt,] = event.args;
+            //revert snapshot
+            await ethers.provider.send('evm_revert', [snapId]);
+
+            // make create2. then create and finally again with salt. 
+            tx = await CommunityFactory.connect(owner).produceDeterministic(salt2,NO_HOOK,TOKEN_NAME,TOKEN_SYMBOL);
+            rc = await tx.wait(); // 0ms, as tx is already confirmed
+            event = rc.events.find(event => event.event === 'InstanceCreated');
+            [instanceWithSalt2,] = event.args;
+            
+            await CommunityFactory.connect(owner).produce(NO_HOOK,TOKEN_NAME,TOKEN_SYMBOL);
+
+            tx = await CommunityFactory.connect(owner).produceDeterministic(salt,NO_HOOK,TOKEN_NAME,TOKEN_SYMBOL);
+            rc = await tx.wait(); // 0ms, as tx is already confirmed
+            event = rc.events.find(event => event.event === 'InstanceCreated');
+            [instanceWithSaltAgain,] = event.args;
+
+
+            expect(instanceWithSaltAgain).to.be.eq(instanceWithSalt);
+            expect(instanceWithSalt2).not.to.be.eq(instanceWithSalt);
+
+            await expect(CommunityFactory.connect(owner).produceDeterministic(salt,NO_HOOK,TOKEN_NAME,TOKEN_SYMBOL)).to.be.revertedWith('ERC1167: create2 failed');
+            await expect(CommunityFactory.connect(owner).produceDeterministic(salt2,NO_HOOK,TOKEN_NAME,TOKEN_SYMBOL)).to.be.revertedWith('ERC1167: create2 failed');
+            await expect(CommunityFactory.connect(accountOne).produceDeterministic(salt2,NO_HOOK,TOKEN_NAME,TOKEN_SYMBOL)).to.be.revertedWith('ERC1167: create2 failed');
+            
+        });
     });
 
     describe("TrustedForwarder", function () {
@@ -436,7 +499,6 @@ describe("Community", function () {
         }); 
 
     });
-    
 
     describe(`${trustedForwardMode ? '[trusted forwarder]' : ''} Community tests`, function () {
     
