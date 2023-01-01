@@ -201,7 +201,7 @@ contract CommunityView is CommunityStorage {
      * @notice Returns all roles which member belong to
      * @custom:shortd account's roles
      * @param accounts account's addresses
-     * @return l array of roles 
+     * @return array of array of roles, with index of output array corresponding to index of input account
      */
     function getRoles(address[] memory accounts) public view returns(uint8[][] memory) {
         uint8[][] memory l;
@@ -220,6 +220,24 @@ contract CommunityView is CommunityStorage {
             }
         }
         return l;
+    }
+    
+    /**
+     * @dev whether an account has a role
+     * @notice returns boolean
+     * @custom:shortd whether account has a role
+     * @param account address
+     * @param role uint8
+     * @return boolean
+     */
+    function hasRole(address account, uint8 role) public view returns(bool) {
+        uint256 l = _rolesByAddress[account].length();
+        for (uint256 i = 0; i < l; i++) {
+            if (_rolesByAddress[account].get(i) == role) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
