@@ -58,8 +58,9 @@ async function main() {
 	// 	//gasPrice: ethers.utils.parseUnits('50', 'gwei'), 
 	// 	gasLimit: 10e6
 	// };
-
-	console.log("Account balance:", (await deployer.getBalance()).toString());
+    
+    const deployerBalanceBefore = await deployer.getBalance();
+	console.log("Account balance:", (deployerBalanceBefore).toString());
 
 	const CommunityF = await ethers.getContractFactory("Community");
 	const CommunityStateF = await ethers.getContractFactory("CommunityState");
@@ -81,6 +82,9 @@ async function main() {
 	data_object.implementationCommunityView	= implementationCommunityView.address;
     data_object.releaseManager	            = RELEASE_MANAGER;
 
+const deployerBalanceAfter = await deployer.getBalance();
+console.log("Spent:", ethers.utils.formatEther(deployerBalanceBefore.sub(deployerBalanceAfter)));
+console.log("gasPrice:", ethers.utils.formatUnits((await network.provider.send("eth_gasPrice")), "gwei")," gwei");
 
 	//---
 	const ts_updated = Date.now();

@@ -68,7 +68,8 @@ async function main() {
 		options
 	]
 
-	console.log("Account balance:", (await deployer.getBalance()).toString());
+	const deployerBalanceBefore = await deployer.getBalance();
+	console.log("Account balance:", (deployerBalanceBefore).toString());
 
 	const CommunityF = await ethers.getContractFactory("CommunityFactory");
 
@@ -78,6 +79,10 @@ async function main() {
 	console.log("with params:", [..._params]);
 
 	console.log("registered with release manager:", data_object.releaseManager);
+    
+    const deployerBalanceAfter = await deployer.getBalance();
+    console.log("Spent:", ethers.utils.formatEther(deployerBalanceBefore.sub(deployerBalanceAfter)));
+    console.log("gasPrice:", ethers.utils.formatUnits((await network.provider.send("eth_gasPrice")), "gwei")," gwei");
 }
 
 main()
