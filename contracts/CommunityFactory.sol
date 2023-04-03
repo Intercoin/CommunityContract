@@ -169,6 +169,34 @@ contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
         _produce(instance, hook, name, symbol, contractUri);
     }
 
+    function getRolesInAllCommunities(
+        address addr
+    ) 
+        public 
+        view 
+        returns(address[] memory communities, uint8[][] memory roles)
+    {
+        uint256 len = instances.length;
+        communities = new address[](len);
+        roles = new uint8[][](len);
+
+        address[] memory accounts = new address[](1);
+        accounts[0] = addr;
+
+        uint8[][] memory tmp;
+
+        for(uint256 i = 0; i < len; i++) {
+            communities[i] = instances[i];
+
+            tmp = ICommunity(instances[i]).getRoles(accounts);
+            roles[i] = new uint8[](tmp[0].length);
+            
+            roles[i] = tmp[0];
+        }
+
+        //function getRoles(address[] calldata accounts)external view returns(uint8[][] memory);
+    }
+
     ////////////////////////////////////////////////////////////////////////
     // internal section ////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////
