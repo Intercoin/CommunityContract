@@ -9,7 +9,8 @@ interface ICommunity {
         address hook, 
         address costManager, 
         string memory name, 
-        string memory symbol
+        string memory symbol,
+        string memory contractUri
     ) external;
     
     function addressesCount(uint8 roleIndex) external view returns(uint256);

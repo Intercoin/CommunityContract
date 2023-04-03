@@ -135,29 +135,38 @@ contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
     * @param hook address of contract implemented ICommunityHook interface. Can be address(0)
     * @param name erc721 name
     * @param symbol erc721 symbol
-    * @return instance address of created instance `CommunityERC721`
+    * @param contractUri contract URI
     * @custom:shortd creation CommunityERC721 instance
     */
     function produce(
         address hook,
         string memory name,
-        string memory symbol
+        string memory symbol,
+        string memory contractUri
     ) 
         public 
-        returns (address instance) 
     {
-        instance = address(implementation).clone();
-        _produce(instance, hook, name, symbol);
+        address instance = address(implementation).clone();
+        _produce(instance, hook, name, symbol, contractUri);
     }
 
+    /**
+    * @param salt salt that used with CREATE2 opcode
+    * @param hook address of contract implemented ICommunityHook interface. Can be address(0)
+    * @param name erc721 name
+    * @param symbol erc721 symbol
+    * @param contractUri contract URI
+    * @custom:shortd creation CommunityERC721 instance
+    */
     function produceDeterministic(
         bytes32 salt,
         address hook,
         string memory name,
-        string memory symbol
+        string memory symbol,
+        string memory contractUri
     ) public {
         address instance = address(implementation).cloneDeterministic(salt);
-        _produce(instance, hook, name, symbol);
+        _produce(instance, hook, name, symbol, contractUri);
     }
 
     ////////////////////////////////////////////////////////////////////////
@@ -167,7 +176,8 @@ contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
         address instance,
         address hook,
         string memory name,
-        string memory symbol
+        string memory symbol,
+        string memory contractUri
     ) 
         internal
     {
@@ -179,7 +189,7 @@ contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
         emit InstanceCreated(instance, instances.length);
 
         //initialize
-        ICommunity(instance).initialize(address(implementationState), address(implementationView), hook, costManager, name, symbol);
+        ICommunity(instance).initialize(address(implementationState), address(implementationView), hook, costManager, name, symbol, contractUri);
 
         //after initialize
         address[] memory s = new address[](1);

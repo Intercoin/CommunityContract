@@ -28,7 +28,8 @@ contract CommunityState is CommunityStorage {
     function initialize(
         address hook,
         string memory name_, 
-        string memory symbol_
+        string memory symbol_, 
+        string memory contractURI_
     ) 
         external 
     {
@@ -36,6 +37,9 @@ contract CommunityState is CommunityStorage {
         symbol = symbol_;
 
         __CommunityBase_init(hook);
+
+        setContractURI(contractURI_);
+        
 
     }
 
@@ -349,6 +353,15 @@ contract CommunityState is CommunityStorage {
     {
         ifTargetInRole(_msgSender(), roleIndex);
         _rolesByIndex[roleIndex].extraURI[_msgSender()] = extraURI;
+    }
+
+    function setContractURI(
+        string memory uri
+    ) 
+        public 
+    {
+        ifTargetInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]);
+        contractURI = uri;
     }
     ///////////////////////////////////////////////////////////
     /// public  section that are view

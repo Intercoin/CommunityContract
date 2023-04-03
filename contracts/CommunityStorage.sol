@@ -88,7 +88,13 @@ abstract contract CommunityStorage is Initializable, ReentrancyGuardUpgradeable,
     * @return symbol 
     */
     string public symbol;
-    
+    /**
+    * @notice uri that represent more information about thic community
+    * @custom:shortd contract URI
+    * @return URI
+    */
+    string public contractURI;
+
     uint8 internal rolesCount;
     address public hook;
     uint256 addressesCounter;
@@ -155,6 +161,7 @@ abstract contract CommunityStorage is Initializable, ReentrancyGuardUpgradeable,
     uint8 internal constant OPERATION_SET_EXTRA_URI = 0x9;
     uint8 internal constant OPERATION_TRANSFEROWNERSHIP = 0xa;
     uint8 internal constant OPERATION_RENOUNCEOWNERSHIP = 0xb;
+    uint8 internal constant OPERATION_SET_CONTRACT_URI = 0xc;
     
     
     enum ReimburseStatus{ NONE, PENDING, CLAIMED }

@@ -98,7 +98,8 @@ contract Community is CommunityStorage, ICommunity {
         address hook,
         address costManager_,
         string memory name, 
-        string memory symbol
+        string memory symbol,
+        string memory contractURI_
     ) 
         public 
         override
@@ -110,16 +111,15 @@ contract Community is CommunityStorage, ICommunity {
 
         __CostManagerHelper_init(_msgSender());
         _setCostManager(costManager_);
-        
+
         _functionDelegateCall(
             address(implCommunityState), 
             abi.encodeWithSelector(
                 CommunityState.initialize.selector,
-                hook, name, symbol
+                hook, name, symbol, contractURI_
             )
             //msg.data
         );
-        
         
         _accountForOperation(
             OPERATION_INITIALIZE << OPERATION_SHIFT_BITS,
@@ -403,7 +403,7 @@ contract Community is CommunityStorage, ICommunity {
     * @notice setting extra token URI for role
     * @param roleIndex role index
     * @param extraURI extra token URI
-    * @notice setting extraURI for role.
+    * @custom:shortd setting extraURI for role.
     * @custom:calledby any who belong to role
     */
     function setExtraURI(
@@ -426,6 +426,34 @@ contract Community is CommunityStorage, ICommunity {
             0,
             0
         );
+    }
+
+    /**
+    * @notice setting contract URI
+    * @param uri contract URI
+    * @custom:shortd setting contract URI.
+    * @custom:calledby owners
+    */
+    function setContractURI(
+        string memory uri
+    ) 
+        public 
+    {
+        _functionDelegateCall(
+            address(implCommunityState), 
+            // abi.encodeWithSelector(
+            //     CommunityState.setContractURI.selector,
+            //     uri
+            // )
+            msg.data
+        );
+
+        _accountForOperation(
+            OPERATION_SET_CONTRACT_URI << OPERATION_SHIFT_BITS,
+            0,
+            0
+        );
+        
     }
 
     function transferOwnership(
