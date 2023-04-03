@@ -14,4 +14,5 @@ remix-compiler.config.js
 .DS_Store
 /bin
 /scripts/arguments.json
-coverage
+/coverage
+coverage.json
