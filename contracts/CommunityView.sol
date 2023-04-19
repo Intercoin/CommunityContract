@@ -257,7 +257,7 @@ contract CommunityView is CommunityStorage {
         string[] memory roleURIs = new string[](rolesCount-1);
         // rolesCount start from 1
         for (uint8 i = 1; i < rolesCount; i++) {
-            indexes[i-1] = i-1;
+            indexes[i-1] = i;
             names[i-1] = _rolesByIndex[i].name.bytes32ToString();
             roleURIs[i-1] = _rolesByIndex[i].roleURI;
         }
