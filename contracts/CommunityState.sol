@@ -57,7 +57,7 @@ contract CommunityState is CommunityStorage {
         public 
         //nonReentrant()
     {
-        ifTargetInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]);
+        requireInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]);
         payable(_msgSender()).transfer(address(this).balance);
     } 
 
@@ -83,7 +83,7 @@ contract CommunityState is CommunityStorage {
         for (uint256 i = 0; i < roleIndexes.length; i++) {
             _isRoleValid(roleIndexes[i]); 
 
-            rolesIndexWhichWillGrant = _isCanGrant(_msgSender(), roleIndexes[i], FlagFork.NONE);
+            rolesIndexWhichWillGrant = _canGrant(_msgSender(), roleIndexes[i], FlagFork.NONE);
 
             require(
                 rolesIndexWhichWillGrant.length != 0,
@@ -118,7 +118,7 @@ contract CommunityState is CommunityStorage {
             _isRoleValid(roleIndexes[i]); 
 
             roleWhichWillRevoke = NONE_ROLE_INDEX;
-            if (_isTargetInRole(sender, _roles[DEFAULT_OWNERS_ROLE])) {
+            if (_isInRole(sender, _roles[DEFAULT_OWNERS_ROLE])) {
                 // owner can do anything. so no need to calculate or loop
                 roleWhichWillRevoke = _roles[DEFAULT_OWNERS_ROLE];
             } else {
@@ -139,8 +139,8 @@ contract CommunityState is CommunityStorage {
     }
     
     /**
-     * @notice creating new role. can called owners role only
-     * @custom:shortd creating new role. can called owners role only
+     * @notice creating new role. can be called by owners role only
+     * @custom:shortd creating new role. can be called by owners role only
      * @param role role name
      */
     function createRole(
@@ -149,7 +149,7 @@ contract CommunityState is CommunityStorage {
         public 
         
     {
-        ifTargetInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]);
+        requireInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]);
 
         // require(_roles[role.stringToBytes32()] == 0, "Such role is already exists");
         // // prevent creating role in CamelCases with admins and owners (Admins,ADMINS,ADminS)
@@ -187,7 +187,7 @@ contract CommunityState is CommunityStorage {
         public 
     {
         
-        ifTargetInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]);
+        requireInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]);
 
         require(ofRole != _roles[DEFAULT_OWNERS_ROLE], string(abi.encodePacked("ofRole can not be '", _rolesByIndex[ofRole].name.bytes32ToString(), "'")));
         
@@ -216,7 +216,7 @@ contract CommunityState is CommunityStorage {
         
         accummulateGasCost(sSig)
     {
-        ifTargetInRole(_msgSender(), _roles[DEFAULT_RELAYERS_ROLE]);
+        requireInRole(_msgSender(), _roles[DEFAULT_RELAYERS_ROLE]);
         require(inviteSignatures[sSig].exists == false, "Such signature is already exists");
         inviteSignatures[sSig].sSig= sSig;
         inviteSignatures[sSig].rSig = rSig;
@@ -250,7 +250,7 @@ contract CommunityState is CommunityStorage {
         refundGasCost(sSig)
         //nonReentrant()
     {
-        ifTargetInRole(_msgSender(), _roles[DEFAULT_RELAYERS_ROLE]);
+        requireInRole(_msgSender(), _roles[DEFAULT_RELAYERS_ROLE]);
 
         require(inviteSignatures[sSig].used == false, "Such signature is already used");
 
@@ -278,7 +278,7 @@ contract CommunityState is CommunityStorage {
                 emit RoleAddedErrorMessage(_msgSender(), "invalid role");
             }
 
-            uint8[] memory rolesIndexWhichWillGrant = _isCanGrant(pAddr, roleIndex, FlagFork.EMIT);
+            uint8[] memory rolesIndexWhichWillGrant = _canGrant(pAddr, roleIndex, FlagFork.EMIT);
 
             uint8 roleIndexWhichWillGrant = validateGrantSettings(rolesIndexWhichWillGrant, roleIndex, FlagFork.EMIT);
 
@@ -315,10 +315,10 @@ contract CommunityState is CommunityStorage {
         override 
     {
 
-        ifTargetInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]);
+        requireInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]);
 
         require(
-            !_isTargetInRole(forwarder, _roles[DEFAULT_OWNERS_ROLE]),
+            !_isInRole(forwarder, _roles[DEFAULT_OWNERS_ROLE]),
             "FORWARDER_CAN_NOT_BE_OWNER"
         );
         _setTrustedForwarder(forwarder);
@@ -336,23 +336,8 @@ contract CommunityState is CommunityStorage {
     ) 
         public 
     {
-        ifTargetInRole(_msgSender(), roleIndex);
-        
+        requireInRole(_msgSender(), roleIndex);
         _rolesByIndex[roleIndex].roleURI = roleURI;
-    }
-
-    /**
-    * @notice setting extraURI for role.
-    * @custom:calledby any who belong to role
-    */
-    function setExtraURI(
-        uint8 roleIndex,
-        string memory extraURI
-    )
-        public
-    {
-        ifTargetInRole(_msgSender(), roleIndex);
-        _rolesByIndex[roleIndex].extraURI[_msgSender()] = extraURI;
     }
 
     function setContractURI(
@@ -360,7 +345,7 @@ contract CommunityState is CommunityStorage {
     ) 
         public 
     {
-        ifTargetInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]);
+        requireInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]);
         contractURI = uri;
     }
     ///////////////////////////////////////////////////////////
@@ -412,7 +397,7 @@ contract CommunityState is CommunityStorage {
     */
     function validateGrantSettings(
         uint8[] memory rolesWhichCanGrant,
-        uint8 targetRoleIndex,
+        uint8 roleIndex,
         FlagFork flag
     ) 
         internal 
@@ -477,14 +462,14 @@ contract CommunityState is CommunityStorage {
      * @param sender sender
      * @param targetRoleIndex role index
      */
-    function ifCanGrant(
+    function requireCanGrant(
         address sender, 
         uint8 targetRoleIndex
     ) 
         internal 
     {
      
-        _isCanGrant(sender, targetRoleIndex,FlagFork.REVERT);
+        _canGrant(sender, targetRoleIndex,FlagFork.REVERT);
       
     }
   
@@ -514,6 +499,9 @@ contract CommunityState is CommunityStorage {
      * Set availability for members with `sourceRole` addMember/removeMember/addMemberRole/removeMemberRole
      * @param byRole source role index
      * @param ofRole target role index
+     * @param canGrantRole whether addresses with byRole can grant ofRole to other addresses
+     * @param canGrantRole whether addresses with byRole can revoke ofRole from other addresses
+     * @param canGrantRole whether addresses with byRole can grant ofRole to other addresses
      */
     function _manageRole(
         uint8 byRole, 
@@ -652,7 +640,7 @@ contract CommunityState is CommunityStorage {
         emit RoleRevoked(_rolesByIndex[targetRoleIndex].name, targetAccount, sourceAccount);
     }
  
-    function _isCanGrant(
+    function _canGrant(
         address sender, 
         uint8 targetRoleIndex, 
         FlagFork flag
@@ -666,7 +654,7 @@ contract CommunityState is CommunityStorage {
         uint256 iLen;
         uint8[] memory rolesWhichCan;
 
-        if (_isTargetInRole(sender, _roles[DEFAULT_OWNERS_ROLE])) {
+        if (_isInRole(sender, _roles[DEFAULT_OWNERS_ROLE])) {
             // owner can do anything. so no need to calculate or loop
             rolesWhichCan = new uint8[](1);
             rolesWhichCan[0] = _roles[DEFAULT_OWNERS_ROLE];
@@ -743,7 +731,7 @@ contract CommunityState is CommunityStorage {
      * @param target address
      * @param targetRoleIndex role index
      */
-    function ifTargetInRole(
+    function requireInRole(
         address target, 
         uint8 targetRoleIndex
     ) 
@@ -752,7 +740,7 @@ contract CommunityState is CommunityStorage {
     {
         
         require(
-            _isTargetInRole(target, targetRoleIndex),
+            _isInRole(target, targetRoleIndex),
             string(abi.encodePacked("Missing role '", _rolesByIndex[targetRoleIndex].name.bytes32ToString(),"'"))
         );
 
