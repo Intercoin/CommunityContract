@@ -210,8 +210,8 @@ contract Community is CommunityStorage, ICommunity {
     }
     
     /**
-     * @notice creating new role. can called owners role only
-     * @custom:shortd creating new role. can called owners role only
+     * @notice creating new role. Can be called by owners role only
+     * @custom:shortd creating new role. Can be called by owners role only
      * @param role role name
      */
     function createRole(
@@ -238,12 +238,16 @@ contract Community is CommunityStorage, ICommunity {
     }
     
     /**
-     * @notice allow account with byRole:
-     * (if canGrantRole ==true) grant ofRole to another account if account has requireRole
-     *          it can be available `maxAddresses` during `duration` time
+     * Set rules on how members with `sourceRole` can grant and revoke roles
+     * @param byRole source role index
+     * @param ofRole target role index
+     * @param canGrantRole whether addresses with byRole can grant ofRole to other addresses
+     * @param canRevokeRole whether addresses with byRole can revoke ofRole from other addresses
+     * @param requireRole whether addresses with byRole can grant ofRole to other addresses
+     * @param maxAddresses the maximum number of addresses that users with byRole can grant to ofRole in duration
+     * @param duration 
      *          if duration == 0 then no limit by time: `maxAddresses` will be max accounts on this role
      *          if maxAddresses == 0 then no limit max accounts on this role
-     * (if canRevokeRole ==true) revoke ofRole from account.
      */
     function manageRole(
         uint8 byRole, 
