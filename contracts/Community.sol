@@ -404,35 +404,6 @@ contract Community is CommunityStorage, ICommunity {
     }
 
     /**
-    * @notice setting extra token URI for role
-    * @param roleIndex role index
-    * @param extraURI extra token URI
-    * @custom:shortd setting extraURI for role.
-    * @custom:calledby any who belong to role
-    */
-    function setExtraURI(
-        uint8 roleIndex,
-        string memory extraURI
-    )
-        public
-    {
-        _functionDelegateCall(
-            address(implCommunityState), 
-            // abi.encodeWithSelector(
-            //     CommunityState.setExtraURI.selector,
-            //     roleIndex, extraURI
-            // )
-            msg.data
-        );
-
-        _accountForOperation(
-            OPERATION_SET_EXTRA_URI << OPERATION_SHIFT_BITS,
-            0,
-            0
-        );
-    }
-
-    /**
     * @notice setting contract URI
     * @param uri contract URI
     * @custom:shortd setting contract URI.
@@ -469,10 +440,6 @@ contract Community is CommunityStorage, ICommunity {
     {
         _functionDelegateCall(
             address(implCommunityState), 
-            // abi.encodeWithSelector(
-            //     CommunityState.setExtraURI.selector,
-            //     roleIndex, extraURI
-            // )
             msg.data
         );
 
@@ -491,10 +458,6 @@ contract Community is CommunityStorage, ICommunity {
     {
         _functionDelegateCall(
             address(implCommunityState), 
-            // abi.encodeWithSelector(
-            //     CommunityState.setExtraURI.selector,
-            //     roleIndex, extraURI
-            // )
             msg.data
         );
 
