@@ -83,7 +83,7 @@ contract CommunityState is CommunityStorage {
         for (uint256 i = 0; i < roleIndexes.length; i++) {
             _isRoleValid(roleIndexes[i]); 
 
-            rolesIndexWhichWillGrant = _canGrant(_msgSender(), roleIndexes[i], FlagFork.NONE);
+            rolesIndexWhichWillGrant = _rolesWhichCanGrant(_msgSender(), roleIndexes[i], FlagFork.NONE);
 
             require(
                 rolesIndexWhichWillGrant.length != 0,
@@ -171,8 +171,8 @@ contract CommunityState is CommunityStorage {
      * @notice allow account with byRole:
      * (if canGrantRole ==true) grant ofRole to another account if account has requireRole
      *          it can be available `maxAddresses` during `duration` time
-     *          if duration == 0 then no limit by time: `maxAddresses` will be max accounts on this role
-     *          if maxAddresses == 0 then no limit max accounts on this role
+     *          if duration == 0 then no limit by time: `maxAddresses` will be max accounts on ofRole
+     *          if maxAddresses == 0 then there is no limit to the max accounts on ofRole role
      * (if canRevokeRole ==true) revoke ofRole from account.
      */
     function manageRole(
@@ -278,7 +278,7 @@ contract CommunityState is CommunityStorage {
                 emit RoleAddedErrorMessage(_msgSender(), "invalid role");
             }
 
-            uint8[] memory rolesIndexWhichWillGrant = _canGrant(pAddr, roleIndex, FlagFork.EMIT);
+            uint8[] memory rolesIndexWhichWillGrant = _rolesWhichCanGrant(pAddr, roleIndex, FlagFork.EMIT);
 
             uint8 roleIndexWhichWillGrant = validateGrantSettings(rolesIndexWhichWillGrant, roleIndex, FlagFork.EMIT);
 
@@ -323,12 +323,13 @@ contract CommunityState is CommunityStorage {
         );
         _setTrustedForwarder(forwarder);
     }
+    
     /**
     * @notice setting tokenURI for role
     * @param roleIndex role index
     * @param roleURI token URI
     * @custom:shortd setting tokenURI for role
-    * @custom:calledby any who can manage this role
+    * @custom:calledby owners only
     */
     function setRoleURI(
         uint8 roleIndex,
@@ -336,10 +337,17 @@ contract CommunityState is CommunityStorage {
     ) 
         public 
     {
-        requireInRole(_msgSender(), roleIndex);
+        requireInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]);
         _rolesByIndex[roleIndex].roleURI = roleURI;
     }
 
+    /**
+    * @notice setting contractURI for this contract
+    * @param roleIndex role index
+    * @param roleURI token URI
+    * @custom:shortd setting tokenURI for role
+    * @custom:calledby owners only
+    */
     function setContractURI(
         string memory uri
     ) 
@@ -469,7 +477,7 @@ contract CommunityState is CommunityStorage {
         internal 
     {
      
-        _canGrant(sender, targetRoleIndex,FlagFork.REVERT);
+        _rolesWhichCanGrant(sender, targetRoleIndex, FlagFork.REVERT);
       
     }
   
@@ -500,8 +508,12 @@ contract CommunityState is CommunityStorage {
      * @param byRole source role index
      * @param ofRole target role index
      * @param canGrantRole whether addresses with byRole can grant ofRole to other addresses
-     * @param canGrantRole whether addresses with byRole can revoke ofRole from other addresses
-     * @param canGrantRole whether addresses with byRole can grant ofRole to other addresses
+     * @param canRevokeRole whether addresses with byRole can revoke ofRole from other addresses
+     * @param requireRole whether addresses with byRole can grant ofRole to other addresses
+     * @param maxAddresses the maximum number of addresses that users with byRole can grant to ofRole in duration
+     * @param duration 
+     *          if duration == 0 then no limit by time: `maxAddresses` will be max accounts on this role
+     *          if maxAddresses == 0 then no limit max accounts on this role
      */
     function _manageRole(
         uint8 byRole, 
@@ -640,7 +652,7 @@ contract CommunityState is CommunityStorage {
         emit RoleRevoked(_rolesByIndex[targetRoleIndex].name, targetAccount, sourceAccount);
     }
  
-    function _canGrant(
+    function _rolesWhichCanGrant(
         address sender, 
         uint8 targetRoleIndex, 
         FlagFork flag
