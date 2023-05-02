@@ -9,7 +9,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/IERC721Metad
 import "@artman325/trustedforwarder/contracts/TrustedForwarder.sol";
 import "@artman325/releasemanager/contracts/CostManagerHelperERC2771Support.sol";
 
-import "./lib/ECDSAExt.sol";
+//import "./lib/ECDSAExt.sol";
 import "./lib/StringUtils.sol";
 import "./lib/PackedSet.sol";
 
@@ -22,8 +22,6 @@ abstract contract CommunityStorage is Initializable, ReentrancyGuardUpgradeable,
 
     using StringUtils for *;
 
-    using ECDSAExt for string;
-    using ECDSAUpgradeable for bytes32;
     
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
@@ -32,15 +30,6 @@ abstract contract CommunityStorage is Initializable, ReentrancyGuardUpgradeable,
     ////////////////////////////////
     ///////// structs //////////////
     ////////////////////////////////
-
-    struct inviteSignature {
-        bytes sSig;
-        bytes rSig;
-        uint256 gasCost;
-        ReimburseStatus reimbursed;
-        bool used;
-        bool exists;
-    }
 
     struct GrantSettings {
         uint8 requireRole;   //=0, 
@@ -99,7 +88,7 @@ abstract contract CommunityStorage is Initializable, ReentrancyGuardUpgradeable,
     address public hook;
     uint256 addressesCounter;
 
-    uint8 internal constant NONE_ROLE_INDEX = 0;
+    
     /**
     * @custom:shortd role name "owners" in bytes32
     * @notice constant role name "owners" in bytes32
@@ -135,17 +124,7 @@ abstract contract CommunityStorage is Initializable, ReentrancyGuardUpgradeable,
     * @notice constant role name "visitors" in bytes32
     */
     bytes32 public constant DEFAULT_VISITORS_ROLE = 0x76697369746f7273000000000000000000000000000000000000000000000000;
-    
-    /**
-    * @notice constant reward that user-relayers will obtain
-    * @custom:shortd reward that user-relayers will obtain
-    */
-    uint256 public constant REWARD_AMOUNT = 1000000000000000; // 0.001 * 1e18
-    /**
-    * @notice constant reward amount that user-recepient will replenish
-    * @custom:shortd reward amount that user-recepient will replenish
-    */
-    uint256 public constant REPLENISH_AMOUNT = 1000000000000000; // 0.001 * 1e18
+
 
     uint8 internal constant OPERATION_SHIFT_BITS = 240;  // 256 - 16
     // Constants representing operations
@@ -163,9 +142,6 @@ abstract contract CommunityStorage is Initializable, ReentrancyGuardUpgradeable,
     uint8 internal constant OPERATION_RENOUNCEOWNERSHIP = 0xb;
     uint8 internal constant OPERATION_SET_CONTRACT_URI = 0xc;
     
-    
-    enum ReimburseStatus{ NONE, PENDING, CLAIMED }
-
     // enum used in method when need to mark what need to do when error happens
     enum FlagFork{ NONE, EMIT, REVERT }
    
@@ -173,15 +149,10 @@ abstract contract CommunityStorage is Initializable, ReentrancyGuardUpgradeable,
     ///////// mapping //////////////
     ////////////////////////////////
 
-    //receiver => sender
-    mapping(address => address) public invitedBy;
-    //sender => receivers
-    mapping(address => EnumerableSetUpgradeable.AddressSet) internal invited;
-    
     mapping (bytes32 => uint8) internal _roles;
     mapping (address => PackedSet.Set) internal _rolesByAddress;
     mapping (uint8 => Role) internal _rolesByIndex;
-    mapping (bytes => inviteSignature) inviteSignatures;          
+         
     
     /**
     * @notice map users granted by
@@ -225,72 +196,6 @@ abstract contract CommunityStorage is Initializable, ReentrancyGuardUpgradeable,
     ///////////////////////////////////////////////////////////
     /// modifiers  section
     ///////////////////////////////////////////////////////////
-
-    /**
-     * @param sSig signature of admin whom generate invite and signed it
-     */
-    modifier accummulateGasCost(bytes memory sSig)
-    {
-        uint remainingGasStart = gasleft();
-
-        _;
-
-        uint remainingGasEnd = gasleft();
-        // uint usedGas = remainingGasStart - remainingGasEnd;
-        // // Add intrinsic gas and transfer gas. Need to account for gas stipend as well.
-        // // usedGas += 21000 + 9700;
-        // usedGas += 30700;
-        // // Possibly need to check max gasprice and usedGas here to limit possibility for abuse.
-        // uint gasCost = usedGas * tx.gasprice;
-        // // accummulate refund gas cost
-        // inviteSignatures[sSig].gasCost = inviteSignatures[sSig].gasCost + gasCost;
-        inviteSignatures[sSig].gasCost = inviteSignatures[sSig].gasCost + (remainingGasStart - remainingGasEnd + 30700) * tx.gasprice;
-        //----
-    }
-
-    /**
-     * @param sSig signature of admin whom generate invite and signed it
-     */
-    modifier refundGasCost(bytes memory sSig)
-    {
-        uint remainingGasStart = gasleft();
-
-        _;
-        
-        uint gasCost;
-        
-        if (inviteSignatures[sSig].reimbursed == ReimburseStatus.NONE) {
-            uint remainingGasEnd = gasleft();
-            // uint usedGas = remainingGasStart - remainingGasEnd;
-            // // Add intrinsic gas and transfer gas. Need to account for gas stipend as well.
-            // usedGas += 21000 + 9700 + 47500;
-            // // Possibly need to check max gasprice and usedGas here to limit possibility for abuse.
-            // gasCost = usedGas * tx.gasprice;
-
-            // inviteSignatures[sSig].gasCost = inviteSignatures[sSig].gasCost + gasCost;
-            inviteSignatures[sSig].gasCost = inviteSignatures[sSig].gasCost + ((remainingGasStart - remainingGasEnd + 78200) * tx.gasprice);
-        }
-        // Refund gas cost
-        gasCost = inviteSignatures[sSig].gasCost;
-
-        if (
-            (gasCost <= address(this).balance) && 
-            (
-            inviteSignatures[sSig].reimbursed == ReimburseStatus.NONE ||
-            inviteSignatures[sSig].reimbursed == ReimburseStatus.PENDING
-            )
-        ) {
-            inviteSignatures[sSig].reimbursed = ReimburseStatus.CLAIMED;
-            //payable (inviteSignatures[sSig].caller).transfer(gasCost);
-           
-            payable(_msgSender()).transfer(gasCost);
-
-        } else {
-            inviteSignatures[sSig].reimbursed = ReimburseStatus.PENDING;
-        }
-        
-        
-    }
 
     ///////////////////////////////////////////////////
     // common to use

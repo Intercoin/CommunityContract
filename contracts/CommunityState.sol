@@ -3,16 +3,13 @@ pragma solidity ^0.8.11;
 
 import "./CommunityStorage.sol";
 
-import "hardhat/console.sol";
+//import "hardhat/console.sol";
 
 contract CommunityState is CommunityStorage {
     
     using PackedSet for PackedSet.Set;
 
     using StringUtils for *;
-
-    using ECDSAExt for string;
-    using ECDSAUpgradeable for bytes32;
     
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
@@ -61,6 +58,9 @@ contract CommunityState is CommunityStorage {
         payable(_msgSender()).transfer(address(this).balance);
     } 
 
+    function grantRolesExternal(address accountWhichWillGrant, address[] memory accounts, uint8[] memory roleIndexes) external;
+    function revokeRolesExternal(address accountWhichWillGrant, address[] memory accounts, uint8[] memory roleIndexes) external;
+    
     /**
      * @notice Added new Roles for each account
      * @custom:shortd Added new Roles for each account
@@ -206,120 +206,6 @@ contract CommunityState is CommunityStorage {
         );
     }
   
-    /**
-     * @notice registering invite,. calling by relayers
-     * @custom:shortd registering invite 
-     * @param sSig signature of admin whom generate invite and signed it
-     * @param rSig signature of recipient
-     */
-    function invitePrepare(
-        bytes memory sSig, 
-        bytes memory rSig
-    ) 
-        public 
-        
-        accummulateGasCost(sSig)
-    {
-        requireInRole(_msgSender(), _roles[DEFAULT_RELAYERS_ROLE]);
-        require(inviteSignatures[sSig].exists == false, "Such signature is already exists");
-        inviteSignatures[sSig].sSig= sSig;
-        inviteSignatures[sSig].rSig = rSig;
-        inviteSignatures[sSig].reimbursed = ReimburseStatus.NONE;
-        inviteSignatures[sSig].used = false;
-        inviteSignatures[sSig].exists = true;
-    }
-    
-    /**
-     * @dev
-     * @dev ==P==  
-     * @dev format is "<some string data>:<address of communityContract>:<array of role names (sep=',')>:<chain id>:<deadline in unixtimestamp>:<some string data>"          
-     * @dev invite:0x0A098Eda01Ce92ff4A4CCb7A4fFFb5A43EBC70DC:judges,guests,admins:1:1698916962:GregMagarshak  
-     * @dev ==R==  
-     * @dev format is "<address of R wallet>:<name of user>"  
-     * @dev 0x5B38Da6a701c568545dCfcB03FcB875f56beddC4:John Doe  
-     * @notice accepting invite
-     * @custom:shortd accepting invite
-     * @param p invite message of admin whom generate messageHash and signed it
-     * @param sSig signature of admin whom generate invite and signed it
-     * @param rp message of recipient whom generate messageHash and signed it
-     * @param rSig signature of recipient
-     */
-    function inviteAccept(
-        string memory p, 
-        bytes memory sSig, 
-        string memory rp, 
-        bytes memory rSig
-    )
-        public 
-        refundGasCost(sSig)
-        //nonReentrant()
-    {
-        requireInRole(_msgSender(), _roles[DEFAULT_RELAYERS_ROLE]);
-
-        require(inviteSignatures[sSig].used == false, "Such signature is already used");
-
-        (address pAddr, address rpAddr) = _recoverAddresses(p, sSig, rp, rSig);
-       
-        string[] memory dataArr = p.slice(":");
-        string[] memory rolesArr = dataArr[2].slice(",");
-        string[] memory rpDataArr = rp.slice(":");
-        
-        uint256 chainId;
-        //second way to get directly from block.chainId. since instambul version
-        assembly {
-            chainId := chainid()
-        }
-
-        if (
-            pAddr == address(0) || 
-            rpAddr == address(0) || 
-            keccak256(abi.encode(inviteSignatures[sSig].rSig)) != keccak256(abi.encode(rSig)) ||
-            rpDataArr[0].parseAddr() != rpAddr || 
-            dataArr[1].parseAddr() != address(this) ||
-            keccak256(abi.encode(str2num(dataArr[3]))) != keccak256(abi.encode(chainId)) ||
-            str2num(dataArr[4]) < block.timestamp
-        ) {
-            revert("Signature are mismatch");
-        }
-      
-        bool isCanProceed = false;
-        
-        for (uint256 i = 0; i < rolesArr.length; i++) {
-            uint8 roleIndex = _roles[rolesArr[i].stringToBytes32()];
-            if (roleIndex == 0) {
-                emit RoleAddedErrorMessage(_msgSender(), "invalid role");
-            }
-
-            uint8[] memory rolesIndexWhichWillGrant = _rolesWhichCanGrant(pAddr, roleIndex, FlagFork.EMIT);
-
-            uint8 roleIndexWhichWillGrant = validateGrantSettings(rolesIndexWhichWillGrant, roleIndex, FlagFork.EMIT);
-
-            if (roleIndexWhichWillGrant == NONE_ROLE_INDEX) {
-                emit RoleAddedErrorMessage(_msgSender(), string(abi.encodePacked("inviting user did not have permission to add role '",_rolesByIndex[roleIndex].name.bytes32ToString(),"'")));
-            } else {
-                isCanProceed = true;
-                _grantRole(roleIndexWhichWillGrant, pAddr, roleIndex, rpAddr);
-            }
-        }
-
-        if (isCanProceed == false) {
-            revert("Can not add no one role");
-        }
-
-        inviteSignatures[sSig].used = true;
-
-        //store first inviter
-        if (invitedBy[rpAddr] == address(0)) {
-            invitedBy[rpAddr] = pAddr;
-        }
-
-        invited[pAddr].add(rpAddr);
-        
-        _rewardCaller();
-        _replenishRecipient(rpAddr);
-    }
-
-    
     
 
     
@@ -788,69 +674,5 @@ contract CommunityState is CommunityStorage {
     /// private section
     ///////////////////////////////////////////////////////////
     
-    /**
-     * reward caller(relayers)
-     */
-    function _rewardCaller(
-    ) 
-        private 
-    {
-        if (REWARD_AMOUNT <= address(this).balance) {
-            payable(_msgSender()).transfer(REWARD_AMOUNT);
-        }
-    }
-    
-    /**
-     * replenish recipient which added via invite
-     * @param rpAddr recipient's address 
-     */
-    function _replenishRecipient(
-        address rpAddr
-    ) 
-        private 
-    {
-        if (REPLENISH_AMOUNT <= address(this).balance) {
-            payable(rpAddr).transfer(REPLENISH_AMOUNT);
-        }
-    }
-    
-    function _recoverAddresses(
-        string memory p, 
-        bytes memory sSig, 
-        string memory rp, 
-        bytes memory rSig
-    ) 
-        private 
-        pure
-        returns(address, address)
-    {
-        // bytes32 pHash = p.recreateMessageHash();
-        // bytes32 rpHash = rp.recreateMessageHash();
-        // address pAddr = pHash.recover(sSig);
-        // address rpAddr = rpHash.recover(rSig);
-        // return (pAddr, rpAddr);
-
-        return (
-            p.recreateMessageHash().recover(sSig), 
-            rp.recreateMessageHash().recover(rSig)
-        );
-    }
-
-    
-    function str2num(string memory numString) private pure returns(uint256) {
-        uint256 val=0;
-        bytes   memory stringBytes = bytes(numString);
-        for (uint256  i =  0; i<stringBytes.length; i++) {
-            uint256 exp = stringBytes.length - i;
-            bytes1 ival = stringBytes[i];
-            uint8 uval = uint8(ival);
-            uint256 jval = uval - uint256(0x30);
-   
-            val +=  (uint256(jval) * (10**(exp-1))); 
-        }
-        return val;
-    }
-    
-
 }
     

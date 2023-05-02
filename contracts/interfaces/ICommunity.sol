@@ -19,4 +19,8 @@ interface ICommunity {
     function hasRole(address account, uint8 roleIndex) external view returns(bool);
     function grantRoles(address[] memory accounts, uint8[] memory roleIndexes) external;
     function revokeRoles(address[] memory accounts, uint8[] memory roleIndexes) external;
+
+    // for communityInvite
+    function grantRolesExternal(address accountWhichWillGrant, address[] memory accounts, uint8[] memory roleIndexes) external;
+    function revokeRolesExternal(address accountWhichWillGrant, address[] memory accounts, uint8[] memory roleIndexes) external;
 }
