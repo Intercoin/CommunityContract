@@ -245,7 +245,7 @@ contract Community is CommunityStorage, ICommunity {
      * @param canRevokeRole whether addresses with byRole can revoke ofRole from other addresses
      * @param requireRole whether addresses with byRole can grant ofRole to other addresses
      * @param maxAddresses the maximum number of addresses that users with byRole can grant to ofRole in duration
-     * @param duration 
+     * @param duration duration
      *          if duration == 0 then no limit by time: `maxAddresses` will be max accounts on this role
      *          if maxAddresses == 0 then no limit max accounts on this role
      */

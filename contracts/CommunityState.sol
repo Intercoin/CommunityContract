@@ -175,7 +175,7 @@ contract CommunityState is CommunityStorage {
      * @param canRevokeRole whether addresses with byRole can revoke ofRole from other addresses
      * @param requireRole whether addresses with byRole can grant ofRole to other addresses
      * @param maxAddresses the maximum number of addresses that users with byRole can grant to ofRole in duration
-     * @param duration 
+     * @param duration duration
      *          if duration == 0 then no limit by time: `maxAddresses` will be max accounts on this role
      *          if maxAddresses == 0 then no limit max accounts on this role
      */
@@ -347,8 +347,7 @@ contract CommunityState is CommunityStorage {
 
     /**
     * @notice setting contractURI for this contract
-    * @param roleIndex role index
-    * @param roleURI token URI
+    * @param uri uri
     * @custom:shortd setting tokenURI for role
     * @custom:calledby owners only
     */
@@ -398,14 +397,14 @@ contract CommunityState is CommunityStorage {
 
     ///////////////////////////////////
     /**
-    * @dev find which role can grant `targetRoleIndex` to account
-    * @param rolesWhichCanGrant array of role indexes which want to grant `targetRoleIndex` to account
-    * @param targetRoleIndex target role index
+    * @dev find which role can grant `roleIndex` to account
+    * @param rolesWhichCanGrant array of role indexes which want to grant `roleIndex` to account
+    * @param roleIndex target role index
     * @param flag flag which indicated what is need to do when error happens. 
     *   if FlagFork.REVERT - when transaction will reverts, 
     *   if FlagFork.EMIT - emit event `RoleAddedErrorMessage` 
     *   otherwise - do nothing
-    * @return uint8 role index which can grant `targetRoleIndex` to account without error
+    * @return uint8 role index which can grant `roleIndex` to account without error
     */
     function validateGrantSettings(
         uint8[] memory rolesWhichCanGrant,
@@ -420,30 +419,30 @@ contract CommunityState is CommunityStorage {
 
         for (uint256 i = 0; i < rolesWhichCanGrant.length; i++) {
             if (
-                (_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].maxAddresses == 0)
+                (_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[roleIndex].maxAddresses == 0)
             ) {
                 roleWhichCanGrant = rolesWhichCanGrant[i];
             } else {
-                if (_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].duration == 0 ) {
-                    if (_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].grantedAddressesCounter+1 <= _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].maxAddresses) {
+                if (_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[roleIndex].duration == 0 ) {
+                    if (_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[roleIndex].grantedAddressesCounter+1 <= _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[roleIndex].maxAddresses) {
                         roleWhichCanGrant = rolesWhichCanGrant[i];
                     }
                 } else {
 
                     // get current interval index
-                    uint64 interval = uint64(block.timestamp)/(_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].duration)*(_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].duration);
-                    if (interval == _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].lastIntervalIndex) {
+                    uint64 interval = uint64(block.timestamp)/(_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[roleIndex].duration)*(_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[roleIndex].duration);
+                    if (interval == _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[roleIndex].lastIntervalIndex) {
                         if (
-                            _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].grantedAddressesCounter+1 
+                            _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[roleIndex].grantedAddressesCounter+1 
                             <= 
-                            _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].maxAddresses
+                            _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[roleIndex].maxAddresses
                         ) {
                             roleWhichCanGrant = rolesWhichCanGrant[i];
                         }
                     } else {
                         roleWhichCanGrant = rolesWhichCanGrant[i];
-                        _rolesByIndex[roleWhichCanGrant].grantSettings[targetRoleIndex].lastIntervalIndex = interval;
-                        _rolesByIndex[roleWhichCanGrant].grantSettings[targetRoleIndex].grantedAddressesCounter = 0;
+                        _rolesByIndex[roleWhichCanGrant].grantSettings[roleIndex].lastIntervalIndex = interval;
+                        _rolesByIndex[roleWhichCanGrant].grantSettings[roleIndex].grantedAddressesCounter = 0;
 
                     }
                     
@@ -451,7 +450,7 @@ contract CommunityState is CommunityStorage {
             }
 
             if (roleWhichCanGrant != NONE_ROLE_INDEX) {
-                _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[targetRoleIndex].grantedAddressesCounter += 1;
+                _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[roleIndex].grantedAddressesCounter += 1;
                 break;
             }
         }
@@ -515,7 +514,7 @@ contract CommunityState is CommunityStorage {
      * @param canRevokeRole whether addresses with byRole can revoke ofRole from other addresses
      * @param requireRole whether addresses with byRole can grant ofRole to other addresses
      * @param maxAddresses the maximum number of addresses that users with byRole can grant to ofRole in duration
-     * @param duration 
+     * @param duration duration
      *          if duration == 0 then no limit by time: `maxAddresses` will be max accounts on this role
      *          if maxAddresses == 0 then no limit max accounts on this role
      */

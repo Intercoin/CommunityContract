@@ -29,7 +29,7 @@ contract CommunityView is CommunityStorage {
     {
         
         for (uint8 i = 1; i < rolesCount; i++) {
-            if (_isTargetInRole(account, i)) {
+            if (_isInRole(account, i)) {
                 balance += 1;
             }
         }
@@ -51,7 +51,7 @@ contract CommunityView is CommunityStorage {
         uint8 roleId = uint8(tokenId >> 160);
         address w = address(uint160(tokenId - (roleId << 160)));
         
-        owner = (_isTargetInRole(w, roleId)) ? w : address(0);
+        owner = (_isInRole(w, roleId)) ? w : address(0);
 
     }
     

@@ -310,16 +310,16 @@ abstract contract CommunityStorage is Initializable, ReentrancyGuardUpgradeable,
      */
     function isOwner(address account) public view returns(bool) {
         //hasRole(address, OWNERS_ROLE)
-        return _isTargetInRole(account, _roles[DEFAULT_OWNERS_ROLE]);
+        return _isInRole(account, _roles[DEFAULT_OWNERS_ROLE]);
     }
-    function _isTargetInRole(address target, uint8 targetRoleIndex) internal view returns(bool) {
+    function _isInRole(address target, uint8 targetRoleIndex) internal view returns(bool) {
         return _rolesByAddress[target].contains(targetRoleIndex);
     }
     /**
      * @dev Throws if the sender is not in the DEFAULT_OWNERS_ROLE.
      */
     function _checkOwner() internal view override {
-        require(_isTargetInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]), "Ownable: caller is not the owner");
+        require(_isInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]), "Ownable: caller is not the owner");
     }
 
     function _msgSender() internal view override(ContextUpgradeable, TrustedForwarder) returns (address)  {
