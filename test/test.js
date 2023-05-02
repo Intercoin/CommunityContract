@@ -619,12 +619,13 @@ describe("Community", function () {
             [rolesList,] = await CommunityInstance.connect(owner)["getRoles()"]();
             
             // here it will be only internal roles
-
             let rolesExists =[
                 rolesIndex.get('owners'),
                 rolesIndex.get('admins'),
                 rolesIndex.get('members'),
-                rolesIndex.get('relayers')
+                rolesIndex.get('relayers'),
+                rolesIndex.get('alumni'),
+                rolesIndex.get('visitors')
             ];
 
             let rolesNotExists =[
@@ -642,6 +643,7 @@ describe("Community", function () {
                  expect(rolesList.includes(value)).to.be.eq(false);
             })
 
+            expect(rolesList.includes(ZERO)).to.be.eq(false);
             
         });
 
