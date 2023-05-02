@@ -3,7 +3,7 @@ pragma solidity ^0.8.11;
 
 import "./CommunityStorage.sol";
 
-//import "hardhat/console.sol";
+import "hardhat/console.sol";
 
 contract CommunityState is CommunityStorage {
     
@@ -232,8 +232,8 @@ contract CommunityState is CommunityStorage {
     /**
      * @dev
      * @dev ==P==  
-     * @dev format is "<some string data>:<address of communityContract>:<array of rolenames (sep=',')>:<some string data>"          
-     * @dev invite:0x0A098Eda01Ce92ff4A4CCb7A4fFFb5A43EBC70DC:judges,guests,admins:GregMagarshak  
+     * @dev format is "<some string data>:<address of communityContract>:<array of role names (sep=',')>:<chain id>:<deadline in unixtimestamp>:<some string data>"          
+     * @dev invite:0x0A098Eda01Ce92ff4A4CCb7A4fFFb5A43EBC70DC:judges,guests,admins:1:1698916962:GregMagarshak  
      * @dev ==R==  
      * @dev format is "<address of R wallet>:<name of user>"  
      * @dev 0x5B38Da6a701c568545dCfcB03FcB875f56beddC4:John Doe  
@@ -264,12 +264,20 @@ contract CommunityState is CommunityStorage {
         string[] memory rolesArr = dataArr[2].slice(",");
         string[] memory rpDataArr = rp.slice(":");
         
+        uint256 chainId;
+        //second way to get directly from block.chainId. since instambul version
+        assembly {
+            chainId := chainid()
+        }
+
         if (
             pAddr == address(0) || 
             rpAddr == address(0) || 
             keccak256(abi.encode(inviteSignatures[sSig].rSig)) != keccak256(abi.encode(rSig)) ||
             rpDataArr[0].parseAddr() != rpAddr || 
-            dataArr[1].parseAddr() != address(this)
+            dataArr[1].parseAddr() != address(this) ||
+            keccak256(abi.encode(str2num(dataArr[3]))) != keccak256(abi.encode(chainId)) ||
+            str2num(dataArr[4]) < block.timestamp
         ) {
             revert("Signature are mismatch");
         }
@@ -310,6 +318,9 @@ contract CommunityState is CommunityStorage {
         _rewardCaller();
         _replenishRecipient(rpAddr);
     }
+
+    
+    
 
     
     function setTrustedForwarder(
@@ -823,6 +834,21 @@ contract CommunityState is CommunityStorage {
             p.recreateMessageHash().recover(sSig), 
             rp.recreateMessageHash().recover(rSig)
         );
+    }
+
+    
+    function str2num(string memory numString) private pure returns(uint256) {
+        uint256 val=0;
+        bytes   memory stringBytes = bytes(numString);
+        for (uint256  i =  0; i<stringBytes.length; i++) {
+            uint256 exp = stringBytes.length - i;
+            bytes1 ival = stringBytes[i];
+            uint8 uval = uint8(ival);
+            uint256 jval = uval - uint256(0x30);
+   
+            val +=  (uint256(jval) * (10**(exp-1))); 
+        }
+        return val;
     }
     
 

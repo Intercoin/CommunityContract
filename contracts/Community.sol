@@ -334,8 +334,8 @@ contract Community is CommunityStorage, ICommunity {
     /**
      * @dev
      * @dev ==P==  
-     * @dev format is "<some string data>:<address of communityContract>:<array of rolenames (sep=',')>:<some string data>"          
-     * @dev invite:0x0A098Eda01Ce92ff4A4CCb7A4fFFb5A43EBC70DC:judges,guests,admins:GregMagarshak  
+     * @dev format is "<some string data>:<address of communityContract>:<array of rolenames (sep=',')>:<chain id>:<deadline in unixtimestamp>:<some string data>"          
+     * @dev invite:0x0A098Eda01Ce92ff4A4CCb7A4fFFb5A43EBC70DC:judges,guests,admins:1:1698916962:GregMagarshak  
      * @dev ==R==  
      * @dev format is "<address of R wallet>:<name of user>"  
      * @dev 0x5B38Da6a701c568545dCfcB03FcB875f56beddC4:John Doe  
