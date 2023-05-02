@@ -1676,12 +1676,12 @@ describe("Community", function () {
                 ).to.be.false;
             });
 
-            it("check setRoleURI and setExtraURI", async () => {
+            it("check setRoleURI", async () => {
                 let uri = "http://google.com/";
                 let extrauri = "http://google.com/extra";
 
                 //Sender can not manage Members with role
-                await mixedCall(CommunityInstance, trustedForwardMode, accountNine, 'setRoleURI(uint8,string)', [rolesIndex.get('role3'), uri], "Missing role '" +rolesTitle.get('role3')+"'");
+                await mixedCall(CommunityInstance, trustedForwardMode, accountNine, 'setRoleURI(uint8,string)', [rolesIndex.get('role3'), uri], "Missing role '" +rolesTitle.get('owners')+"'");
 
                 expect(
                     await CommunityInstance.tokenURI(generateTokenId(accountThree.address, rolesIndex.get('role3')))
@@ -1691,7 +1691,9 @@ describe("Community", function () {
                     await CommunityInstance.tokenURI(generateTokenId(accountSix.address, rolesIndex.get('role3')))
                 ).to.be.eq("");
 
-                await mixedCall(CommunityInstance, trustedForwardMode, accountThree, 'setRoleURI(uint8,string)', [rolesIndex.get('role3'),uri]);
+                await mixedCall(CommunityInstance, trustedForwardMode, accountThree, 'setRoleURI(uint8,string)', [rolesIndex.get('role3'),uri], "Missing role '" +rolesTitle.get('owners')+"'");
+
+                await mixedCall(CommunityInstance, trustedForwardMode, accountTen, 'setRoleURI(uint8,string)', [rolesIndex.get('role3'),uri]);
 
                 expect(
                     await CommunityInstance.tokenURI(generateTokenId(accountThree.address, rolesIndex.get('role3')))
@@ -1700,16 +1702,6 @@ describe("Community", function () {
                 expect(
                     await CommunityInstance.tokenURI(generateTokenId(accountSix.address, rolesIndex.get('role3')))
                 ).to.be.eq(uri);
-
-                await mixedCall(CommunityInstance, trustedForwardMode, accountSix, 'setExtraURI(uint8,string)', [rolesIndex.get('role3'),extrauri]);
-
-                expect(
-                    await CommunityInstance.tokenURI(generateTokenId(accountThree.address, rolesIndex.get('role3')))
-                ).to.be.eq(uri);
-
-                expect(
-                    await CommunityInstance.tokenURI(generateTokenId(accountSix.address, rolesIndex.get('role3')))
-                ).to.be.eq(extrauri);
                 
             });
 
