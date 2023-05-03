@@ -142,6 +142,10 @@ abstract contract CommunityStorage is Initializable, ReentrancyGuardUpgradeable,
     uint8 internal constant OPERATION_RENOUNCEOWNERSHIP = 0xb;
     uint8 internal constant OPERATION_SET_CONTRACT_URI = 0xc;
     
+    uint8 internal constant NONE_ROLE_INDEX = 0;
+
+    address public defaultAuthorizedInviteManager;
+
     // enum used in method when need to mark what need to do when error happens
     enum FlagFork{ NONE, EMIT, REVERT }
    
@@ -193,6 +197,8 @@ abstract contract CommunityStorage is Initializable, ReentrancyGuardUpgradeable,
     );
     event RoleAddedErrorMessage(address indexed sender, string msg);
     event RenounceOwnership();
+
+    error AuthorizedInviteManagerOnly();
     ///////////////////////////////////////////////////////////
     /// modifiers  section
     ///////////////////////////////////////////////////////////

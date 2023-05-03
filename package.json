@@ -51,15 +51,14 @@
     "solidity-docgen": "^0.5.16",
     "solidoc": "^1.0.5",
     "ts-node": "^10.4.0",
-    "vue-loader": "^15.9.8"
+    "vue-loader": "^15.9.8",
+    "hardhat-contract-sizer": "^2.8.0"
   },
   "dependencies": {
     "@artman325/releasemanager": "^2.0.0",
     "@artman325/trustedforwarder": "^1.0.1",
     "@openzeppelin/contracts": "^4.1.0",
     "@openzeppelin/contracts-upgradeable": "^4.1.0",
-    "@openzeppelin/test-helpers": "^0.5.15",
-    "@uniswap/lib": "^4.0.1-alpha",
-    "hardhat-contract-sizer": "^2.8.0"
+    "@openzeppelin/test-helpers": "^0.5.15"
   }
 }

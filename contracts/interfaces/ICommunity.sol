@@ -8,6 +8,7 @@ interface ICommunity {
         address implView,
         address hook, 
         address costManager, 
+        address authorizedInviteManager, 
         string memory name, 
         string memory symbol,
         string memory contractUri
@@ -16,11 +17,9 @@ interface ICommunity {
     function addressesCount(uint8 roleIndex) external view returns(uint256);
     function getRoles(address[] calldata accounts)external view returns(uint8[][] memory);
     function getAddresses(uint8[] calldata rolesIndexes) external view returns(address[][] memory);
+    function canAccountGrantRole(address accountWhichWillGrant, string memory roleName) external view returns(bool);
     function hasRole(address account, uint8 roleIndex) external view returns(bool);
     function grantRoles(address[] memory accounts, uint8[] memory roleIndexes) external;
     function revokeRoles(address[] memory accounts, uint8[] memory roleIndexes) external;
 
-    // for communityInvite
-    function grantRolesExternal(address accountWhichWillGrant, address[] memory accounts, uint8[] memory roleIndexes) external;
-    function revokeRolesExternal(address accountWhichWillGrant, address[] memory accounts, uint8[] memory roleIndexes) external;
 }

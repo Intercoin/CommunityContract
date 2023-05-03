@@ -4,8 +4,9 @@ pragma solidity ^0.8.11;
 import "./lib/StringUtils.sol";
 import "./lib/ECDSAExt.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
+import "./interfaces/ICommunityInvite.sol";
 
-contract CommunityInvite {
+contract AuthrorizedInviteManager {
 
     using StringUtils for *;  
     using ECDSAExt for string;
@@ -15,18 +16,7 @@ contract CommunityInvite {
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
     //using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
 
-    struct inviteSignature {
-        bytes sSig;
-        bytes rSig;
-        uint256 gasCost;
-        ReimburseStatus reimbursed;
-        bool used;
-        bool exists;
-    }
     
-    
-    
-    enum ReimburseStatus{ NONE, PENDING, CLAIMED }
 
     mapping (bytes => inviteSignature) inviteSignatures;  
     
@@ -114,8 +104,7 @@ contract CommunityInvite {
         
         
     }
-
-
+    
     /**
      * @notice registering invite,. calling by relayers
      * @custom:shortd registering invite 
@@ -129,7 +118,7 @@ contract CommunityInvite {
         external
         accummulateGasCost(sSig)
     {
-        requireInRole(msg.sender, _roles[DEFAULT_RELAYERS_ROLE]);
+
         require(inviteSignatures[sSig].exists == false, "Such signature is already exists");
         inviteSignatures[sSig].sSig= sSig;
         inviteSignatures[sSig].rSig = rSig;
@@ -163,7 +152,6 @@ contract CommunityInvite {
         refundGasCost(sSig)
         //nonReentrant()
     {
-        requireInRole(msg.sender, _roles[DEFAULT_RELAYERS_ROLE]);
 
         require(inviteSignatures[sSig].used == false, "Such signature is already used");
 
@@ -179,12 +167,16 @@ contract CommunityInvite {
             chainId := chainid()
         }
 
+        address communityDestination = dataArr[1].parseAddr();
+
         if (
             pAddr == address(0) || 
             rpAddr == address(0) || 
             keccak256(abi.encode(inviteSignatures[sSig].rSig)) != keccak256(abi.encode(rSig)) ||
             rpDataArr[0].parseAddr() != rpAddr || 
-            dataArr[1].parseAddr() != address(this) ||
+            // dataArr[1].parseAddr() != address(this) || // check only when try to grant
+            ICommunity(communityDestination).defaultAuthorizedInviteManager() == address(this) ||
+
             keccak256(abi.encode(str2num(dataArr[3]))) != keccak256(abi.encode(chainId)) ||
             str2num(dataArr[4]) < block.timestamp
         ) {
@@ -192,17 +184,20 @@ contract CommunityInvite {
         }
       
         bool isCanProceed = false;
-        
+
+
+
+        address[] memory accounts = new address[](1);
+        //accounts[0] = rpAddr;
+
         for (uint256 i = 0; i < rolesArr.length; i++) {
-            uint8 roleIndex = _roles[rolesArr[i].stringToBytes32()];
-            if (roleIndex == 0) {
-                emit RoleAddedErrorMessage(msg.sender, "invalid role");
-            }
+            
 
             uint8[] memory rolesIndexWhichWillGrant = _rolesWhichCanGrant(pAddr, roleIndex, FlagFork.EMIT);
 
             uint8 roleIndexWhichWillGrant = validateGrantSettings(rolesIndexWhichWillGrant, roleIndex, FlagFork.EMIT);
 
+bool canGrant = ICommunity(communityDestination).getRoleWhichCanGrant(pAddr, uint8 roleName) external view returns(bool);
             if (roleIndexWhichWillGrant == NONE_ROLE_INDEX) {
                 emit RoleAddedErrorMessage(msg.sender, string(abi.encodePacked("inviting user did not have permission to add role '",_rolesByIndex[roleIndex].name.bytes32ToString(),"'")));
             } else {
@@ -211,6 +206,10 @@ contract CommunityInvite {
             }
         }
 
+
+
+function grantRolesExternal(address accountWhichWillGrant, address[] memory accounts, uint8[] memory roleIndexes) external;
+function revokeRolesExternal(address accountWhichWillRevoke, address[] memory accounts, uint8[] memory roleIndexes) external;
         if (isCanProceed == false) {
             revert("Can not add no one role");
         }
@@ -228,6 +227,24 @@ contract CommunityInvite {
         _replenishRecipient(rpAddr);
     }
 
+     
+    /**
+     * @notice viewing invite by admin signature
+     * @custom:shortd viewing invite by admin signature
+     * @param sSig signature of admin whom generate invite and signed it
+     * @return structure inviteSignature
+     */
+    function inviteView(
+        bytes memory sSig
+    ) 
+        public 
+        view
+        returns(inviteSignature memory)
+    {
+        return inviteSignatures[sSig];
+    }
+    
+    
 
     /**
      * reward caller(relayers)

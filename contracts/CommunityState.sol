@@ -19,11 +19,13 @@ contract CommunityState is CommunityStorage {
     ///////////////////////////////////////////////////////////
     /**
     * @param hook address of contract implemented ICommunityHook interface. Can be address(0)
+    * @param authorizedInviteManager address of contract implemented invite mechanism
     * @param name_ erc721 name
     * @param symbol_ erc721 symbol
     */
     function initialize(
         address hook,
+        address authorizedInviteManager,
         string memory name_, 
         string memory symbol_, 
         string memory contractURI_
@@ -37,7 +39,7 @@ contract CommunityState is CommunityStorage {
 
         setContractURI(contractURI_);
         
-
+        defaultAuthorizedInviteManager =  authorizedInviteManager;
     }
 
     ///////////////////////////////////////////////////////////
@@ -57,9 +59,6 @@ contract CommunityState is CommunityStorage {
         requireInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]);
         payable(_msgSender()).transfer(address(this).balance);
     } 
-
-    function grantRolesExternal(address accountWhichWillGrant, address[] memory accounts, uint8[] memory roleIndexes) external;
-    function revokeRolesExternal(address accountWhichWillGrant, address[] memory accounts, uint8[] memory roleIndexes) external;
     
     /**
      * @notice Added new Roles for each account
@@ -73,29 +72,7 @@ contract CommunityState is CommunityStorage {
     )
         public 
     {
-        // uint256 lengthAccounts = accounts.length;
-        // uint256 lenRoles = roleIndexes.length;
-        uint8[] memory rolesIndexWhichWillGrant;
-        uint8 roleIndexWhichWillGrant;
-
-        //address sender = _msgSender();
-
-        for (uint256 i = 0; i < roleIndexes.length; i++) {
-            _isRoleValid(roleIndexes[i]); 
-
-            rolesIndexWhichWillGrant = _rolesWhichCanGrant(_msgSender(), roleIndexes[i], FlagFork.NONE);
-
-            require(
-                rolesIndexWhichWillGrant.length != 0,
-                string(abi.encodePacked("Sender can not grant role '",_rolesByIndex[roleIndexes[i]].name.bytes32ToString(),"'"))
-            );
-
-            roleIndexWhichWillGrant = validateGrantSettings(rolesIndexWhichWillGrant, roleIndexes[i], FlagFork.REVERT);
-
-            for (uint256 j = 0; j < accounts.length; j++) {
-                _grantRole(roleIndexWhichWillGrant, _msgSender(), roleIndexes[i], accounts[j]);
-            }
-        }
+       _grantRoles(_msgSender(), accounts, roleIndexes);
     }
     
     /**
@@ -110,32 +87,29 @@ contract CommunityState is CommunityStorage {
     ) 
         public 
     {
+        _revokeRoles(_msgSender(), accounts, roleIndexes);
+    }
 
-        uint8 roleWhichWillRevoke;
-        address sender = _msgSender();
+    function grantRolesExternal(
+        address accountWhichWillGrant, 
+        address[] memory accounts, 
+        uint8[] memory roleIndexes
+    ) 
+        public 
+    {
+        requireAuthorizedManager();
+        _grantRoles(accountWhichWillGrant, accounts, roleIndexes);
+    }
 
-        for (uint256 i = 0; i < roleIndexes.length; i++) {
-            _isRoleValid(roleIndexes[i]); 
-
-            roleWhichWillRevoke = NONE_ROLE_INDEX;
-            if (_isInRole(sender, _roles[DEFAULT_OWNERS_ROLE])) {
-                // owner can do anything. so no need to calculate or loop
-                roleWhichWillRevoke = _roles[DEFAULT_OWNERS_ROLE];
-            } else {
-                for (uint256 j = 0; j<_rolesByAddress[sender].length(); j++) {
-                    if (_rolesByIndex[uint8(_rolesByAddress[sender].get(j))].canRevokeRoles.contains(roleIndexes[i]) == true) {
-                        roleWhichWillRevoke = _rolesByAddress[sender].get(j);
-                        break;
-                    }
-                }
-            }
-            require(roleWhichWillRevoke != NONE_ROLE_INDEX, string(abi.encodePacked("Sender can not revoke role '",_rolesByIndex[roleIndexes[i]].name.bytes32ToString(),"'")));
-            for (uint256 k = 0; k < accounts.length; k++) {
-                _revokeRole(/*roleWhichWillRevoke, */sender, roleIndexes[i], accounts[k]);
-            }
-
-        }
-
+    function revokeRolesExternal(
+        address accountWhichWillRevoke, 
+        address[] memory accounts, 
+        uint8[] memory roleIndexes
+    ) 
+        public 
+    {
+        requireAuthorizedManager();
+        _revokeRoles(accountWhichWillRevoke, accounts, roleIndexes);
     }
     
     /**
@@ -260,10 +234,103 @@ contract CommunityState is CommunityStorage {
     /// public  section that are view
     ///////////////////////////////////////////////////////////
 
+    function canAccountGrantRole(
+        address accountWhichWillGrant, 
+        //uint8 roleIndex
+        string memory roleName
+    ) 
+        public 
+        view 
+        returns(bool)
+    {
+        uint8 roleIndex = _roles[roleName.stringToBytes32()];
+        if (roleIndex != 0) {
+            uint8[] memory rolesIndexesWhichWillGrant = __rolesWhichCanGrant(accountWhichWillGrant, roleIndex);
+            if (rolesIndexesWhichWillGrant.length != 0) {
+                uint8 roleIndexWhichCanGrant;
+                (roleIndexWhichCanGrant,,) = __getRoleWhichCanGrant(rolesIndexesWhichWillGrant, roleIndex);
+                if (roleIndexWhichCanGrant != NONE_ROLE_INDEX) {
+                    return true;
+                }
+            }
+
+        }
+
+        return false;
+    }
+
     ///////////////////////////////////////////////////////////
     /// internal section
     ///////////////////////////////////////////////////////////
 
+    
+
+    function _grantRoles(
+        address accountWhichWillGrant, 
+        address[] memory accounts, 
+        uint8[] memory roleIndexes
+    ) 
+        internal
+    {
+ 
+        // uint256 lengthAccounts = accounts.length;
+        // uint256 lenRoles = roleIndexes.length;
+        uint8[] memory rolesIndexWhichWillGrant;
+        uint8 roleIndexWhichWillGrant;
+
+        
+
+        for (uint256 i = 0; i < roleIndexes.length; i++) {
+            _isRoleValid(roleIndexes[i]); 
+
+            rolesIndexWhichWillGrant = _rolesWhichCanGrant(accountWhichWillGrant, roleIndexes[i], FlagFork.NONE);
+
+            require(
+                rolesIndexWhichWillGrant.length != 0,
+                string(abi.encodePacked("Sender can not grant role '",_rolesByIndex[roleIndexes[i]].name.bytes32ToString(),"'"))
+            );
+                    
+            roleIndexWhichWillGrant = validateGrantSettings(rolesIndexWhichWillGrant, roleIndexes[i], FlagFork.REVERT);
+
+            for (uint256 j = 0; j < accounts.length; j++) {
+                _grantRole(roleIndexWhichWillGrant, accountWhichWillGrant, roleIndexes[i], accounts[j]);
+            }
+        }
+    }
+
+    function _revokeRoles(
+        address accountWhichWillRevoke, 
+        address[] memory accounts, 
+        uint8[] memory roleIndexes
+    ) 
+        internal 
+    {
+        uint8 roleWhichWillRevoke;
+        
+
+        for (uint256 i = 0; i < roleIndexes.length; i++) {
+            _isRoleValid(roleIndexes[i]); 
+
+            roleWhichWillRevoke = NONE_ROLE_INDEX;
+            if (_isInRole(accountWhichWillRevoke, _roles[DEFAULT_OWNERS_ROLE])) {
+                // owner can do anything. so no need to calculate or loop
+                roleWhichWillRevoke = _roles[DEFAULT_OWNERS_ROLE];
+            } else {
+                for (uint256 j = 0; j<_rolesByAddress[accountWhichWillRevoke].length(); j++) {
+                    if (_rolesByIndex[uint8(_rolesByAddress[accountWhichWillRevoke].get(j))].canRevokeRoles.contains(roleIndexes[i]) == true) {
+                        roleWhichWillRevoke = _rolesByAddress[accountWhichWillRevoke].get(j);
+                        break;
+                    }
+                }
+            }
+            require(roleWhichWillRevoke != NONE_ROLE_INDEX, string(abi.encodePacked("Sender can not revoke role '",_rolesByIndex[roleIndexes[i]].name.bytes32ToString(),"'")));
+            for (uint256 k = 0; k < accounts.length; k++) {
+                _revokeRole(/*roleWhichWillRevoke, */accountWhichWillRevoke, roleIndexes[i], accounts[k]);
+            }
+
+        }
+    }
+    
     ///////////////////////////////////
     // ownable implementation with diff semantic
     /**
@@ -312,7 +379,41 @@ contract CommunityState is CommunityStorage {
         returns(uint8) 
     {
 
-        uint8 roleWhichCanGrant = NONE_ROLE_INDEX;
+        uint8 roleWhichCanGrant;
+        bool increaseCounter;
+        uint64 newInterval;
+
+        (roleWhichCanGrant, increaseCounter, newInterval) = __getRoleWhichCanGrant(rolesWhichCanGrant, roleIndex);
+
+        if (roleWhichCanGrant == NONE_ROLE_INDEX) {
+            if (flag == FlagFork.REVERT) {
+                revert("Max amount addresses exceeded");
+            } else if (flag == FlagFork.EMIT) {
+                emit RoleAddedErrorMessage(_msgSender(), "Max amount addresses exceeded");
+            }
+        } else {        
+            if (increaseCounter) {
+                _rolesByIndex[roleWhichCanGrant].grantSettings[roleIndex].grantedAddressesCounter += 1;
+            }
+            if (newInterval != 0) {
+                _rolesByIndex[roleWhichCanGrant].grantSettings[roleIndex].lastIntervalIndex = newInterval;
+                _rolesByIndex[roleWhichCanGrant].grantSettings[roleIndex].grantedAddressesCounter = 0;
+            }
+        }
+
+        return roleWhichCanGrant;
+
+    }
+
+    function __getRoleWhichCanGrant(
+        uint8[] memory rolesWhichCanGrant,
+        uint8 roleIndex
+    ) 
+        internal 
+        view 
+        returns(uint8 roleWhichCanGrant, bool increaseCounter, uint64 newInterval) 
+    {
+        roleWhichCanGrant = NONE_ROLE_INDEX;
 
         for (uint256 i = 0; i < rolesWhichCanGrant.length; i++) {
             if (
@@ -338,8 +439,10 @@ contract CommunityState is CommunityStorage {
                         }
                     } else {
                         roleWhichCanGrant = rolesWhichCanGrant[i];
-                        _rolesByIndex[roleWhichCanGrant].grantSettings[roleIndex].lastIntervalIndex = interval;
-                        _rolesByIndex[roleWhichCanGrant].grantSettings[roleIndex].grantedAddressesCounter = 0;
+                        //_rolesByIndex[roleWhichCanGrant].grantSettings[roleIndex].lastIntervalIndex = interval;
+                        //_rolesByIndex[roleWhichCanGrant].grantSettings[roleIndex].grantedAddressesCounter = 0;
+                        newInterval = interval;
+                        
 
                     }
                     
@@ -347,22 +450,13 @@ contract CommunityState is CommunityStorage {
             }
 
             if (roleWhichCanGrant != NONE_ROLE_INDEX) {
-                _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[roleIndex].grantedAddressesCounter += 1;
+                //_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[roleIndex].grantedAddressesCounter += 1;
+                increaseCounter = true;
                 break;
             }
         }
 
-        if (roleWhichCanGrant == NONE_ROLE_INDEX) {
-            
-            if (flag == FlagFork.REVERT) {
-                revert("Max amount addresses exceeded");
-            } else if (flag == FlagFork.EMIT) {
-                emit RoleAddedErrorMessage(_msgSender(), "Max amount addresses exceeded");
-            }
-        }
-
-        return roleWhichCanGrant;
-
+        return (roleWhichCanGrant, increaseCounter, newInterval);
     }
     
     /**
@@ -376,7 +470,7 @@ contract CommunityState is CommunityStorage {
     ) 
         internal 
     {
-     
+        
         _rolesWhichCanGrant(sender, targetRoleIndex, FlagFork.REVERT);
       
     }
@@ -558,6 +652,28 @@ contract CommunityState is CommunityStorage {
         FlagFork flag
     ) 
         internal 
+        
+        returns (uint8[] memory rolesWhichCan) 
+    {
+        rolesWhichCan = __rolesWhichCanGrant(sender, targetRoleIndex);
+
+        if (rolesWhichCan.length == 0) {
+            string memory errMsg = string(abi.encodePacked("Sender can not grant account with role '", _rolesByIndex[targetRoleIndex].name.bytes32ToString(), "'"));
+            if (flag == FlagFork.REVERT) {
+                revert(errMsg);
+            } else if (flag == FlagFork.EMIT) {
+                emit RoleAddedErrorMessage(sender, errMsg);
+            }
+        }
+
+    }
+
+    function __rolesWhichCanGrant(
+        address sender, 
+        uint8 targetRoleIndex
+    ) 
+        internal 
+        view
         returns (uint8[] memory) 
     {
 
@@ -586,15 +702,6 @@ contract CommunityState is CommunityStorage {
                 if (_rolesByIndex[uint8(_rolesByAddress[sender].get(i))].canGrantRoles.contains(targetRoleIndex) == true) {
                     rolesWhichCan[iLen] = _rolesByAddress[sender].get(i);
                     iLen++;
-                }
-            }
-
-            if (rolesWhichCan.length == 0) {
-                string memory errMsg = string(abi.encodePacked("Sender can not grant account with role '", _rolesByIndex[targetRoleIndex].name.bytes32ToString(), "'"));
-                if (flag == FlagFork.REVERT) {
-                    revert(errMsg);
-                } else if (flag == FlagFork.EMIT) {
-                    emit RoleAddedErrorMessage(sender, errMsg);
                 }
             }
         
@@ -668,6 +775,17 @@ contract CommunityState is CommunityStorage {
             (rolesCount > index), 
             "invalid role"
         ); 
+    }
+
+    function requireAuthorizedManager(
+    ) 
+        internal 
+        view 
+    {
+        if (_msgSender() != defaultAuthorizedInviteManager) {
+            revert AuthorizedInviteManagerOnly();
+        }
+
     }
 
     ///////////////////////////////////////////////////////////

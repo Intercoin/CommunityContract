@@ -5,7 +5,9 @@ pragma abicoder v2;
 import "./CommunityStorage.sol";
 import "./CommunityState.sol";
 import "./CommunityView.sol";
+
 import "./interfaces/ICommunity.sol";
+import "./interfaces/ICommunityInvite.sol";
 
 /**
 *****************
@@ -78,9 +80,6 @@ contract Community is CommunityStorage, ICommunity {
     using PackedSet for PackedSet.Set;
 
     using StringUtils for *;
-
-    using ECDSAExt for string;
-    using ECDSAUpgradeable for bytes32;
     
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
@@ -97,6 +96,7 @@ contract Community is CommunityStorage, ICommunity {
         address implCommunityView_,
         address hook,
         address costManager_,
+        address authorizedInviteManager_,
         string memory name, 
         string memory symbol,
         string memory contractURI_
@@ -116,7 +116,7 @@ contract Community is CommunityStorage, ICommunity {
             address(implCommunityState), 
             abi.encodeWithSelector(
                 CommunityState.initialize.selector,
-                hook, name, symbol, contractURI_
+                hook, authorizedInviteManager_, name, symbol, contractURI_
             )
             //msg.data
         );
@@ -199,6 +199,43 @@ contract Community is CommunityStorage, ICommunity {
             //     CommunityState.revokeRoles.selector,
             //     accounts, roleIndexes
             // )
+            msg.data
+        );
+
+        _accountForOperation(
+            OPERATION_REVOKE_ROLES << OPERATION_SHIFT_BITS,
+            0,
+            0
+        );
+    }
+
+    function grantRolesExternal(
+        address accountWhichWillGrant, 
+        address[] memory accounts, 
+        uint8[] memory roleIndexes
+    ) 
+        public
+    {
+        _functionDelegateCall(
+            address(implCommunityState), 
+            msg.data
+        );
+        _accountForOperation(
+            OPERATION_GRANT_ROLES << OPERATION_SHIFT_BITS,
+            0,
+            0
+        );
+    }
+
+    function revokeRolesExternal(
+        address accountWhichWillRevoke, 
+        address[] memory accounts, 
+        uint8[] memory roleIndexes
+    )
+        public
+    {
+        _functionDelegateCall(
+            address(implCommunityState), 
             msg.data
         );
 
@@ -297,80 +334,6 @@ contract Community is CommunityStorage, ICommunity {
             0,
             0
         );
-    }
-
-    /**
-     * @notice registering invite,. calling by relayers
-     * @custom:shortd registering invite 
-     * @param sSig signature of admin whom generate invite and signed it
-     * @param rSig signature of recipient
-     */
-    function invitePrepare(
-        bytes memory sSig, 
-        bytes memory rSig
-    ) 
-        public 
-        
-        accummulateGasCost(sSig)
-    {
-        _functionDelegateCall(
-            address(implCommunityState), 
-            // abi.encodeWithSelector(
-            //     CommunityState.invitePrepare.selector,
-            //     sSig, rSig
-            // )
-            msg.data
-        );
-
-        
-        _accountForOperation(
-            OPERATION_INVITE_PREPARE << OPERATION_SHIFT_BITS,
-            0,
-            0
-        );
-
-    }
-    
-    /**
-     * @dev
-     * @dev ==P==  
-     * @dev format is "<some string data>:<address of communityContract>:<array of rolenames (sep=',')>:<chain id>:<deadline in unixtimestamp>:<some string data>"          
-     * @dev invite:0x0A098Eda01Ce92ff4A4CCb7A4fFFb5A43EBC70DC:judges,guests,admins:1:1698916962:GregMagarshak  
-     * @dev ==R==  
-     * @dev format is "<address of R wallet>:<name of user>"  
-     * @dev 0x5B38Da6a701c568545dCfcB03FcB875f56beddC4:John Doe  
-     * @notice accepting invite
-     * @custom:shortd accepting invite
-     * @param p invite message of admin whom generate messageHash and signed it
-     * @param sSig signature of admin whom generate invite and signed it
-     * @param rp message of recipient whom generate messageHash and signed it
-     * @param rSig signature of recipient
-     */
-    function inviteAccept(
-        string memory p, 
-        bytes memory sSig, 
-        string memory rp, 
-        bytes memory rSig
-    )
-        public 
-        refundGasCost(sSig)
-        nonReentrant()
-    {
-        _functionDelegateCall(
-            address(implCommunityState), 
-            // abi.encodeWithSelector(
-            //     CommunityState.inviteAccept.selector,
-            //     p, sSig, rp, rSig
-            // )
-            msg.data
-        );
-        
-        _accountForOperation(
-            OPERATION_INVITE_ACCEPT << OPERATION_SHIFT_BITS,
-            0,
-            0
-        );
-
     }
 
     /**
@@ -642,24 +605,7 @@ contract Community is CommunityStorage, ICommunity {
     {
         return addressesCounter;
     }
-    
-    /**
-     * @notice viewing invite by admin signature
-     * @custom:shortd viewing invite by admin signature
-     * @param sSig signature of admin whom generate invite and signed it
-     * @return structure inviteSignature
-     */
-    function inviteView(
-        bytes memory sSig
-    ) 
-        public 
-        view
-        returns(inviteSignature memory)
-    {
-        return inviteSignatures[sSig];
-    }
-    
-    
+   
 
     /**
      * @notice is member has role
@@ -778,6 +724,30 @@ contract Community is CommunityStorage, ICommunity {
             (string)
         );
         
+    }
+
+    function canAccountGrantRole(
+        address accountWhichWillGrant, 
+        //uint8 roleIndex
+        string memory roleName
+    ) 
+        public 
+        view 
+        returns(bool) 
+    {
+        return abi.decode(
+            _functionDelegateCallView(
+                address(implCommunityState), 
+                abi.encodeWithSelector(
+                    CommunityState.canAccountGrantRole.selector,
+                    accountWhichWillGrant,
+                    //roleIndex
+                    roleName
+                ), 
+                ""
+            ), 
+            (bool)
+        );
     }
   
  

@@ -294,21 +294,5 @@ contract CommunityView is CommunityStorage {
         return addressesCounter;
     }
     
-    /**
-     * @notice viewing invite by admin signature
-     * @custom:shortd viewing invite by admin signature
-     * @param sSig signature of admin whom generate invite and signed it
-     * @return structure inviteSignature
-     */
-    function inviteView(
-        bytes memory sSig
-    ) 
-        public 
-        view
-        returns(inviteSignature memory)
-    {
-        return inviteSignatures[sSig];
-    }
-   
 }
     
