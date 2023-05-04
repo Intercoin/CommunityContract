@@ -108,12 +108,6 @@ abstract contract CommunityStorage is Initializable, ReentrancyGuardUpgradeable,
     bytes32 public constant DEFAULT_MEMBERS_ROLE = 0x6d656d6265727300000000000000000000000000000000000000000000000000;
 
     /**
-    * @custom:shortd role name "relayers" in bytes32
-    * @notice constant role name "relayers" in bytes32
-    */
-    bytes32 public constant DEFAULT_RELAYERS_ROLE = 0x72656c6179657273000000000000000000000000000000000000000000000000;
-
-    /**
     * @custom:shortd role name "alumni" in bytes32
     * @notice constant role name "alumni" in bytes32
     */

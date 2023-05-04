@@ -749,8 +749,11 @@ contract Community is CommunityStorage, ICommunity {
             (uint8[])
         );
     }
-  
- 
+
+    function getAuthorizedInviteManager() public view returns(address) {
+        return defaultAuthorizedInviteManager;
+    }
+
   
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     function _verifyCallResult(

@@ -8,6 +8,8 @@ import "./interfaces/ICommunityInvite.sol";
 import "./interfaces/ICommunity.sol";
 import "./interfaces/IAuthorizedInviteManager.sol";
 
+//import "hardhat/console.sol";
+
 
 contract AuthorizedInviteManager is IAuthorizedInviteManager {
 
@@ -157,6 +159,7 @@ contract AuthorizedInviteManager is IAuthorizedInviteManager {
         refundGasCost(sSig)
         //nonReentrant()
     {
+        
         inviteSignature storage signature = inviteSignatures[sSig];
         require(signature.used == false, "Such signature is already used");
 
@@ -171,7 +174,7 @@ contract AuthorizedInviteManager is IAuthorizedInviteManager {
         assembly {
             chainId := chainid()
         }
-
+//revert("Can not add no one role");
         address communityDestination = dataArr[1].parseAddr();
 
         if (
@@ -180,8 +183,7 @@ contract AuthorizedInviteManager is IAuthorizedInviteManager {
             keccak256(abi.encode(signature.rSig)) != keccak256(abi.encode(rSig)) ||
             rpDataArr[0].parseAddr() != rpAddr || 
             // dataArr[1].parseAddr() != address(this) || // check only when try to grant
-            ICommunityInvite(communityDestination).getAuthorizedInviteManager() == address(this) ||
-
+            ICommunityInvite(communityDestination).getAuthorizedInviteManager() != address(this) ||
             keccak256(abi.encode(str2num(dataArr[3]))) != keccak256(abi.encode(chainId)) ||
             str2num(dataArr[4]) < block.timestamp
         ) {

@@ -729,7 +729,6 @@ contract CommunityState is CommunityStorage {
         
         rolesCount = 1;
         
-        _createRole(DEFAULT_RELAYERS_ROLE);
         _createRole(DEFAULT_OWNERS_ROLE);
         _createRole(DEFAULT_ADMINS_ROLE);
         _createRole(DEFAULT_MEMBERS_ROLE);

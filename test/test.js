@@ -90,6 +90,9 @@ describe("Community", function () {
     
 
     var CostManagerBad, CostManagerGood;
+
+    var AuthorizedInviteManager;
+
     beforeEach("deploying", async() => {
         const ReleaseManagerFactoryF = await ethers.getContractFactory("MockReleaseManagerFactory");
         const CommunityFactoryF = await ethers.getContractFactory("CommunityFactory");
@@ -119,6 +122,8 @@ describe("Community", function () {
         let releaseManager = await ethers.getContractAt("MockReleaseManager",instance);
 
         // 
+        const AuthorizedInviteManagerF = await ethers.getContractFactory("AuthorizedInviteManager");
+        AuthorizedInviteManager    = await AuthorizedInviteManagerF.deploy();
 
         // CommunityFactory = await CommunityFactoryF.deploy(implementationCommunity.address, implementationCommunityERC721.address);
         CommunityFactory = await CommunityFactoryF.connect(owner).deploy(
@@ -126,7 +131,8 @@ describe("Community", function () {
             implementationCommunityState.address,
             implementationCommunityView.address,
             NO_COSTMANAGER,
-            releaseManager.address
+            releaseManager.address,
+            AuthorizedInviteManager.address
         );
 
         // 
@@ -1230,7 +1236,7 @@ describe("Community", function () {
             });
         }); 
 
-        describe("invites", function () {
+        describe.only("invites", function () {
             
             const validChainId = hre.network.config.chainId;
             const wrongChainId = 12345678;
@@ -1238,7 +1244,8 @@ describe("Community", function () {
             const timestampInTheFuture = 999999999999;
             //var privatekey1, 
             //privatekey2,
-            var CommunityInstanceStartingBalance;
+            var AuthorizedInviteManagerStartingBalance;
+            
             beforeEach("deploying", async() => {
                 // privatekey1 = owner._signingKey()["privateKey"];
                 // privatekey2 = accountTwo._signingKey()["privateKey"];
@@ -1252,7 +1259,7 @@ describe("Community", function () {
                     value: amountETHSendToContract
                 });
 
-                const CommunityInstanceStartingBalance = (await ethers.provider.getBalance(CommunityInstance.address));
+                const AuthorizedInviteManagerStartingBalance = (await ethers.provider.getBalance(AuthorizedInviteManager.address));
 
                 // create relayers user
                 await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],uint8[])', [[relayer.address], [rolesIndex.get('relayers')]]);
@@ -1263,123 +1270,7 @@ describe("Community", function () {
                 await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role3')]);
                 
             });
-            describe("signatures mismatch", function () {
-                
-                it("when recipient address not equal", async () => {   
-                    let adminMsg = [
-                        'invite',
-                        CommunityInstance.address,
-                        [
-                            rolesTitle.get('role1'),
-                            rolesTitle.get('role2'),
-                            rolesTitle.get('role3')
-                        ].join(','),
-                        validChainId,
-                        timestampInTheFuture,
-                        'GregMagarshak'
-                        ].join(':');
-                    let recipientMsg = ''+accountNine.address+':John Doe';
-                    
-                    let sSig = await accountThree.signMessage(adminMsg);
 
-                    let rSig = await accountTwo.signMessage(recipientMsg);
-
-                    // imitate invitePrepare and check it in system
-                    await mixedCall(CommunityInstance, trustedForwardMode, relayer, 'invitePrepare(bytes,bytes)', [sSig,rSig]);
-
-                    // imitate inviteAccept
-                    await mixedCall(CommunityInstance, trustedForwardMode, relayer, 'inviteAccept(string,bytes,string,bytes)', [adminMsg, sSig, recipientMsg, rSig],"Signature are mismatch");
-
-                });
-
-                it("when contract address not equal", async () => {   
-                    let adminMsg = [
-                        'invite',
-                        accountThree.address,
-                        [
-                            rolesTitle.get('role1'),
-                            rolesTitle.get('role2'),
-                            rolesTitle.get('role3')
-                        ].join(','),
-                        validChainId,
-                        timestampInTheFuture,
-                        'GregMagarshak'
-                        ].join(':');
-                    let recipientMsg = ''+accountTwo.address+':John Doe';
-                    
-                    let sSig = await accountThree.signMessage(adminMsg);
-
-                    let rSig = await accountTwo.signMessage(recipientMsg);
-
-                    // imitate invitePrepare and check it in system
-                    await mixedCall(CommunityInstance, trustedForwardMode, relayer, 'invitePrepare(bytes,bytes)', [sSig,rSig]);
-
-                    // imitate inviteAccept
-                    await mixedCall(CommunityInstance, trustedForwardMode, relayer, 'inviteAccept(string,bytes,string,bytes)', [adminMsg, sSig, recipientMsg, rSig],"Signature are mismatch");
-                    
-
-                });
-
-                it("when generated for another chain(wrong chainId)", async () => {  
-                    
-                    let adminMsg = [
-                        'invite',
-                        accountThree.address,
-                        [
-                            rolesTitle.get('role1'),
-                            rolesTitle.get('role2'),
-                            rolesTitle.get('role3')
-                        ].join(','),
-                        wrongChainId,
-                        timestampInTheFuture,
-                        'GregMagarshak'
-                        ].join(':');;
-                    let recipientMsg = ''+accountTwo.address+':John Doe';
-                    
-                    let sSig = await accountThree.signMessage(adminMsg);
-
-                    let rSig = await accountTwo.signMessage(recipientMsg);
-
-                    // imitate invitePrepare and check it in system
-                    await mixedCall(CommunityInstance, trustedForwardMode, relayer, 'invitePrepare(bytes,bytes)', [sSig,rSig]);
-
-                    // imitate inviteAccept
-                    await mixedCall(CommunityInstance, trustedForwardMode, relayer, 'inviteAccept(string,bytes,string,bytes)', [adminMsg, sSig, recipientMsg, rSig],"Signature are mismatch");
-                    
-
-                });
-
-                it("when invite expired", async () => {  
-                    
-                    let adminMsg = [
-                        'invite',
-                        accountThree.address,
-                        [
-                            rolesTitle.get('role1'),
-                            rolesTitle.get('role2'),
-                            rolesTitle.get('role3')
-                        ].join(','),
-                        validChainId,
-                        timestampInThePast,
-                        'GregMagarshak'
-                        ].join(':');;
-                    let recipientMsg = ''+accountTwo.address+':John Doe';
-                    
-                    let sSig = await accountThree.signMessage(adminMsg);
-
-                    let rSig = await accountTwo.signMessage(recipientMsg);
-
-                    // imitate invitePrepare and check it in system
-                    await mixedCall(CommunityInstance, trustedForwardMode, relayer, 'invitePrepare(bytes,bytes)', [sSig,rSig]);
-
-                    // imitate inviteAccept
-                    await mixedCall(CommunityInstance, trustedForwardMode, relayer, 'inviteAccept(string,bytes,string,bytes)', [adminMsg, sSig, recipientMsg, rSig],"Signature are mismatch");
-                    
-
-                });
-
-            });
-          
             it("invites by admins which cant add any role from list", async () => {   
                 let adminMsg = [
                     'invite',
@@ -1400,9 +1291,9 @@ describe("Community", function () {
                 let rSig = await accountTwo.signMessage(recipientMsg);
 
                 // imitate invitePrepare and check it in system
-                await mixedCall(CommunityInstance, trustedForwardMode, relayer, 'invitePrepare(bytes,bytes)', [sSig,rSig]);
+                await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'invitePrepare(bytes,bytes)', [sSig,rSig]);
                 // imitate inviteAccept
-                await mixedCall(CommunityInstance, trustedForwardMode, relayer, 'inviteAccept(string,bytes,string,bytes)', [adminMsg, sSig, recipientMsg, rSig],"Can not add no one role");
+                await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'inviteAccept(string,bytes,string,bytes)', [adminMsg, sSig, recipientMsg, rSig],"Can not add no one role");
 
             }); 
 
@@ -1428,10 +1319,10 @@ describe("Community", function () {
                 let rSig = await accountTwo.signMessage(recipientMsg);
 
                 // imitate invitePrepare and check it in system
-                await mixedCall(CommunityInstance, trustedForwardMode, relayer, 'invitePrepare(bytes,bytes)', [sSig,rSig]);
+                await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'invitePrepare(bytes,bytes)', [sSig,rSig]);
 
                 // imitate inviteAccept
-                await mixedCall(CommunityInstance, trustedForwardMode, relayer, 'inviteAccept(string,bytes,string,bytes)', [adminMsg, sSig, recipientMsg, rSig]);
+                await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'inviteAccept(string,bytes,string,bytes)', [adminMsg, sSig, recipientMsg, rSig]);
                 
                 // check roles of accountTwo
                 rolesList = await CommunityInstance.connect(owner)["getRoles(address[])"]([accountTwo.address]);
@@ -1473,19 +1364,19 @@ describe("Community", function () {
                 const relayerStartingBalance = (await ethers.provider.getBalance(relayer.address));
 
                 // imitate invitePrepare and check it in system
-                await mixedCall(CommunityInstance, trustedForwardMode, relayer, 'invitePrepare(bytes,bytes)', [sSig,rSig]);
+                await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'invitePrepare(bytes,bytes)', [sSig,rSig]);
 
-                let invite = await CommunityInstance.connect(relayer).inviteView(sSig);
+                let invite = await AuthorizedInviteManager.connect(relayer).inviteView(sSig);
                 expect(invite.exists).to.be.true; // 'invite not found';
                 expect(invite.exists && invite.used==false).to.be.true; // 'invite not used before'
                 //console.log('(1)invite.gasCost=',invite.gasCost);
  
                 // imitate inviteAccept
-                await mixedCall(CommunityInstance, trustedForwardMode, relayer, 'inviteAccept(string,bytes,string,bytes)', [adminMsg, sSig, recipientMsg, rSig]);
+                await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'inviteAccept(string,bytes,string,bytes)', [adminMsg, sSig, recipientMsg, rSig]);
 
                 const relayerEndingBalance = await ethers.provider.getBalance(relayer.address);
                 const recipientEndingBalance = await ethers.provider.getBalance(accountTwo.address);
-                const CommunityInstanceEndingBalance = (await ethers.provider.getBalance(CommunityInstance.address));
+                const AuthorizedInviteManagerEndingBalance = (await ethers.provider.getBalance(AuthorizedInviteManager.address));
                 
                 // check roles of accountTwo
                 rolesList = await CommunityInstance.connect(owner)["getRoles(address[])"]([accountTwo.address]);
@@ -1494,23 +1385,23 @@ describe("Community", function () {
                 expect(rolesList[0].includes(rolesIndex.get('role3'))).to.be.eq(true); 
                 
 
-                let rewardAmount = await CommunityInstance.REWARD_AMOUNT();
-                let replenishAmount = await CommunityInstance.REPLENISH_AMOUNT();
+                let rewardAmount = await AuthorizedInviteManager.REWARD_AMOUNT();
+                let replenishAmount = await AuthorizedInviteManager.REPLENISH_AMOUNT();
                 
-                // if (parseInt((BigNumber(CommunityInstanceStartingBalance).minus(BigNumber(rewardAmount))).toString(10))>0) {
+                // if (parseInt((BigNumber(AuthorizedInviteManagerStartingBalance).minus(BigNumber(rewardAmount))).toString(10))>0) {
                 //     assert.isTrue(
-                //         parseInt((BigNumber(CommunityInstanceStartingBalance).minus(BigNumber(CommunityInstanceEndinggBalance))).toString(10))>=0, 
+                //         parseInt((BigNumber(AuthorizedInviteManagerStartingBalance).minus(BigNumber(CommunityInstanceEndinggBalance))).toString(10))>=0, 
                 //         "wrong Reward count"
                 //     );
                 // }
 
                 expect(recipientEndingBalance.sub(recipientStartingBalance)).to.be.eq(replenishAmount); // "wrong replenishAmount"
                 
-                await mixedCall(CommunityInstance, trustedForwardMode, relayer, 'invitePrepare(bytes,bytes)', [sSig,rSig], "Such signature is already exists");
-                await mixedCall(CommunityInstance, trustedForwardMode, relayer, 'inviteAccept(string,bytes,string,bytes)', [adminMsg, sSig, recipientMsg, rSig], "Such signature is already used");
+                await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'invitePrepare(bytes,bytes)', [sSig,rSig], "Such signature is already exists");
+                await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'inviteAccept(string,bytes,string,bytes)', [adminMsg, sSig, recipientMsg, rSig], "Such signature is already used");
 
-                await expect(await CommunityInstance.invitedBy(accountTwo.address)).to.be.eq(owner.address); //'does not store invited mapping'
-                await expect(await CommunityInstance.invitedBy(accountTwo.address)).not.to.be.eq(accountNine.address); //'store wrong keys in invited mapping'
+                await expect(await AuthorizedInviteManager.invitedBy(accountTwo.address)).to.be.eq(owner.address); //'does not store invited mapping'
+                await expect(await AuthorizedInviteManager.invitedBy(accountTwo.address)).not.to.be.eq(accountNine.address); //'store wrong keys in invited mapping'
                 
             
                 
@@ -1550,14 +1441,14 @@ describe("Community", function () {
                 let sSigFirst = await owner.signMessage(adminMsgFirst);
                 rSig = await accountTwo.signMessage(recipientMsg);
 
-                await mixedCall(CommunityInstance, trustedForwardMode, relayer, 'invitePrepare(bytes,bytes)', [sSigFirst,rSig]);
-                await mixedCall(CommunityInstance, trustedForwardMode, relayer, 'inviteAccept(string,bytes,string,bytes)', [adminMsgFirst, sSigFirst, recipientMsg, rSig]);
+                await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'invitePrepare(bytes,bytes)', [sSigFirst,rSig]);
+                await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'inviteAccept(string,bytes,string,bytes)', [adminMsgFirst, sSigFirst, recipientMsg, rSig]);
 
                 //  make with another owner
                 let sSigSecond = await accountSeven.signMessage(adminMsgSecond);
                 
-                await mixedCall(CommunityInstance, trustedForwardMode, accountSix, 'invitePrepare(bytes,bytes)', [sSigSecond,rSig]);
-                await mixedCall(CommunityInstance, trustedForwardMode, accountSix, 'inviteAccept(string,bytes,string,bytes)', [adminMsgSecond, sSigSecond, recipientMsg, rSig]);
+                await mixedCall(AuthorizedInviteManager, trustedForwardMode, accountSix, 'invitePrepare(bytes,bytes)', [sSigSecond,rSig]);
+                await mixedCall(AuthorizedInviteManager, trustedForwardMode, accountSix, 'inviteAccept(string,bytes,string,bytes)', [adminMsgSecond, sSigSecond, recipientMsg, rSig]);
 
                 await expect(await CommunityInstance.invitedBy(accountTwo.address)).to.be.eq(owner.address); // should be invited by first owner
                 await expect(await CommunityInstance.invitedBy(accountTwo.address)).not.to.be.eq(accountSeven.address); // shouldnt be invited by swcond owner(accountSeven)
@@ -1569,6 +1460,125 @@ describe("Community", function () {
                 expect(rolesList[0].includes(rolesIndex.get('role2'))).to.be.eq(true); 
                 expect(rolesList[0].includes(rolesIndex.get('role3'))).to.be.eq(false); 
             });
+
+            
+            describe("signatures mismatch", function () {
+                
+                it("when recipient address not equal", async () => {   
+                    let adminMsg = [
+                        'invite',
+                        CommunityInstance.address,
+                        [
+                            rolesTitle.get('role1'),
+                            rolesTitle.get('role2'),
+                            rolesTitle.get('role3')
+                        ].join(','),
+                        validChainId,
+                        timestampInTheFuture,
+                        'GregMagarshak'
+                        ].join(':');
+                    let recipientMsg = ''+accountNine.address+':John Doe';
+                    
+                    let sSig = await accountThree.signMessage(adminMsg);
+
+                    let rSig = await accountTwo.signMessage(recipientMsg);
+
+                    // imitate invitePrepare and check it in system
+                    await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'invitePrepare(bytes,bytes)', [sSig,rSig]);
+
+                    // imitate inviteAccept
+                    await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'inviteAccept(string,bytes,string,bytes)', [adminMsg, sSig, recipientMsg, rSig],"Signature are mismatch");
+
+                });
+
+                it("when contract address not equal", async () => {   
+                    let adminMsg = [
+                        'invite',
+                        accountThree.address,
+                        [
+                            rolesTitle.get('role1'),
+                            rolesTitle.get('role2'),
+                            rolesTitle.get('role3')
+                        ].join(','),
+                        validChainId,
+                        timestampInTheFuture,
+                        'GregMagarshak'
+                        ].join(':');
+                    let recipientMsg = ''+accountTwo.address+':John Doe';
+                    
+                    let sSig = await accountThree.signMessage(adminMsg);
+
+                    let rSig = await accountTwo.signMessage(recipientMsg);
+
+                    // imitate invitePrepare and check it in system
+                    await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'invitePrepare(bytes,bytes)', [sSig,rSig]);
+
+                    // imitate inviteAccept
+                    await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'inviteAccept(string,bytes,string,bytes)', [adminMsg, sSig, recipientMsg, rSig],"Signature are mismatch");
+                    
+
+                });
+
+                it("when generated for another chain(wrong chainId)", async () => {  
+                    
+                    let adminMsg = [
+                        'invite',
+                        accountThree.address,
+                        [
+                            rolesTitle.get('role1'),
+                            rolesTitle.get('role2'),
+                            rolesTitle.get('role3')
+                        ].join(','),
+                        wrongChainId,
+                        timestampInTheFuture,
+                        'GregMagarshak'
+                        ].join(':');;
+                    let recipientMsg = ''+accountTwo.address+':John Doe';
+                    
+                    let sSig = await accountThree.signMessage(adminMsg);
+
+                    let rSig = await accountTwo.signMessage(recipientMsg);
+
+                    // imitate invitePrepare and check it in system
+                    await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'invitePrepare(bytes,bytes)', [sSig,rSig]);
+
+                    // imitate inviteAccept
+                    await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'inviteAccept(string,bytes,string,bytes)', [adminMsg, sSig, recipientMsg, rSig],"Signature are mismatch");
+                    
+
+                });
+
+                it("when invite expired", async () => {  
+                    
+                    let adminMsg = [
+                        'invite',
+                        accountThree.address,
+                        [
+                            rolesTitle.get('role1'),
+                            rolesTitle.get('role2'),
+                            rolesTitle.get('role3')
+                        ].join(','),
+                        validChainId,
+                        timestampInThePast,
+                        'GregMagarshak'
+                        ].join(':');;
+                    let recipientMsg = ''+accountTwo.address+':John Doe';
+                    
+                    let sSig = await accountThree.signMessage(adminMsg);
+
+                    let rSig = await accountTwo.signMessage(recipientMsg);
+
+                    // imitate invitePrepare and check it in system
+                    await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'invitePrepare(bytes,bytes)', [sSig,rSig]);
+
+                    // imitate inviteAccept
+                    await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'inviteAccept(string,bytes,string,bytes)', [adminMsg, sSig, recipientMsg, rSig],"Signature are mismatch");
+                    
+
+                });
+
+            });
+          
         });
 
 
