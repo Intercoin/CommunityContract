@@ -5,8 +5,11 @@ import "./lib/StringUtils.sol";
 import "./lib/ECDSAExt.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 import "./interfaces/ICommunityInvite.sol";
+import "./interfaces/ICommunity.sol";
+import "./interfaces/IAuthorizedInviteManager.sol";
 
-contract AuthrorizedInviteManager {
+
+contract AuthorizedInviteManager is IAuthorizedInviteManager {
 
     using StringUtils for *;  
     using ECDSAExt for string;
@@ -37,6 +40,8 @@ contract AuthrorizedInviteManager {
     * @custom:shortd reward amount that user-recepient will replenish
     */
     uint256 public constant REPLENISH_AMOUNT = 1000000000000000; // 0.001 * 1e18
+
+    event RoleAddedErrorMessage(address indexed sender, string msg);
 
     /**
      * @param sSig signature of admin whom generate invite and signed it
@@ -152,8 +157,8 @@ contract AuthrorizedInviteManager {
         refundGasCost(sSig)
         //nonReentrant()
     {
-
-        require(inviteSignatures[sSig].used == false, "Such signature is already used");
+        inviteSignature storage signature = inviteSignatures[sSig];
+        require(signature.used == false, "Such signature is already used");
 
         (address pAddr, address rpAddr) = _recoverAddresses(p, sSig, rp, rSig);
        
@@ -172,49 +177,44 @@ contract AuthrorizedInviteManager {
         if (
             pAddr == address(0) || 
             rpAddr == address(0) || 
-            keccak256(abi.encode(inviteSignatures[sSig].rSig)) != keccak256(abi.encode(rSig)) ||
+            keccak256(abi.encode(signature.rSig)) != keccak256(abi.encode(rSig)) ||
             rpDataArr[0].parseAddr() != rpAddr || 
             // dataArr[1].parseAddr() != address(this) || // check only when try to grant
-            ICommunity(communityDestination).defaultAuthorizedInviteManager() == address(this) ||
+            ICommunityInvite(communityDestination).getAuthorizedInviteManager() == address(this) ||
 
             keccak256(abi.encode(str2num(dataArr[3]))) != keccak256(abi.encode(chainId)) ||
             str2num(dataArr[4]) < block.timestamp
         ) {
             revert("Signature are mismatch");
         }
-      
-        bool isCanProceed = false;
 
-
-
-        address[] memory accounts = new address[](1);
-        //accounts[0] = rpAddr;
-
-        for (uint256 i = 0; i < rolesArr.length; i++) {
-            
-
-            uint8[] memory rolesIndexWhichWillGrant = _rolesWhichCanGrant(pAddr, roleIndex, FlagFork.EMIT);
-
-            uint8 roleIndexWhichWillGrant = validateGrantSettings(rolesIndexWhichWillGrant, roleIndex, FlagFork.EMIT);
-
-bool canGrant = ICommunity(communityDestination).getRoleWhichCanGrant(pAddr, uint8 roleName) external view returns(bool);
-            if (roleIndexWhichWillGrant == NONE_ROLE_INDEX) {
-                emit RoleAddedErrorMessage(msg.sender, string(abi.encodePacked("inviting user did not have permission to add role '",_rolesByIndex[roleIndex].name.bytes32ToString(),"'")));
-            } else {
-                isCanProceed = true;
-                _grantRole(roleIndexWhichWillGrant, pAddr, roleIndex, rpAddr);
+        uint8[] memory rolesIndexesTmp = ICommunity(communityDestination).getRolesWhichAccountCanGrant(pAddr, rolesArr);
+        // create none empty rolesindexes
+        uint256 len;
+        for (uint256 i = 0; i < rolesIndexesTmp.length; i++) {
+            if (rolesIndexesTmp[i] != NONE_ROLE_INDEX) {
+                emit RoleAddedErrorMessage(msg.sender, string(abi.encodePacked("inviting user did not have permission to add role '",rolesArr[i],"'")));
+                len++;
             }
         }
 
-
-
-function grantRolesExternal(address accountWhichWillGrant, address[] memory accounts, uint8[] memory roleIndexes) external;
-function revokeRolesExternal(address accountWhichWillRevoke, address[] memory accounts, uint8[] memory roleIndexes) external;
-        if (isCanProceed == false) {
+        if (len == 0) {
             revert("Can not add no one role");
         }
 
-        inviteSignatures[sSig].used = true;
+        address[] memory accounts = new address[](len);
+        uint8[] memory roleIndexes = new uint8[](len);
+        uint256 j = 0;
+        for (uint256 i = 0; i < rolesIndexesTmp.length; i++) {
+            if (rolesIndexesTmp[i] != NONE_ROLE_INDEX) {
+                accounts[j] = rpAddr;
+                roleIndexes[j] = rolesIndexesTmp[i];
+                j++;
+            }
+        }
+        ICommunityInvite(communityDestination).grantRolesExternal(pAddr, accounts, roleIndexes);
+
+        signature.used = true;
 
         //store first inviter
         if (invitedBy[rpAddr] == address(0)) {
@@ -225,8 +225,8 @@ function revokeRolesExternal(address accountWhichWillRevoke, address[] memory ac
         
         _rewardCaller();
         _replenishRecipient(rpAddr);
-    }
 
+    }
      
     /**
      * @notice viewing invite by admin signature

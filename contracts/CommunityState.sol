@@ -233,30 +233,42 @@ contract CommunityState is CommunityStorage {
     ///////////////////////////////////////////////////////////
     /// public  section that are view
     ///////////////////////////////////////////////////////////
-
-    function canAccountGrantRole(
-        address accountWhichWillGrant, 
+    /**
+    * @dev output rolesindexes array only for that account will grant. 
+    * for example: 
+    roles array is ['role1','role2','role3','role4','some none exist role']. 
+    Output can be like this [0,0,55,0,0]
+    Means that account can grant only 'role3'
+    */
+    function getRolesWhichAccountCanGrant(
+        address account, 
         //uint8 roleIndex
-        string memory roleName
+        string[] memory roleNames
     ) 
         public 
         view 
-        returns(bool)
+        returns(uint8[] memory ret)
     {
-        uint8 roleIndex = _roles[roleName.stringToBytes32()];
-        if (roleIndex != 0) {
-            uint8[] memory rolesIndexesWhichWillGrant = __rolesWhichCanGrant(accountWhichWillGrant, roleIndex);
-            if (rolesIndexesWhichWillGrant.length != 0) {
-                uint8 roleIndexWhichCanGrant;
-                (roleIndexWhichCanGrant,,) = __getRoleWhichCanGrant(rolesIndexesWhichWillGrant, roleIndex);
-                if (roleIndexWhichCanGrant != NONE_ROLE_INDEX) {
-                    return true;
+        uint256 len = roleNames.length;
+        ret = new uint8[](len);
+
+        uint8 roleIndex;
+        uint8[] memory rolesIndexesWhichWillGrant;
+        uint8 roleIndexWhichCanGrant;
+        for(uint256 i = 0; i < len; i++) {
+            roleIndex = _roles[roleNames[i].stringToBytes32()];
+            if (roleIndex != 0) {
+                rolesIndexesWhichWillGrant = __rolesWhichCanGrant(account, roleIndex);
+                if (rolesIndexesWhichWillGrant.length != 0) {
+                    (roleIndexWhichCanGrant,,) = __getRoleWhichCanGrant(rolesIndexesWhichWillGrant, roleIndex);
+                    if (roleIndexWhichCanGrant != NONE_ROLE_INDEX) {
+                        ret[i] = roleIndex;
+                    }
                 }
+
             }
-
         }
-
-        return false;
+        
     }
 
     ///////////////////////////////////////////////////////////

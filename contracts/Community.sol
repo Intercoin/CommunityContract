@@ -726,27 +726,27 @@ contract Community is CommunityStorage, ICommunity {
         
     }
 
-    function canAccountGrantRole(
+    function getRolesWhichAccountCanGrant(
         address accountWhichWillGrant, 
         //uint8 roleIndex
-        string memory roleName
+        string[] memory roleNames
     ) 
         public 
         view 
-        returns(bool) 
+        returns(uint8[] memory) 
     {
         return abi.decode(
             _functionDelegateCallView(
                 address(implCommunityState), 
                 abi.encodeWithSelector(
-                    CommunityState.canAccountGrantRole.selector,
+                    CommunityState.getRolesWhichAccountCanGrant.selector,
                     accountWhichWillGrant,
                     //roleIndex
-                    roleName
+                    roleNames
                 ), 
                 ""
             ), 
-            (bool)
+            (uint8[])
         );
     }
   

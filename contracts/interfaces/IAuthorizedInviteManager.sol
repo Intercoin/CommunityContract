@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.11;
 
-interface IAuthrorizedInviteManager {
+interface IAuthorizedInviteManager {
     
     enum ReimburseStatus{ NONE, PENDING, CLAIMED }
 

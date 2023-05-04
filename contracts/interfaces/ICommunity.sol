@@ -17,7 +17,7 @@ interface ICommunity {
     function addressesCount(uint8 roleIndex) external view returns(uint256);
     function getRoles(address[] calldata accounts)external view returns(uint8[][] memory);
     function getAddresses(uint8[] calldata rolesIndexes) external view returns(address[][] memory);
-    function canAccountGrantRole(address accountWhichWillGrant, string memory roleName) external view returns(bool);
+    function getRolesWhichAccountCanGrant(address accountWhichWillGrant, string[] memory roleNames) external view returns(uint8[] memory);
     function hasRole(address account, uint8 roleIndex) external view returns(bool);
     function grantRoles(address[] memory accounts, uint8[] memory roleIndexes) external;
     function revokeRoles(address[] memory accounts, uint8[] memory roleIndexes) external;
