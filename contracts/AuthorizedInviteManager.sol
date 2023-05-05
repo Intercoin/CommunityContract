@@ -4,14 +4,19 @@ pragma solidity ^0.8.11;
 import "./lib/StringUtils.sol";
 import "./lib/ECDSAExt.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "./interfaces/ICommunityInvite.sol";
 import "./interfaces/ICommunity.sol";
 import "./interfaces/IAuthorizedInviteManager.sol";
-
+import "@artman325/releasemanager/contracts/CostManagerHelper.sol";
+import "@artman325/releasemanager/contracts/ReleaseManagerHelper.sol";
+import "@artman325/releasemanager/contracts/interfaces/IReleaseManager.sol";
+import "@artman325/trustedforwarder/contracts/TrustedForwarder.sol";
 //import "hardhat/console.sol";
 
-
-contract AuthorizedInviteManager is IAuthorizedInviteManager {
+ 
+contract AuthorizedInviteManager is IAuthorizedInviteManager, Initializable, ReentrancyGuardUpgradeable, CostManagerHelper {
 
     using StringUtils for *;  
     using ECDSAExt for string;
@@ -20,8 +25,6 @@ contract AuthorizedInviteManager is IAuthorizedInviteManager {
       
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
     //using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
-
-    
 
     mapping (bytes => inviteSignature) inviteSignatures;  
     
@@ -42,6 +45,10 @@ contract AuthorizedInviteManager is IAuthorizedInviteManager {
     * @custom:shortd reward amount that user-recepient will replenish
     */
     uint256 public constant REPLENISH_AMOUNT = 1000000000000000; // 0.001 * 1e18
+
+    uint8 internal constant OPERATION_SHIFT_BITS = 240;  // 256 - 16
+    // Constants representing operations
+    uint8 internal constant OPERATION_INITIALIZE = 0x0;
 
     event RoleAddedErrorMessage(address indexed sender, string msg);
 
@@ -66,7 +73,6 @@ contract AuthorizedInviteManager is IAuthorizedInviteManager {
         inviteSignatures[sSig].gasCost = inviteSignatures[sSig].gasCost + (remainingGasStart - remainingGasEnd + 30700) * tx.gasprice;
         //----
     }
-
     
     /**
      * @param sSig signature of admin whom generate invite and signed it
@@ -111,6 +117,33 @@ contract AuthorizedInviteManager is IAuthorizedInviteManager {
         
         
     }
+
+    /**
+    * @notice initializes contract
+    */
+    function initialize(
+        address costManager_
+    ) 
+        public 
+        override
+        initializer 
+    {
+
+        __CostManagerHelper_init(msg.sender);
+        _setCostManager(costManager_);
+
+        __ReentrancyGuard_init();
+        
+        _accountForOperation(
+            OPERATION_INITIALIZE << OPERATION_SHIFT_BITS,
+            uint256(uint160(costManager_)),
+            0
+        );
+    }
+
+    
+    
+    receive() external payable {}
     
     /**
      * @notice registering invite,. calling by relayers
@@ -174,16 +207,31 @@ contract AuthorizedInviteManager is IAuthorizedInviteManager {
         assembly {
             chainId := chainid()
         }
-//revert("Can not add no one role");
+
         address communityDestination = dataArr[1].parseAddr();
 
+
+        // community instance check
+        // should be
+        // release manager should be verifing
+        // deployer - it's factory
+        address releaseManagerAddr = ReleaseManagerHelper(deployer).releaseManager();
+        bool isCommunityVerifying = IReleaseManager(releaseManagerAddr).checkInstance(communityDestination);
+        // and ICommunityInvite(communityDestination).getAuthorizedInviteManager() != address(this) ||
+        isCommunityVerifying = 
+            (isCommunityVerifying) 
+            ?
+            ICommunityInvite(communityDestination).getAuthorizedInviteManager() == address(this) 
+            :
+            false;
+
+        
         if (
             pAddr == address(0) || 
             rpAddr == address(0) || 
             keccak256(abi.encode(signature.rSig)) != keccak256(abi.encode(rSig)) ||
             rpDataArr[0].parseAddr() != rpAddr || 
-            // dataArr[1].parseAddr() != address(this) || // check only when try to grant
-            ICommunityInvite(communityDestination).getAuthorizedInviteManager() != address(this) ||
+            !isCommunityVerifying ||
             keccak256(abi.encode(str2num(dataArr[3]))) != keccak256(abi.encode(chainId)) ||
             str2num(dataArr[4]) < block.timestamp
         ) {
@@ -218,19 +266,11 @@ contract AuthorizedInviteManager is IAuthorizedInviteManager {
 
         signature.used = true;
 
-        //store first inviter
-        if (invitedBy[rpAddr] == address(0)) {
-            invitedBy[rpAddr] = pAddr;
-        }
-
-        invited[pAddr].add(rpAddr);
-        
-        _rewardCaller();
-        _replenishRecipient(rpAddr);
-
+        inviteAcceptPart2(pAddr, rpAddr);
+       
     }
-     
-    /**
+
+     /**
      * @notice viewing invite by admin signature
      * @custom:shortd viewing invite by admin signature
      * @param sSig signature of admin whom generate invite and signed it
@@ -245,8 +285,20 @@ contract AuthorizedInviteManager is IAuthorizedInviteManager {
     {
         return inviteSignatures[sSig];
     }
-    
-    
+
+    // used to split `inviteAccept` method to avoid "stack is too deep error"
+    function inviteAcceptPart2(address pAddr, address rpAddr) internal {
+        
+        //store first inviter
+        if (invitedBy[rpAddr] == address(0)) {
+            invitedBy[rpAddr] = pAddr;
+        }
+
+        invited[pAddr].add(rpAddr);
+        
+        _rewardCaller();
+        _replenishRecipient(rpAddr);
+    }
 
     /**
      * reward caller(relayers)

@@ -13,6 +13,10 @@ interface IAuthorizedInviteManager {
         bool used;
         bool exists;
     }
+
+    function initialize(
+        address costManager
+    ) external;
     
 
     /**

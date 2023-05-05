@@ -797,7 +797,7 @@ contract Community is CommunityStorage, ICommunity {
         return _verifyCallResult(success, returndata, errorMessage);
     }
 
-    receive() external payable {}
+   
     
     fallback() payable external {
         
