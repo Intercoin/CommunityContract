@@ -77,31 +77,30 @@ contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
     using Clones for address;
 
     /**
-    * @custom:shortd Community implementation address
-    * @notice Community implementation address
-    */
+     * @custom:shortd Community implementation address
+     * @notice Community implementation address
+     */
     address public immutable implementation;
 
     address public immutable defaultAuthorizedInviteManager;
-    
 
     address[] public instances;
-    
+
     error InstanceCreatedFailed();
     event InstanceCreated(address instance, uint instancesCount);
 
     /**
-    */
+     */
     constructor(
         address _implementation,
         address _costManager,
         address _releaseManager,
         address _defaultAuthorizedInviteManager
-    ) 
-        CostManagerFactoryHelper(_costManager) 
-        ReleaseManagerHelper(_releaseManager) 
+    )
+        CostManagerFactoryHelper(_costManager)
+        ReleaseManagerHelper(_releaseManager)
     {
-        implementation      = _implementation;
+        implementation = _implementation;
 
         defaultAuthorizedInviteManager = _defaultAuthorizedInviteManager;
     }
@@ -111,15 +110,11 @@ contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
     ////////////////////////////////////////////////////////////////////////
 
     /**
-    * @dev view amount of created instances
-    * @return amount amount instances
-    * @custom:shortd view amount of created instances
-    */
-    function instancesCount()
-        external 
-        view 
-        returns (uint256 amount) 
-    {
+     * @dev view amount of created instances
+     * @return amount amount instances
+     * @custom:shortd view amount of created instances
+     */
+    function instancesCount() external view returns (uint256 amount) {
         amount = instances.length;
     }
 
@@ -128,33 +123,31 @@ contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
     ////////////////////////////////////////////////////////////////////////
 
     /**
-    * @param hook address of contract implemented ICommunityHook interface. Can be address(0)
-    * @param name erc721 name
-    * @param symbol erc721 symbol
-    * @param contractUri contract URI
-    * @custom:shortd creation CommunityERC721 instance
-    */
+     * @param hook address of contract implemented ICommunityHook interface. Can be address(0)
+     * @param name erc721 name
+     * @param symbol erc721 symbol
+     * @param contractUri contract URI
+     * @custom:shortd creation CommunityERC721 instance
+     */
     function produce(
         address hook,
         address invitedHook,
         string memory name,
         string memory symbol,
         string memory contractUri
-    ) 
-        public 
-    {
+    ) public {
         address instance = address(implementation).clone();
         _produce(instance, hook, invitedHook, name, symbol, contractUri);
     }
 
     /**
-    * @param salt salt that used with CREATE2 opcode
-    * @param hook address of contract implemented ICommunityHook interface. Can be address(0)
-    * @param name erc721 name
-    * @param symbol erc721 symbol
-    * @param contractUri contract URI
-    * @custom:shortd creation CommunityERC721 instance
-    */
+     * @param salt salt that used with CREATE2 opcode
+     * @param hook address of contract implemented ICommunityHook interface. Can be address(0)
+     * @param name erc721 name
+     * @param symbol erc721 symbol
+     * @param contractUri contract URI
+     * @custom:shortd creation CommunityERC721 instance
+     */
     function produceDeterministic(
         bytes32 salt,
         address hook,
@@ -169,10 +162,10 @@ contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
 
     function getRolesInAllCommunities(
         address addr
-    ) 
-        public 
-        view 
-        returns(address[] memory communities, uint8[][] memory roles)
+    )
+        public
+        view
+        returns (address[] memory communities, uint8[][] memory roles)
     {
         uint256 len = instances.length;
         communities = new address[](len);
@@ -183,12 +176,12 @@ contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
 
         uint8[][] memory tmp;
 
-        for(uint256 i = 0; i < len; i++) {
+        for (uint256 i = 0; i < len; i++) {
             communities[i] = instances[i];
 
             tmp = ICommunity(instances[i]).getRoles(accounts);
             roles[i] = new uint8[](tmp[0].length);
-            
+
             roles[i] = tmp[0];
         }
 
@@ -205,9 +198,7 @@ contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
         string memory name,
         string memory symbol,
         string memory contractUri
-    ) 
-        internal
-    {
+    ) internal {
         //before initialize
         if (instance == address(0)) {
             revert InstanceCreatedFailed();
@@ -216,17 +207,24 @@ contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
         emit InstanceCreated(instance, instances.length);
 
         //initialize
-        ICommunity(instance).initialize(hook, invitedHook, costManager, defaultAuthorizedInviteManager, name, symbol, contractUri);
+        ICommunity(instance).initialize(
+            hook,
+            invitedHook,
+            costManager,
+            defaultAuthorizedInviteManager,
+            name,
+            symbol,
+            contractUri
+        );
 
         //after initialize
         address[] memory s = new address[](1);
         s[0] = msg.sender;
         uint8[] memory r = new uint8[](1);
-        r[0] = 1;//"owners";
+        r[0] = 1; //"owners";
         ICommunity(instance).grantRoles(s, r);
         //-- register instance in release manager
         registerInstance(instance);
         //-----------------
     }
-
 }

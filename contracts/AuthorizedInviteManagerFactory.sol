@@ -73,32 +73,34 @@ ARBITRATION
 
 All disputes related to this agreement shall be governed by and interpreted in accordance with the laws of New York, without regard to principles of conflict of laws. The parties to this agreement will submit all disputes arising under this agreement to arbitration in New York City, New York before a single arbitrator of the American Arbitration Association (“AAA”). The arbitrator shall be selected by application of the rules of the AAA, or by mutual agreement of the parties, except that such arbitrator shall be an attorney admitted to practice law New York. No party to this agreement will challenge the jurisdiction or venue provisions as provided in this section. No party to this agreement will challenge the jurisdiction or venue provisions as provided in this section.
 **/
-contract AuthorizedInviteManagerFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
+contract AuthorizedInviteManagerFactory is
+    CostManagerFactoryHelper,
+    ReleaseManagerHelper
+{
     using Clones for address;
 
     /**
-    * @custom:shortd AuthorizedInviteManager implementation address
-    * @notice AuthorizedInviteManager implementation address
-    */
+     * @custom:shortd AuthorizedInviteManager implementation address
+     * @notice AuthorizedInviteManager implementation address
+     */
     address public immutable implementation;
-    
 
     address[] public instances;
-    
+
     error InstanceCreatedFailed();
     event InstanceCreated(address instance, uint instancesCount);
 
     /**
-    */
+     */
     constructor(
         address _implementation,
         address _costManager,
         address _releaseManager
-    ) 
-        CostManagerFactoryHelper(_costManager) 
-        ReleaseManagerHelper(_releaseManager) 
+    )
+        CostManagerFactoryHelper(_costManager)
+        ReleaseManagerHelper(_releaseManager)
     {
-        implementation      = _implementation;
+        implementation = _implementation;
     }
 
     ////////////////////////////////////////////////////////////////////////
@@ -106,15 +108,11 @@ contract AuthorizedInviteManagerFactory is CostManagerFactoryHelper, ReleaseMana
     ////////////////////////////////////////////////////////////////////////
 
     /**
-    * @dev view amount of created instances
-    * @return amount amount instances
-    * @custom:shortd view amount of created instances
-    */
-    function instancesCount()
-        external 
-        view 
-        returns (uint256 amount) 
-    {
+     * @dev view amount of created instances
+     * @return amount amount instances
+     * @custom:shortd view amount of created instances
+     */
+    function instancesCount() external view returns (uint256 amount) {
         amount = instances.length;
     }
 
@@ -122,20 +120,15 @@ contract AuthorizedInviteManagerFactory is CostManagerFactoryHelper, ReleaseMana
     // public section //////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////
 
-    function produce(
-    ) 
-        public 
-    {
+    function produce() public {
         address instance = address(implementation).clone();
         _produce(instance);
     }
 
     /**
-    * @param salt salt that used with CREATE2 opcode
-    */
-    function produceDeterministic(
-        bytes32 salt
-    ) public {
+     * @param salt salt that used with CREATE2 opcode
+     */
+    function produceDeterministic(bytes32 salt) public {
         address instance = address(implementation).cloneDeterministic(salt);
         _produce(instance);
     }
@@ -143,11 +136,7 @@ contract AuthorizedInviteManagerFactory is CostManagerFactoryHelper, ReleaseMana
     ////////////////////////////////////////////////////////////////////////
     // internal section ////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////
-    function _produce(
-        address instance
-    ) 
-        internal
-    {
+    function _produce(address instance) internal {
         //before initialize
         if (instance == address(0)) {
             revert InstanceCreatedFailed();

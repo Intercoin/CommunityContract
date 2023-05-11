@@ -4,10 +4,10 @@ import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 interface IAuthorizedInvitedHook is IERC165 {
     function onInviteAccepted(
-        address inviteManager, 
-        address accountWhichInitiated, 
-        address accountWhichWillGrant, 
-        address[] memory accounts, 
+        address inviteManager,
+        address accountWhichInitiated,
+        address accountWhichWillGrant,
+        address[] memory accounts,
         uint8[] memory roleIndexes
     ) external;
 }
