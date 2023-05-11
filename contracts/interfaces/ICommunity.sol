@@ -4,8 +4,6 @@ pragma solidity ^0.8.11;
 interface ICommunity {
     
     function initialize(
-        address implState,
-        address implView,
         address hook, 
         address invitedHook,
         address costManager, 

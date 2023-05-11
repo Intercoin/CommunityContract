@@ -82,9 +82,6 @@ contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
     */
     address public immutable implementation;
 
-    address public immutable implementationState;
-    address public immutable implementationView;
-
     address public immutable defaultAuthorizedInviteManager;
     
 
@@ -97,8 +94,6 @@ contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
     */
     constructor(
         address _implementation,
-        address _implementationState,
-        address _implementationView,
         address _costManager,
         address _releaseManager,
         address _defaultAuthorizedInviteManager
@@ -107,9 +102,7 @@ contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
         ReleaseManagerHelper(_releaseManager) 
     {
         implementation      = _implementation;
-        implementationState = _implementationState;
-        implementationView  = _implementationView;
-        
+
         defaultAuthorizedInviteManager = _defaultAuthorizedInviteManager;
     }
 
@@ -223,7 +216,7 @@ contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
         emit InstanceCreated(instance, instances.length);
 
         //initialize
-        ICommunity(instance).initialize(address(implementationState), address(implementationView), hook, invitedHook, costManager, defaultAuthorizedInviteManager, name, symbol, contractUri);
+        ICommunity(instance).initialize(hook, invitedHook, costManager, defaultAuthorizedInviteManager, name, symbol, contractUri);
 
         //after initialize
         address[] memory s = new address[](1);

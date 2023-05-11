@@ -100,16 +100,12 @@ describe("Community", function () {
 
         const ReleaseManagerF = await ethers.getContractFactory("MockReleaseManager");
         const CommunityF = await ethers.getContractFactory("Community");
-        const CommunityStateF = await ethers.getContractFactory("CommunityState");
-        const CommunityViewF = await ethers.getContractFactory("CommunityView");
         
         CostManagerGood = await CostManagerGoodF.deploy();
         CostManagerBad = await CostManagerBadF.deploy();
 
         let implementationReleaseManager    = await ReleaseManagerF.deploy();
         let implementationCommunity         = await CommunityF.deploy();
-        let implementationCommunityState    = await CommunityStateF.deploy();
-        let implementationCommunityView     = await CommunityViewF.deploy();
         
         let releaseManagerFactory   = await ReleaseManagerFactoryF.connect(owner).deploy(implementationReleaseManager.address);
         
@@ -150,8 +146,6 @@ describe("Community", function () {
         // CommunityFactory = await CommunityFactoryF.deploy(implementationCommunity.address, implementationCommunityERC721.address);
         CommunityFactory = await CommunityFactoryF.connect(owner).deploy(
             implementationCommunity.address,
-            implementationCommunityState.address,
-            implementationCommunityView.address,
             NO_COSTMANAGER,
             releaseManager.address,
             AuthorizedInviteManager.address
@@ -578,53 +572,17 @@ describe("Community", function () {
         it("instanceCount check", async () => {
             expect(await CommunityFactory.instancesCount()).to.be.eq(ONE);
         });
-        it("can donate/withdraw ETH", async () => {
+        it("can't send ETH", async () => {
 
             const price = ethers.utils.parseEther('1');
             const amountETHSendToContract = price.mul(TWO); // 2ETH
-        
-            let balanceBeforeAll = (await ethers.provider.getBalance(CommunityInstance.address));
 
             // send ETH to Contract      
-            await accountThree.sendTransaction({to: CommunityInstance.address, value: amountETHSendToContract});
+            await expect(
+                accountThree.sendTransaction({to: CommunityInstance.address, value: amountETHSendToContract})
+            ).to.be.revertedWith("NOT_SUPPORTED");
 
-            let balanceAfterDonate = (await ethers.provider.getBalance(CommunityInstance.address));
 
-            await mixedCall(CommunityInstance, trustedForwardMode, accountThree, 'withdrawRemainingBalance()', [],"Missing role '" +rolesTitle.get('owners')+"'");
-
-            let balanceOwnerBefore =  (await ethers.provider.getBalance(owner.address));
-            let balanceTrustedForwarderBefore =  (await ethers.provider.getBalance(trustedForwarder.address));
-
-            let tx = await mixedCall(CommunityInstance, trustedForwardMode, owner, 'withdrawRemainingBalance()', []);
-
-            let balanceOwnerAfterWithdraw = (await ethers.provider.getBalance(owner.address));
-            let balanceTrustedForwarderAfterWithdraw =  (await ethers.provider.getBalance(trustedForwarder.address));
-
-            let balanceAfterWithdraw = (await ethers.provider.getBalance(CommunityInstance.address));
-
-            expect(balanceBeforeAll).to.be.eq(ZERO);
-            expect(balanceAfterDonate).to.be.eq(amountETHSendToContract);
-            expect(balanceAfterWithdraw).to.be.eq(ZERO);
-            expect(balanceOwnerAfterWithdraw).to.be.gt(balanceOwnerBefore);
-
-            let txReceipt = await ethers.provider.getTransactionReceipt(tx.hash);
-            let transactionFee = BigNumber.from(txReceipt.cumulativeGasUsed).mul(
-                                    BigNumber.from(txReceipt.effectiveGasPrice)
-                                );
-            if (trustedForwardMode) {
-                // no fee consuming for owner. because trasaction initiated trusted forwarder
-                expect(
-                    balanceOwnerAfterWithdraw.sub(balanceOwnerBefore)
-                ).to.be.eq(amountETHSendToContract); // transaction fee is paid by the contract
-                // transaction fee consumed by TrustedForwarder
-                expect(
-                    balanceTrustedForwarderBefore.sub(balanceTrustedForwarderAfterWithdraw)
-                ).to.be.eq(transactionFee); // transaction fee is paid by the contract
-            } else {
-                expect(
-                    balanceOwnerAfterWithdraw.sub(balanceOwnerBefore).add(transactionFee)
-                ).to.be.eq(amountETHSendToContract); // transaction fee is paid by the contract
-            }
         });
 
         it("creator must be owner", async () => {
