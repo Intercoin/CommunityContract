@@ -115,6 +115,7 @@ contract Community is
         uint64 lastIntervalIndex;
         uint256 grantedAddressesCounter;
     }
+
     struct Role {
         bytes32 name;
         string roleURI;
@@ -122,9 +123,7 @@ contract Community is
         //EnumerableSetUpgradeable.UintSet canManageRoles;
         EnumerableSetUpgradeable.UintSet canGrantRoles;
         EnumerableSetUpgradeable.UintSet canRevokeRoles;
-
         mapping(uint8 => GrantSettings) grantSettings;
-
         EnumerableSetUpgradeable.AddressSet members;
     }
 
@@ -228,8 +227,6 @@ contract Community is
     mapping (bytes32 => uint8) internal _roles;
     mapping (address => PackedSet.Set) internal _rolesByAddress;
     mapping (uint8 => Role) internal _rolesByIndex;
-         
-    
     /**
     * @notice map users granted by
     * @custom:shortd map users granted by
@@ -270,6 +267,9 @@ contract Community is
     event RoleAddedErrorMessage(address indexed sender, string msg);
     event RenounceOwnership();
 
+    ////////////////////////////////
+    ///////// errors ///////////////
+    ////////////////////////////////
     error AuthorizedInviteManagerOnly();
     error NOT_SUPPORTED();
 
@@ -277,45 +277,18 @@ contract Community is
     /// modifiers  section
     ///////////////////////////////////////////////////////////
     
-    ///////////////////////////////////////////////////
-    // common to use
-    //////////////////////////////////////////////////
-    /**
-     * @dev Returns the first address in getAddresses(OWNERS_ROLE). usually(if not transferownership/renounceownership) it's always will be deployer.
-     * @return address first address on owners role list.
-     */
-    function owner() public view override returns (address) {
-        return _rolesByIndex[_roles[DEFAULT_OWNERS_ROLE]].members.at(0);
-    }
-
-    /**
-     * @dev Returns true if account is belong to DEFAULT_OWNERS_ROLE
-     * @param account account address
-     * @return bool 
-     */
-    function isOwner(address account) public view returns(bool) {
-        //hasRole(address, OWNERS_ROLE)
-        return _isInRole(account, _roles[DEFAULT_OWNERS_ROLE]);
-    }
-    function _isInRole(address target, uint8 targetRoleIndex) internal view returns(bool) {
-        return _rolesByAddress[target].contains(targetRoleIndex);
-    }
-    /**
-     * @dev Throws if the sender is not in the DEFAULT_OWNERS_ROLE.
-     */
-    function _checkOwner() internal view override {
-        require(_isInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]), "Ownable: caller is not the owner");
-    }
-
-    function _msgSender() internal view override(ContextUpgradeable, TrustedForwarder) returns (address)  {
-        return TrustedForwarder._msgSender();
-    }
-
-    //////////////////////////////////////////////////////////////
     receive() external payable {
         revert NOT_SUPPORTED();
     }
 
+    ///////////////////////////////////////////////////
+    // common to use
+    //////////////////////////////////////////////////
+   
+
+    ///////////////////////////////////////////////////////////
+    /// external
+    ///////////////////////////////////////////////////////////
     /**
     * @param hook_ address of contract implemented ICommunityHook interface. Can be address(0)
     * @param authorizedInviteManager_ address of contract implemented invite mechanism
@@ -383,40 +356,7 @@ contract Community is
     ///////////////////////////////////////////////////////////
     /// public  section
     ///////////////////////////////////////////////////////////
-
-    /**
-    * @notice setting contractURI for this contract
-    * @param uri uri
-    * @custom:shortd setting tokenURI for role
-    * @custom:calledby owners only
-    */
-    function _setContractURI(
-        string memory uri
-    ) 
-        internal 
-    {
-        
-        contractURI = uri;
-    }
-
-    function invitedHook() external view returns(address) {
-        return _invitedHook;
-    }
-
-    /**
-    * @notice the way to withdraw remaining ETH from the contract. called by owners only 
-    * @custom:shortd the way to withdraw ETH from the contract.
-    * @custom:calledby owners
-    */
-    function withdrawRemainingBalance(
-    ) 
-        public 
-        nonReentrant()
-    {
-        requireInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]);
-        payable(_msgSender()).transfer(address(this).balance);
-    } 
-
+    
     /**
      * @notice Added new Roles for each account
      * @custom:shortd Added new Roles for each account
@@ -680,6 +620,29 @@ contract Community is
     ///////////////////////////////////////////////////////////
     /// public (view)section
     ///////////////////////////////////////////////////////////
+    
+    function invitedHook() public view returns(address) {
+        return _invitedHook;
+    }
+
+    /**
+     * @dev Returns the first address in getAddresses(OWNERS_ROLE). usually(if not transferownership/renounceownership) it's always will be deployer.
+     * @return address first address on owners role list.
+     */
+    function owner() public view override returns (address) {
+        return _rolesByIndex[_roles[DEFAULT_OWNERS_ROLE]].members.at(0);
+    }
+
+    /**
+     * @dev Returns true if account is belong to DEFAULT_OWNERS_ROLE
+     * @param account account address
+     * @return bool 
+     */
+    function isOwner(address account) public view returns(bool) {
+        //hasRole(address, OWNERS_ROLE)
+        return _isInRole(account, _roles[DEFAULT_OWNERS_ROLE]);
+    }
+
     /**
      * @dev can be duplicate items in output. see https://github.com/Intercoin/CommunityContract/issues/4#issuecomment-1049797389
      * @notice Returns all addresses across all roles
@@ -937,7 +900,7 @@ contract Community is
     function balanceOf(
         address account
     ) 
-        external 
+        public 
         view 
         override
         returns (uint256 balance) 
@@ -959,7 +922,7 @@ contract Community is
     function ownerOf(
         uint256 tokenId
     ) 
-        external 
+        public 
         view 
         override
         returns (address) 
@@ -980,7 +943,7 @@ contract Community is
     function tokenURI(
         uint256 tokenId
     ) 
-        external 
+        public 
         view 
         override 
         returns (string memory)
@@ -1026,7 +989,7 @@ contract Community is
             if (roleIndex != 0) {
                 rolesIndexesWhichWillGrant = __rolesWhichCanGrant(accountWhichWillGrant, roleIndex);
                 if (rolesIndexesWhichWillGrant.length != 0) {
-                    (roleIndexWhichCanGrant,,) = __getRoleWhichCanGrant(rolesIndexesWhichWillGrant, roleIndex);
+                    (roleIndexWhichCanGrant,,) = _getRoleWhichCanGrant(rolesIndexesWhichWillGrant, roleIndex);
                     if (roleIndexWhichCanGrant != NONE_ROLE_INDEX) {
                         ret[i] = roleIndex;
                     }
@@ -1040,12 +1003,24 @@ contract Community is
         return defaultAuthorizedInviteManager;
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
     ///////////////////////////////////////////////////////////
     /// internal section
     ///////////////////////////////////////////////////////////
 
+    /**
+    * @notice setting contractURI for this contract
+    * @param uri uri
+    * @custom:shortd setting tokenURI for role
+    * @custom:calledby owners only
+    */
+    function _setContractURI(
+        string memory uri
+    ) 
+        internal 
+    {
+        
+        contractURI = uri;
+    }
     
 
     function _grantRoles(
@@ -1166,7 +1141,7 @@ contract Community is
         bool increaseCounter;
         uint64 newInterval;
 
-        (roleWhichCanGrant, increaseCounter, newInterval) = __getRoleWhichCanGrant(rolesWhichCanGrant, roleIndex);
+        (roleWhichCanGrant, increaseCounter, newInterval) = _getRoleWhichCanGrant(rolesWhichCanGrant, roleIndex);
 
         if (roleWhichCanGrant == NONE_ROLE_INDEX) {
             if (flag == FlagFork.REVERT) {
@@ -1188,60 +1163,6 @@ contract Community is
 
     }
 
-    function __getRoleWhichCanGrant(
-        uint8[] memory rolesWhichCanGrant,
-        uint8 roleIndex
-    ) 
-        internal 
-        view 
-        returns(uint8 roleWhichCanGrant, bool increaseCounter, uint64 newInterval) 
-    {
-        roleWhichCanGrant = NONE_ROLE_INDEX;
-
-        for (uint256 i = 0; i < rolesWhichCanGrant.length; i++) {
-            if (
-                (_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[roleIndex].maxAddresses == 0)
-            ) {
-                roleWhichCanGrant = rolesWhichCanGrant[i];
-            } else {
-                if (_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[roleIndex].duration == 0 ) {
-                    if (_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[roleIndex].grantedAddressesCounter+1 <= _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[roleIndex].maxAddresses) {
-                        roleWhichCanGrant = rolesWhichCanGrant[i];
-                    }
-                } else {
-
-                    // get current interval index
-                    uint64 interval = uint64(block.timestamp)/(_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[roleIndex].duration)*(_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[roleIndex].duration);
-                    if (interval == _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[roleIndex].lastIntervalIndex) {
-                        if (
-                            _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[roleIndex].grantedAddressesCounter+1 
-                            <= 
-                            _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[roleIndex].maxAddresses
-                        ) {
-                            roleWhichCanGrant = rolesWhichCanGrant[i];
-                        }
-                    } else {
-                        roleWhichCanGrant = rolesWhichCanGrant[i];
-                        //_rolesByIndex[roleWhichCanGrant].grantSettings[roleIndex].lastIntervalIndex = interval;
-                        //_rolesByIndex[roleWhichCanGrant].grantSettings[roleIndex].grantedAddressesCounter = 0;
-                        newInterval = interval;
-                        
-
-                    }
-                    
-                }
-            }
-
-            if (roleWhichCanGrant != NONE_ROLE_INDEX) {
-                //_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[roleIndex].grantedAddressesCounter += 1;
-                increaseCounter = true;
-                break;
-            }
-        }
-
-        return (roleWhichCanGrant, increaseCounter, newInterval);
-    }
-    
     /**
      * @notice is role can be granted by sender's roles?
      * @param sender sender
@@ -1451,6 +1372,78 @@ contract Community is
 
     }
 
+    ///////////////////////////////////////////////////////////
+    /// internal section that are view
+    ///////////////////////////////////////////////////////////
+    
+    function _isInRole(address target, uint8 targetRoleIndex) internal view returns(bool) {
+        return _rolesByAddress[target].contains(targetRoleIndex);
+    }
+    /**
+     * @dev Throws if the sender is not in the DEFAULT_OWNERS_ROLE.
+     */
+    function _checkOwner() internal view override {
+        require(_isInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]), "Ownable: caller is not the owner");
+    }
+
+    function _msgSender() internal view override(ContextUpgradeable, TrustedForwarder) returns (address)  {
+        return TrustedForwarder._msgSender();
+    }
+
+    function _getRoleWhichCanGrant(
+        uint8[] memory rolesWhichCanGrant,
+        uint8 roleIndex
+    ) 
+        internal 
+        view 
+        returns(uint8 roleWhichCanGrant, bool increaseCounter, uint64 newInterval) 
+    {
+        roleWhichCanGrant = NONE_ROLE_INDEX;
+
+        for (uint256 i = 0; i < rolesWhichCanGrant.length; i++) {
+            if (
+                (_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[roleIndex].maxAddresses == 0)
+            ) {
+                roleWhichCanGrant = rolesWhichCanGrant[i];
+            } else {
+                if (_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[roleIndex].duration == 0 ) {
+                    if (_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[roleIndex].grantedAddressesCounter+1 <= _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[roleIndex].maxAddresses) {
+                        roleWhichCanGrant = rolesWhichCanGrant[i];
+                    }
+                } else {
+
+                    // get current interval index
+                    uint64 interval = uint64(block.timestamp)/(_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[roleIndex].duration)*(_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[roleIndex].duration);
+                    if (interval == _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[roleIndex].lastIntervalIndex) {
+                        if (
+                            _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[roleIndex].grantedAddressesCounter+1 
+                            <= 
+                            _rolesByIndex[rolesWhichCanGrant[i]].grantSettings[roleIndex].maxAddresses
+                        ) {
+                            roleWhichCanGrant = rolesWhichCanGrant[i];
+                        }
+                    } else {
+                        roleWhichCanGrant = rolesWhichCanGrant[i];
+                        //_rolesByIndex[roleWhichCanGrant].grantSettings[roleIndex].lastIntervalIndex = interval;
+                        //_rolesByIndex[roleWhichCanGrant].grantSettings[roleIndex].grantedAddressesCounter = 0;
+                        newInterval = interval;
+                        
+
+                    }
+                    
+                }
+            }
+
+            if (roleWhichCanGrant != NONE_ROLE_INDEX) {
+                //_rolesByIndex[rolesWhichCanGrant[i]].grantSettings[roleIndex].grantedAddressesCounter += 1;
+                increaseCounter = true;
+                break;
+            }
+        }
+
+        return (roleWhichCanGrant, increaseCounter, newInterval);
+    }
+    
     function __rolesWhichCanGrant(
         address sender, 
         uint8 targetRoleIndex
@@ -1493,16 +1486,6 @@ contract Community is
         return rolesWhichCan;
     }
 
-    function __CommunityBase_init(address hook_, address invitedHook_) internal onlyInitializing {
-        
-        
-
-    }
-
-    ///////////////////////////////////////////////////////////
-    /// internal section that are view
-    ///////////////////////////////////////////////////////////
-    
     /**
      * @notice does address belong to role
      * @param target address
