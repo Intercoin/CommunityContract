@@ -13,11 +13,22 @@ interface IAuthorizedInviteManager {
         bool used;
         bool exists;
     }
+    
+    struct inviteReserveStruct  {
+        address sender;
+        uint64 timestamp;
+        uint256 gasCost;
+        
+    }
 
     function initialize(
         address costManager
     ) external;
     
+    function inviteReserve(
+        bytes32 hash
+    ) external;
+
 
     /**
      * @notice registering invite,. calling by relayers

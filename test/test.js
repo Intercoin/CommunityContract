@@ -1,5 +1,6 @@
 const { ethers, waffle } = require('hardhat');
 const { BigNumber } = require('ethers');
+const { utils } = require("ethers");
 const { expect } = require('chai');
 const chai = require('chai');
 const { time } = require('@openzeppelin/test-helpers');
@@ -85,6 +86,7 @@ describe("Community", function () {
     ]);
     var CommunityFactory;
     var AuthorizedInviteManager;
+    var AuthorizedInviteManagerGasTracker;
     var CostManagerBad, CostManagerGood;
 
     beforeEach("deploying", async() => {
@@ -143,7 +145,6 @@ describe("Community", function () {
         event = rc.events.find(event => event.event === 'InstanceCreated');
         [instance, instancesCount] = event.args;
         AuthorizedInviteManager = await ethers.getContractAt("AuthorizedInviteManager",instance);
-
    
         // CommunityFactory = await CommunityFactoryF.deploy(implementationCommunity.address, implementationCommunityERC721.address);
         CommunityFactory = await CommunityFactoryF.connect(owner).deploy(
@@ -1261,7 +1262,7 @@ describe("Community", function () {
             });
         }); 
 
-        describe("invites", function () {
+        describe.only("invites", function () {
             
             const validChainId = hre.network.config.chainId;
             const wrongChainId = 12345678;
@@ -1291,6 +1292,36 @@ describe("Community", function () {
                 await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role2')]);
                 await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role3')]);
                 
+            });
+            it.only("should wait a timeout if reserved before", async () => {   
+                let adminMsg = [
+                    'invite',
+                    CommunityInstance.address,
+                    [
+                        rolesTitle.get('role1'),
+                        rolesTitle.get('role2'),
+                        rolesTitle.get('role3')
+                    ].join(','),
+                    validChainId,
+                    timestampInTheFuture,
+                    'GregMagarshak'
+                    ].join(':');
+                let recipientMsg = ''+accountTwo.address+':John Doe';
+                
+                let sSig = await owner.signMessage(adminMsg);
+
+                let rSig = await accountTwo.signMessage(recipientMsg);
+
+                //const hash = utils.keccak256(utils.toUtf8Bytes(sSig+rSig));
+                const hash = utils.keccak256(utils.concat([sSig,rSig]));
+                let solidityHash = await AuthorizedInviteManager.getInviteReservedHash(sSig,rSig);
+console.log("solidityHash   = ", solidityHash);
+console.log("1              = ", hash);
+                await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'inviteReserve(bytes32)', [hash]);
+
+                await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'inviteReserve(bytes32)', [hash], 'Already reserved');
+
+                await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'invitePrepare(bytes,bytes)', [sSig,rSig], 'Invite still reserved');
             });
 
             it("invites by admins which cant add any role from list", async () => {   
@@ -1353,8 +1384,9 @@ describe("Community", function () {
 
             }); 
 
-            it("invites test", async () => {   
-                
+            it("invites test", async () => { 
+
+                let txTmp;
                 // generate messages and signatures
                     
                 //let adminMsg = 'invite:'+CommunityInstance.address+':role1,role2,role3:GregMagarshak';
@@ -1376,24 +1408,37 @@ describe("Community", function () {
 
                 let rSig = await accountTwo.signMessage(recipientMsg);
 
-                const recipientStartingBalance = (await ethers.provider.getBalance(accountTwo.address));
-                const relayerStartingBalance = (await ethers.provider.getBalance(relayer.address));
+                var recipientStartingBalance = (await ethers.provider.getBalance(accountTwo.address));
+                var relayerStartingBalance = (await ethers.provider.getBalance(relayer.address));
+                const AuthorizedInviteManagerStartingBalance = (await ethers.provider.getBalance(AuthorizedInviteManager.address));
 
                 // imitate invitePrepare and check it in system
-                await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'invitePrepare(bytes,bytes)', [sSig,rSig]);
+                txTmp = await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'invitePrepare(bytes,bytes)', [sSig,rSig]);
+                const txInvitePrepare = await txTmp.wait();
+                // const relayerMiddleBalance = (await ethers.provider.getBalance(relayer.address));
+                // console.log('relayerMiddleBalance     =', relayerMiddleBalance.toString());
 
                 let invite = await AuthorizedInviteManager.connect(relayer).inviteView(sSig);
                 expect(invite.exists).to.be.true; // 'invite not found';
                 expect(invite.exists && invite.used==false).to.be.true; // 'invite not used before'
-                //console.log('(1)invite.gasCost=',invite.gasCost);
+                // console.log('(1)invite.gasCost=',invite.gasCost);
  
                 // imitate inviteAccept
-                await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'inviteAccept(string,bytes,string,bytes)', [adminMsg, sSig, recipientMsg, rSig]);
+                txTmp = await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'inviteAccept(string,bytes,string,bytes)', [adminMsg, sSig, recipientMsg, rSig]);
+
+                const txInviteAccept = await txTmp.wait();   
+                let invite2 = await AuthorizedInviteManager.connect(relayer).inviteView(sSig);
+                // console.log('(2)invite.gasCost=',invite2.gasCost);
 
                 const relayerEndingBalance = await ethers.provider.getBalance(relayer.address);
                 const recipientEndingBalance = await ethers.provider.getBalance(accountTwo.address);
                 const AuthorizedInviteManagerEndingBalance = (await ethers.provider.getBalance(AuthorizedInviteManager.address));
                 
+                // calculate tx cost
+                let txInvitePrepareCost = txInvitePrepare.cumulativeGasUsed * txInvitePrepare.effectiveGasPrice
+                let txInviteAcceptCost = txInviteAccept.cumulativeGasUsed * txInviteAccept.effectiveGasPrice
+                
+
                 // check roles of accountTwo
                 
                 var rolesList = await CommunityInstance.connect(owner)["getRoles(address[])"]([accountTwo.address]);
@@ -1403,15 +1448,35 @@ describe("Community", function () {
                  
                 let rewardAmount = await AuthorizedInviteManager.REWARD_AMOUNT();
                 let replenishAmount = await AuthorizedInviteManager.REPLENISH_AMOUNT();
-                
-                // if (parseInt((BigNumber(AuthorizedInviteManagerStartingBalance).minus(BigNumber(rewardAmount))).toString(10))>0) {
-                //     assert.isTrue(
-                //         parseInt((BigNumber(AuthorizedInviteManagerStartingBalance).minus(BigNumber(CommunityInstanceEndinggBalance))).toString(10))>=0, 
-                //         "wrong Reward count"
-                //     );
-                // }
 
+                //replenish for recipient
                 expect(recipientEndingBalance.sub(recipientStartingBalance)).to.be.eq(replenishAmount); // "wrong replenishAmount"
+                
+                
+                ////////////////////////////////////////////////////////////// 
+                // this section need to review
+                // cant catch correct consuming funds
+                if (trustedForwardMode) {
+                    // WITH trusted forwarder we have another cost that should calculate with diff coef
+                    // TBD
+                } else {
+                    
+                    /*
+                    let totalSpentViaManager;
+
+                    expect(relayerEndingBalance.sub(relayerStartingBalance)).to.be.eq(rewardAmount); // "wrong rewardAmount"
+
+                    //rewardAmount+replenishAmount+txInvitePrepareCost+txInviteAcceptCost
+                    totalSpentViaManager = BigNumber.from(rewardAmount.toString()).add(
+                        BigNumber.from(txInvitePrepareCost.toString())
+                    ).add(
+                        BigNumber.from(txInviteAcceptCost.toString())
+                    ).add(BigNumber.from(replenishAmount.toString()));
+
+                    expect(AuthorizedInviteManagerStartingBalance.sub(AuthorizedInviteManagerEndingBalance)).to.be.eq(totalSpentViaManager);
+                    */
+                }
+                ////////////////////////////////////////////////////////////// 
                 
                 await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'invitePrepare(bytes,bytes)', [sSig,rSig], "Such signature is already exists");
                 await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'inviteAccept(string,bytes,string,bytes)', [adminMsg, sSig, recipientMsg, rSig], "Such signature is already used");
@@ -1419,13 +1484,11 @@ describe("Community", function () {
                 await expect(await AuthorizedInviteManager.invitedBy(accountTwo.address)).to.be.eq(owner.address); //'does not store invited mapping'
                 await expect(await AuthorizedInviteManager.invitedBy(accountTwo.address)).not.to.be.eq(accountNine.address); //'store wrong keys in invited mapping'
                 
-            
-                
             });
 
             it("check first invites test", async () => {   
   
-                // Adding another tow owners (accountSix) (accountSeven)
+                // Adding another two owners (accountSix) (accountSeven)
                 await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],uint8[])', [[accountSix.address, accountSeven.address], [rolesIndex.get('owners'), rolesIndex.get('owners')]]);
 
                 let adminMsgFirst = [
@@ -1596,7 +1659,6 @@ describe("Community", function () {
 
 
     });
-
 
     describe(`${trustedForwardMode ? '[trusted forwarder]' : ''}CommunityERC721 tests`, function () {
         

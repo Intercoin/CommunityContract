@@ -26,13 +26,17 @@ contract AuthorizedInviteManager is IAuthorizedInviteManager, Initializable, Ree
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
     //using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
 
+    uint64 internal constant RESERVE_DELAY = 10 minutes;
+       
+    mapping (bytes32 => inviteReserveStruct) inviteReserved;
+
     mapping (bytes => inviteSignature) inviteSignatures;  
     
     //receiver => sender
     mapping(address => address) public invitedBy;
     //sender => receivers
     mapping(address => EnumerableSetUpgradeable.AddressSet) internal invited;
-       
+ 
     uint8 internal constant NONE_ROLE_INDEX = 0;
         
     /**
@@ -53,8 +57,21 @@ contract AuthorizedInviteManager is IAuthorizedInviteManager, Initializable, Ree
     event RoleAddedErrorMessage(address indexed sender, string msg);
 
     /**
-     * @param sSig signature of admin whom generate invite and signed it
+     * param sSig signature of admin whom generate invite and signed it
      */
+    modifier accummulateGasCostWhenReserve(bytes32 hash)
+    {
+        uint remainingGasStart = gasleft();
+
+        _;
+
+        uint remainingGasEnd = gasleft();
+
+        inviteReserved[hash].gasCost = inviteReserved[hash].gasCost + (remainingGasStart - remainingGasEnd + 30700) * tx.gasprice;
+//        24979
+        //----
+    }
+
     modifier accummulateGasCost(bytes memory sSig)
     {
         uint remainingGasStart = gasleft();
@@ -62,6 +79,7 @@ contract AuthorizedInviteManager is IAuthorizedInviteManager, Initializable, Ree
         _;
 
         uint remainingGasEnd = gasleft();
+//console.log("total = ",remainingGasStart - remainingGasEnd + 56867);
         // uint usedGas = remainingGasStart - remainingGasEnd;
         // // Add intrinsic gas and transfer gas. Need to account for gas stipend as well.
         // // usedGas += 21000 + 9700;
@@ -70,7 +88,11 @@ contract AuthorizedInviteManager is IAuthorizedInviteManager, Initializable, Ree
         // uint gasCost = usedGas * tx.gasprice;
         // // accummulate refund gas cost
         // inviteSignatures[sSig].gasCost = inviteSignatures[sSig].gasCost + gasCost;
-        inviteSignatures[sSig].gasCost = inviteSignatures[sSig].gasCost + (remainingGasStart - remainingGasEnd + 30700) * tx.gasprice;
+        //inviteSignatures[sSig].gasCost = inviteSignatures[sSig].gasCost + (remainingGasStart - remainingGasEnd + 30700) * tx.gasprice;
+        //inviteSignatures[sSig].gasCost = inviteSignatures[sSig].gasCost + (remainingGasStart - remainingGasEnd + 56867) * tx.gasprice;
+        inviteSignatures[sSig].gasCost = inviteSignatures[sSig].gasCost + (remainingGasStart - remainingGasEnd + 51146) * tx.gasprice;
+        
+        //gasCost = gasCost + (remainingGasStart - remainingGasEnd + 30700) * tx.gasprice;
         //----
     }
     
@@ -94,7 +116,9 @@ contract AuthorizedInviteManager is IAuthorizedInviteManager, Initializable, Ree
             // gasCost = usedGas * tx.gasprice;
 
             // inviteSignatures[sSig].gasCost = inviteSignatures[sSig].gasCost + gasCost;
-            inviteSignatures[sSig].gasCost = inviteSignatures[sSig].gasCost + ((remainingGasStart - remainingGasEnd + 78200) * tx.gasprice);
+            //inviteSignatures[sSig].gasCost = inviteSignatures[sSig].gasCost + ((remainingGasStart - remainingGasEnd + 78200) * tx.gasprice);
+            inviteSignatures[sSig].gasCost = inviteSignatures[sSig].gasCost + ((remainingGasStart - remainingGasEnd + 47240) * tx.gasprice);
+            
         }
         // Refund gas cost
         gasCost = inviteSignatures[sSig].gasCost;
@@ -145,8 +169,19 @@ contract AuthorizedInviteManager is IAuthorizedInviteManager, Initializable, Ree
     
     receive() external payable {}
     
+    function inviteReserve(
+        bytes32 hash
+    ) 
+        external 
+        accummulateGasCostWhenReserve(hash)
+    {
+        require (inviteReserved[hash].timestamp == 0, "Already reserved");
+        inviteReserved[hash].timestamp = uint64(block.timestamp);
+        inviteReserved[hash].sender = msg.sender;
+    }
+
     /**
-     * @notice registering invite,. calling by relayers
+     * @notice registering invite, calling by relayers
      * @custom:shortd registering invite 
      * @param sSig signature of admin whom generate invite and signed it
      * @param rSig signature of recipient
@@ -158,14 +193,21 @@ contract AuthorizedInviteManager is IAuthorizedInviteManager, Initializable, Ree
         external
         accummulateGasCost(sSig)
     {
+        bytes32 reverveHash = getInviteReservedHash(sSig, rSig);
+        bool isReserved = inviteReserved[reverveHash].timestamp != 0 ? true : false;
 
+        if (isReserved) {
+            require(inviteReserved[reverveHash].timestamp + RESERVE_DELAY <= block.timestamp, "Invite still reserved");
+        }
+        
         require(inviteSignatures[sSig].exists == false, "Such signature is already exists");
         inviteSignatures[sSig].sSig= sSig;
         inviteSignatures[sSig].rSig = rSig;
         inviteSignatures[sSig].reimbursed = ReimburseStatus.NONE;
         inviteSignatures[sSig].used = false;
-        inviteSignatures[sSig].exists = true;
+        inviteSignatures[sSig].exists = true;        
     }
+
     
     /**
      * @dev
@@ -285,6 +327,17 @@ contract AuthorizedInviteManager is IAuthorizedInviteManager, Initializable, Ree
     {
         return inviteSignatures[sSig];
     }
+    
+    function getInviteReservedHash(
+        bytes memory sSig, 
+        bytes memory rSig
+    ) 
+        public
+        pure 
+        returns(bytes32)
+    {
+        return keccak256(abi.encode(sSig, rSig));
+    }
 
     // used to split `inviteAccept` method to avoid "stack is too deep error"
     function inviteAcceptPart2(address pAddr, address rpAddr) internal {
@@ -341,7 +394,6 @@ contract AuthorizedInviteManager is IAuthorizedInviteManager, Initializable, Ree
         // address pAddr = pHash.recover(sSig);
         // address rpAddr = rpHash.recover(rSig);
         // return (pAddr, rpAddr);
-
         return (
             p.recreateMessageHash().recover(sSig), 
             rp.recreateMessageHash().recover(rSig)
