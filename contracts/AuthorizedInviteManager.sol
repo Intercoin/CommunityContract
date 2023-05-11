@@ -26,7 +26,7 @@ contract AuthorizedInviteManager is IAuthorizedInviteManager, Initializable, Ree
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
     //using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
 
-    uint64 internal constant RESERVE_DELAY = 10 minutes;
+    uint64 public constant RESERVE_DELAY = 10 minutes;
        
     mapping (bytes32 => inviteReserveStruct) inviteReserved;
 
@@ -319,6 +319,22 @@ contract AuthorizedInviteManager is IAuthorizedInviteManager, Initializable, Ree
         returns(bytes32)
     {
         return keccak256(abi.encode(sSig, rSig));
+    }
+
+     function getInviteReservedHash2(
+        bytes memory sSig, 
+        bytes memory rSig
+    ) 
+        public
+        pure 
+        returns(bytes memory, bytes memory, bytes memory, bytes32)
+    {
+        return (
+            sSig, 
+            rSig,
+            abi.encode(sSig, rSig),
+            keccak256(abi.encode(sSig, rSig))
+        );
     }
     
     function _recoverAddresses(

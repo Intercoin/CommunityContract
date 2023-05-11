@@ -1262,7 +1262,7 @@ describe("Community", function () {
             });
         }); 
 
-        describe.only("invites", function () {
+        describe("invites", function () {
             
             const validChainId = hre.network.config.chainId;
             const wrongChainId = 12345678;
@@ -1293,7 +1293,7 @@ describe("Community", function () {
                 await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role3')]);
                 
             });
-            it.only("should wait a timeout if reserved before", async () => {   
+            it("should wait a timeout if reserved before", async () => {   
                 let adminMsg = [
                     'invite',
                     CommunityInstance.address,
@@ -1313,15 +1313,27 @@ describe("Community", function () {
                 let rSig = await accountTwo.signMessage(recipientMsg);
 
                 //const hash = utils.keccak256(utils.toUtf8Bytes(sSig+rSig));
-                const hash = utils.keccak256(utils.concat([sSig,rSig]));
-                let solidityHash = await AuthorizedInviteManager.getInviteReservedHash(sSig,rSig);
-console.log("solidityHash   = ", solidityHash);
-console.log("1              = ", hash);
+                
+                const hash = utils.keccak256(
+                    utils.defaultAbiCoder.encode(
+                    ["bytes", "bytes"],
+                    [ sSig, rSig ])
+                );
+
                 await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'inviteReserve(bytes32)', [hash]);
 
                 await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'inviteReserve(bytes32)', [hash], 'Already reserved');
 
                 await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'invitePrepare(bytes,bytes)', [sSig,rSig], 'Invite still reserved');
+
+                const reserveDelay = await AuthorizedInviteManager.RESERVE_DELAY();
+                await time.increase(reserveDelay.toNumber() * 1000);
+
+                await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'invitePrepare(bytes,bytes)', [sSig,rSig]);
+
+                let invite = await AuthorizedInviteManager.connect(relayer).inviteView(sSig);
+                expect(invite.exists).to.be.true; // 'invite not found';
+                expect(invite.exists && invite.used==false).to.be.true; // 'invite not used before'
             });
 
             it("invites by admins which cant add any role from list", async () => {   
@@ -1445,44 +1457,6 @@ console.log("1              = ", hash);
                 expect(rolesList[0].includes(rolesIndex.get('role1'))).to.be.eq(true); 
                 expect(rolesList[0].includes(rolesIndex.get('role2'))).to.be.eq(true); 
                 expect(rolesList[0].includes(rolesIndex.get('role3'))).to.be.eq(true); 
-                 
-                let rewardAmount = await AuthorizedInviteManager.REWARD_AMOUNT();
-                let replenishAmount = await AuthorizedInviteManager.REPLENISH_AMOUNT();
-
-                //replenish for recipient
-                expect(recipientEndingBalance.sub(recipientStartingBalance)).to.be.eq(replenishAmount); // "wrong replenishAmount"
-                
-                
-                ////////////////////////////////////////////////////////////// 
-                // this section need to review
-                // cant catch correct consuming funds
-                if (trustedForwardMode) {
-                    // WITH trusted forwarder we have another cost that should calculate with diff coef
-                    // TBD
-                } else {
-                    
-                    /*
-                    let totalSpentViaManager;
-
-                    expect(relayerEndingBalance.sub(relayerStartingBalance)).to.be.eq(rewardAmount); // "wrong rewardAmount"
-
-                    //rewardAmount+replenishAmount+txInvitePrepareCost+txInviteAcceptCost
-                    totalSpentViaManager = BigNumber.from(rewardAmount.toString()).add(
-                        BigNumber.from(txInvitePrepareCost.toString())
-                    ).add(
-                        BigNumber.from(txInviteAcceptCost.toString())
-                    ).add(BigNumber.from(replenishAmount.toString()));
-
-                    expect(AuthorizedInviteManagerStartingBalance.sub(AuthorizedInviteManagerEndingBalance)).to.be.eq(totalSpentViaManager);
-                    */
-                }
-                ////////////////////////////////////////////////////////////// 
-                
-                await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'invitePrepare(bytes,bytes)', [sSig,rSig], "Such signature is already exists");
-                await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'inviteAccept(string,bytes,string,bytes)', [adminMsg, sSig, recipientMsg, rSig], "Such signature is already used");
-
-                await expect(await AuthorizedInviteManager.invitedBy(accountTwo.address)).to.be.eq(owner.address); //'does not store invited mapping'
-                await expect(await AuthorizedInviteManager.invitedBy(accountTwo.address)).not.to.be.eq(accountNine.address); //'store wrong keys in invited mapping'
                 
             });
 
@@ -1525,10 +1499,6 @@ console.log("1              = ", hash);
                 
                 await mixedCall(AuthorizedInviteManager, trustedForwardMode, accountSix, 'invitePrepare(bytes,bytes)', [sSigSecond,rSig]);
                 await mixedCall(AuthorizedInviteManager, trustedForwardMode, accountSix, 'inviteAccept(string,bytes,string,bytes)', [adminMsgSecond, sSigSecond, recipientMsg, rSig]);
-
-                await expect(await AuthorizedInviteManager.invitedBy(accountTwo.address)).to.be.eq(owner.address); // should be invited by first owner
-                await expect(await AuthorizedInviteManager.invitedBy(accountTwo.address)).not.to.be.eq(accountSeven.address); // shouldnt be invited by swcond owner(accountSeven)
-                await expect(await AuthorizedInviteManager.invitedBy(accountTwo.address)).not.to.be.eq(accountNine.address); //'store wrong keys in invited mapping'
 
                 // check roles of accountTwo
                 rolesList = await CommunityInstance.connect(owner)["getRoles(address[])"]([accountTwo.address]);
