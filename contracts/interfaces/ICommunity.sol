@@ -7,6 +7,7 @@ interface ICommunity {
         address implState,
         address implView,
         address hook, 
+        address invitedHook,
         address costManager, 
         address authorizedInviteManager, 
         string memory name, 

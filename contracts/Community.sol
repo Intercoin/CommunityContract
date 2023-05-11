@@ -94,7 +94,8 @@ contract Community is CommunityStorage, ICommunity {
     function initialize(
         address implCommunityState_,
         address implCommunityView_,
-        address hook,
+        address hook_,
+        address invitedHook_,
         address costManager_,
         address authorizedInviteManager_,
         string memory name, 
@@ -116,14 +117,14 @@ contract Community is CommunityStorage, ICommunity {
             address(implCommunityState), 
             abi.encodeWithSelector(
                 CommunityState.initialize.selector,
-                hook, authorizedInviteManager_, name, symbol, contractURI_
+                hook_, invitedHook_, authorizedInviteManager_, name, symbol, contractURI_
             )
             //msg.data
         );
         
         _accountForOperation(
             OPERATION_INITIALIZE << OPERATION_SHIFT_BITS,
-            uint256(uint160(hook)),
+            uint256(uint160(hook_)),
             uint256(uint160(costManager_))
         );
     }
@@ -132,6 +133,10 @@ contract Community is CommunityStorage, ICommunity {
     ///////////////////////////////////////////////////////////
     /// public  section
     ///////////////////////////////////////////////////////////
+
+    function invitedHook() external view returns(address) {
+        return _invitedHook;
+    }
 
     /**
     * @notice the way to withdraw remaining ETH from the contract. called by owners only 

@@ -9,6 +9,8 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 import "./interfaces/ICommunityInvite.sol";
 import "./interfaces/ICommunity.sol";
 import "./interfaces/IAuthorizedInviteManager.sol";
+import "./interfaces/IAuthorizedInvitedHook.sol";
+
 import "@artman325/releasemanager/contracts/CostManagerHelper.sol";
 import "@artman325/releasemanager/contracts/ReleaseManagerHelper.sol";
 import "@artman325/releasemanager/contracts/interfaces/IReleaseManager.sol";
@@ -188,6 +190,12 @@ contract AuthorizedInviteManager is IAuthorizedInviteManager, Initializable, Ree
             revert("Can not add no one role");
         }
 
+        signature.used = true;
+
+        inviteAcceptPart2(pAddr, rpAddr, communityDestination, rolesIndexesTmp, len);
+    }
+
+    function inviteAcceptPart2(address pAddr, address rpAddr, address communityDestination, uint8[] memory rolesIndexesTmp, uint256 len) private {
         address[] memory accounts = new address[](len);
         uint8[] memory roleIndexes = new uint8[](len);
         uint256 j = 0;
@@ -200,7 +208,20 @@ contract AuthorizedInviteManager is IAuthorizedInviteManager, Initializable, Ree
         }
         ICommunityInvite(communityDestination).grantRolesExternal(pAddr, accounts, roleIndexes);
 
-        signature.used = true;
+        address hook = ICommunityInvite(communityDestination).invitedHook();
+        if (hook != address(0)) {
+            try IAuthorizedInvitedHook(hook).supportsInterface(type(IAuthorizedInvitedHook).interfaceId) returns (bool) {
+                IAuthorizedInvitedHook(hook).onInviteAccepted(
+                    address(this),  //address inviteManager, 
+                    msg.sender,     //address accountWhichInitiated, 
+                    pAddr,          //address accountWhichWillGrant, 
+                    accounts,       //address[] memory accounts, 
+                    roleIndexes     //uint8[] memory roleIndexes
+                );
+            } catch {
+                revert("wrong interface");
+            }
+        }
 
     }
 

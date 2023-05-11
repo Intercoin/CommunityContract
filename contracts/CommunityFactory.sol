@@ -143,6 +143,7 @@ contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
     */
     function produce(
         address hook,
+        address invitedHook,
         string memory name,
         string memory symbol,
         string memory contractUri
@@ -150,7 +151,7 @@ contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
         public 
     {
         address instance = address(implementation).clone();
-        _produce(instance, hook, name, symbol, contractUri);
+        _produce(instance, hook, invitedHook, name, symbol, contractUri);
     }
 
     /**
@@ -164,12 +165,13 @@ contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
     function produceDeterministic(
         bytes32 salt,
         address hook,
+        address invitedHook,
         string memory name,
         string memory symbol,
         string memory contractUri
     ) public {
         address instance = address(implementation).cloneDeterministic(salt);
-        _produce(instance, hook, name, symbol, contractUri);
+        _produce(instance, hook, invitedHook, name, symbol, contractUri);
     }
 
     function getRolesInAllCommunities(
@@ -206,6 +208,7 @@ contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
     function _produce(
         address instance,
         address hook,
+        address invitedHook,
         string memory name,
         string memory symbol,
         string memory contractUri
@@ -220,7 +223,7 @@ contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
         emit InstanceCreated(instance, instances.length);
 
         //initialize
-        ICommunity(instance).initialize(address(implementationState), address(implementationView), hook, costManager, defaultAuthorizedInviteManager, name, symbol, contractUri);
+        ICommunity(instance).initialize(address(implementationState), address(implementationView), hook, invitedHook, costManager, defaultAuthorizedInviteManager, name, symbol, contractUri);
 
         //after initialize
         address[] memory s = new address[](1);

@@ -18,13 +18,14 @@ contract CommunityState is CommunityStorage {
     /// external section
     ///////////////////////////////////////////////////////////
     /**
-    * @param hook address of contract implemented ICommunityHook interface. Can be address(0)
+    * @param hook_ address of contract implemented ICommunityHook interface. Can be address(0)
     * @param authorizedInviteManager address of contract implemented invite mechanism
     * @param name_ erc721 name
     * @param symbol_ erc721 symbol
     */
     function initialize(
-        address hook,
+        address hook_,
+        address invitedHook_,
         address authorizedInviteManager,
         string memory name_, 
         string memory symbol_, 
@@ -35,7 +36,7 @@ contract CommunityState is CommunityStorage {
         name = name_;
         symbol = symbol_;
 
-        __CommunityBase_init(hook);
+        __CommunityBase_init(hook_, invitedHook_);
 
         setContractURI(contractURI_);
         
@@ -722,7 +723,7 @@ contract CommunityState is CommunityStorage {
         return rolesWhichCan;
     }
 
-    function __CommunityBase_init(address hook_) internal onlyInitializing {
+    function __CommunityBase_init(address hook_, address invitedHook_) internal onlyInitializing {
         
         __TrustedForwarder_init();
         __ReentrancyGuard_init();
@@ -749,6 +750,8 @@ contract CommunityState is CommunityStorage {
         // avoiding hook's trigger for built-in roles
         // so define hook address in the end
         hook = hook_;
+
+        _invitedHook = invitedHook_;
 
     }
 

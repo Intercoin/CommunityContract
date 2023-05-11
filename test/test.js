@@ -26,6 +26,7 @@ const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const DEAD_ADDRESS = '0x000000000000000000000000000000000000dEaD';
 
 const NO_HOOK = ZERO_ADDRESS;
+const NO_INVITED_HOOK = ZERO_ADDRESS;
 const NO_COSTMANAGER = ZERO_ADDRESS;
 
 const TOKEN_NAME = 'TOKEN_NAME';
@@ -176,7 +177,7 @@ describe("Community", function () {
         const salt2   = "0x00112233445566778899AABBCCDDEEFF00000000000000000000000000000001";
         it("should produce", async() => {
              
-            let tx = await CommunityFactory.connect(owner).produce(NO_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
+            let tx = await CommunityFactory.connect(owner).produce(NO_HOOK,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
 
             const rc = await tx.wait(); // 0ms, as tx is already confirmed
             const event = rc.events.find(event => event.event === 'InstanceCreated');
@@ -186,13 +187,13 @@ describe("Community", function () {
         });
         it("should produce deterministic", async() => {
 
-            let tx = await CommunityFactory.connect(owner).produceDeterministic(salt,NO_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
+            let tx = await CommunityFactory.connect(owner).produceDeterministic(salt,NO_HOOK,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
 
             let rc = await tx.wait(); // 0ms, as tx is already confirmed
             let event = rc.events.find(event => event.event === 'InstanceCreated');
             let [instance,] = event.args;
             expect(instance).not.to.be.eq(ZERO_ADDRESS);
-            await expect(CommunityFactory.connect(owner).produceDeterministic(salt,NO_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI)).to.be.revertedWith('ERC1167: create2 failed');
+            await expect(CommunityFactory.connect(owner).produceDeterministic(salt,NO_HOOK,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI)).to.be.revertedWith('ERC1167: create2 failed');
 
         });
 
@@ -202,7 +203,7 @@ describe("Community", function () {
             //make snapshot
             let snapId = await ethers.provider.send('evm_snapshot', []);
 
-            tx = await CommunityFactory.connect(owner).produceDeterministic(salt,NO_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
+            tx = await CommunityFactory.connect(owner).produceDeterministic(salt,NO_HOOK,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
             rc = await tx.wait(); // 0ms, as tx is already confirmed
             event = rc.events.find(event => event.event === 'InstanceCreated');
             [instanceWithSalt,] = event.args;
@@ -210,14 +211,14 @@ describe("Community", function () {
             await ethers.provider.send('evm_revert', [snapId]);
 
             // make create2. then create and finally again with salt. 
-            tx = await CommunityFactory.connect(owner).produceDeterministic(salt2,NO_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
+            tx = await CommunityFactory.connect(owner).produceDeterministic(salt2,NO_HOOK,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
             rc = await tx.wait(); // 0ms, as tx is already confirmed
             event = rc.events.find(event => event.event === 'InstanceCreated');
             [instanceWithSalt2,] = event.args;
             
-            await CommunityFactory.connect(owner).produce(NO_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
+            await CommunityFactory.connect(owner).produce(NO_HOOK,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
 
-            tx = await CommunityFactory.connect(owner).produceDeterministic(salt,NO_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
+            tx = await CommunityFactory.connect(owner).produceDeterministic(salt,NO_HOOK,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
             rc = await tx.wait(); // 0ms, as tx is already confirmed
             event = rc.events.find(event => event.event === 'InstanceCreated');
             [instanceWithSaltAgain,] = event.args;
@@ -226,9 +227,9 @@ describe("Community", function () {
             expect(instanceWithSaltAgain).to.be.eq(instanceWithSalt);
             expect(instanceWithSalt2).not.to.be.eq(instanceWithSalt);
 
-            await expect(CommunityFactory.connect(owner).produceDeterministic(salt,NO_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI)).to.be.revertedWith('ERC1167: create2 failed');
-            await expect(CommunityFactory.connect(owner).produceDeterministic(salt2,NO_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI)).to.be.revertedWith('ERC1167: create2 failed');
-            await expect(CommunityFactory.connect(accountOne).produceDeterministic(salt2,NO_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI)).to.be.revertedWith('ERC1167: create2 failed');
+            await expect(CommunityFactory.connect(owner).produceDeterministic(salt,NO_HOOK,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI)).to.be.revertedWith('ERC1167: create2 failed');
+            await expect(CommunityFactory.connect(owner).produceDeterministic(salt2,NO_HOOK,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI)).to.be.revertedWith('ERC1167: create2 failed');
+            await expect(CommunityFactory.connect(accountOne).produceDeterministic(salt2,NO_HOOK,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI)).to.be.revertedWith('ERC1167: create2 failed');
             
         });
     });
@@ -240,7 +241,7 @@ describe("Community", function () {
 
             let tx,rc,event,instance,instancesCount;
             //
-            tx = await CommunityFactory.connect(owner).produce(NO_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
+            tx = await CommunityFactory.connect(owner).produce(NO_HOOK,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
             rc = await tx.wait(); // 0ms, as tx is already confirmed
             event = rc.events.find(event => event.event === 'InstanceCreated');
             [instance, instancesCount] = event.args;
@@ -293,7 +294,7 @@ describe("Community", function () {
         it("should set costmanager while factory produce", async () => {
             let tx,rc,event,instance,instancesCount;
             //
-            tx = await CommunityFactory.connect(owner)["produce(address,string,string,string)"](NO_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
+            tx = await CommunityFactory.connect(owner)["produce(address,address,string,string,string)"](NO_HOOK,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
             rc = await tx.wait(); // 0ms, as tx is already confirmed
             event = rc.events.find(event => event.event === 'InstanceCreated');
             [instance, instancesCount] = event.args;
@@ -301,7 +302,7 @@ describe("Community", function () {
 
             await CommunityFactory.connect(owner).setCostManager(CostManagerGood.address);
 
-            tx = await CommunityFactory.connect(owner)["produce(address,string,string,string)"](NO_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
+            tx = await CommunityFactory.connect(owner)["produce(address,address,string,string,string)"](NO_HOOK,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
             rc = await tx.wait(); // 0ms, as tx is already confirmed
             event = rc.events.find(event => event.event === 'InstanceCreated');
             [instance, instancesCount] = event.args;
@@ -321,7 +322,7 @@ describe("Community", function () {
                 
                 let tx,rc,event,instance,instancesCount;
                 //
-                tx = await CommunityFactory.connect(owner)["produce(address,string,string,string)"](NO_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
+                tx = await CommunityFactory.connect(owner)["produce(address,address,string,string,string)"](NO_HOOK,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
                 rc = await tx.wait(); // 0ms, as tx is already confirmed
                 event = rc.events.find(event => event.event === 'InstanceCreated');
                 [instance, instancesCount] = event.args;
@@ -410,7 +411,7 @@ describe("Community", function () {
             communityHook = await CommunityHookF.deploy();
 
             await expect(
-                CommunityFactory.connect(owner)["produce(address,string,string,string)"](communityHook.address,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI)
+                CommunityFactory.connect(owner)["produce(address,address,string,string,string)"](communityHook.address,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI)
             ).to.be.revertedWith("wrong interface");
             // error happens when trying to setup roles for sender
 
@@ -424,7 +425,7 @@ describe("Community", function () {
                 communityHook = await CommunityHookF.deploy();
                 let tx,rc,event,instance,instancesCount;
                 //
-                tx = await CommunityFactory.connect(owner)["produce(address,string,string,string)"](communityHook.address,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
+                tx = await CommunityFactory.connect(owner)["produce(address,address,string,string,string)"](communityHook.address,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
                 rc = await tx.wait(); // 0ms, as tx is already confirmed
                 event = rc.events.find(event => event.event === 'InstanceCreated');
                 [instance, instancesCount] = event.args;
@@ -493,7 +494,7 @@ describe("Community", function () {
                 communityHook = await CommunityHookF.deploy();
                 let tx,rc,event,instance,instancesCount;
                 //
-                tx = await CommunityFactory.connect(owner)["produce(address,string,string,string)"](communityHook.address,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
+                tx = await CommunityFactory.connect(owner)["produce(address,address,string,string,string)"](communityHook.address,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
                 rc = await tx.wait(); // 0ms, as tx is already confirmed
                 event = rc.events.find(event => event.event === 'InstanceCreated');
                 [instance, instancesCount] = event.args;
@@ -549,7 +550,7 @@ describe("Community", function () {
 
             let tx,rc,event,instance,instancesCount;
             //
-            tx = await CommunityFactory.connect(owner)["produce(address,string,string,string)"](NO_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
+            tx = await CommunityFactory.connect(owner)["produce(address,address,string,string,string)"](NO_HOOK,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
             rc = await tx.wait(); // 0ms, as tx is already confirmed
             event = rc.events.find(event => event.event === 'InstanceCreated');
             [instance, instancesCount] = event.args;
@@ -1638,7 +1639,7 @@ describe("Community", function () {
             
             let tx,rc,event,instance,instancesCount;
             //
-            tx = await CommunityFactory.connect(accountTen)["produce(address,string,string,string)"](NO_HOOK, TOKEN_NAME, TOKEN_SYMBOL,CONTRACT_URI);
+            tx = await CommunityFactory.connect(accountTen)["produce(address,address,string,string,string)"](NO_HOOK, NO_INVITED_HOOK, TOKEN_NAME, TOKEN_SYMBOL,CONTRACT_URI);
             rc = await tx.wait(); // 0ms, as tx is already confirmed
             event = rc.events.find(event => event.event === 'InstanceCreated');
             [instance, instancesCount] = event.args;
@@ -1853,7 +1854,7 @@ describe("Community", function () {
             
             let tx,rc,event,instance,instancesCount;
             //
-            tx = await CommunityFactory.connect(owner)["produce(address,string,string,string)"](NO_HOOK, TOKEN_NAME, TOKEN_SYMBOL, CONTRACT_URI);
+            tx = await CommunityFactory.connect(owner)["produce(address,address,string,string,string)"](NO_HOOK, NO_INVITED_HOOK, TOKEN_NAME, TOKEN_SYMBOL, CONTRACT_URI);
             rc = await tx.wait(); // 0ms, as tx is already confirmed
             event = rc.events.find(event => event.event === 'InstanceCreated');
             [instance, instancesCount] = event.args;

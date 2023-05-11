@@ -9,5 +9,4 @@ interface ICommunityHook  is IERC165 {
     function roleGranted(bytes32 role, uint8 roleIndex, address account) external;
     function roleRevoked(bytes32 role, uint8 roleIndex, address account) external;
     function roleCreated(bytes32 role, uint8 roleIndex) external;
-
 }

@@ -86,8 +86,9 @@ abstract contract CommunityStorage is Initializable, ReentrancyGuardUpgradeable,
 
     uint8 internal rolesCount;
     address public hook;
-    uint256 addressesCounter;
+    address internal _invitedHook;
 
+    uint256 addressesCounter;
     
     /**
     * @custom:shortd role name "owners" in bytes32
