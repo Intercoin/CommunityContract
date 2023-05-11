@@ -38,11 +38,13 @@ async function main() {
 
     var data_object_root = JSON.parse(data);
 	var data_object = {};
-	if (typeof data_object_root[hre.network.name] === 'undefined') {
-        data_object.time_created = Date.now()
-    } else {
-        data_object = data_object_root[hre.network.name];
-    }
+
+    data_object.time_created = Date.now();
+	// if (typeof data_object_root[hre.network.name] === 'undefined') {
+    //     data_object.time_created = Date.now()
+    // } else {
+    //     data_object = data_object_root[hre.network.name];
+    // }
 	//----------------
 
 	const [deployer] = await ethers.getSigners();
@@ -63,28 +65,21 @@ async function main() {
 	console.log("Account balance:", (deployerBalanceBefore).toString());
 
 	const CommunityF = await ethers.getContractFactory("Community");
-	const CommunityStateF = await ethers.getContractFactory("CommunityState");
-	const CommunityViewF = await ethers.getContractFactory("CommunityView");
         
 	let implementationCommunity         = await CommunityF.connect(deployer).deploy();
-	let implementationCommunityState    = await CommunityStateF.connect(deployer).deploy();
-	let implementationCommunityView     = await CommunityViewF.connect(deployer).deploy();
 
 	console.log("Implementations:");
 	console.log("  Community deployed at:       ", implementationCommunity.address);
-	console.log("  CommunityState deployed at:  ", implementationCommunityState.address);
-	console.log("  CommunityView deployed at:   ", implementationCommunityView.address);
     console.log("Linked with manager:");
     console.log("  Release manager:", RELEASE_MANAGER);
 
 	data_object.implementationCommunity 	= implementationCommunity.address;
-	data_object.implementationCommunityState= implementationCommunityState.address;
-	data_object.implementationCommunityView	= implementationCommunityView.address;
+
     data_object.releaseManager	            = RELEASE_MANAGER;
 
-const deployerBalanceAfter = await deployer.getBalance();
-console.log("Spent:", ethers.utils.formatEther(deployerBalanceBefore.sub(deployerBalanceAfter)));
-console.log("gasPrice:", ethers.utils.formatUnits((await network.provider.send("eth_gasPrice")), "gwei")," gwei");
+    const deployerBalanceAfter = await deployer.getBalance();
+    console.log("Spent:", ethers.utils.formatEther(deployerBalanceBefore.sub(deployerBalanceAfter)));
+    console.log("gasPrice:", ethers.utils.formatUnits((await network.provider.send("eth_gasPrice")), "gwei")," gwei");
 
 	//---
 	const ts_updated = Date.now();

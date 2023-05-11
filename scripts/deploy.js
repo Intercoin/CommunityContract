@@ -33,12 +33,8 @@ async function main() {
 	data_object = data_object_root[hre.network.name];
 	if (
 		typeof data_object.implementationCommunity === 'undefined' ||
-		typeof data_object.implementationCommunityState === 'undefined' ||
-		typeof data_object.implementationCommunityView === 'undefined' ||
 		typeof data_object.releaseManager === 'undefined' ||
 		!data_object.implementationCommunity ||
-		!data_object.implementationCommunityState ||
-		!data_object.implementationCommunityView ||
 		!data_object.releaseManager
 	) {
 		throw("Arguments file: wrong addresses");
@@ -58,10 +54,9 @@ async function main() {
 	};
 	let _params = [
 		data_object.implementationCommunity,
-		data_object.implementationCommunityState,
-		data_object.implementationCommunityView,
 		ZERO_ADDRESS, //costmanager
-		data_object.releaseManager
+		data_object.releaseManager,
+		ZERO_ADDRESS, //defaultAuthorizedInviteManager
 	]
 	let params = [
 		..._params,

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.11;
 
 import "@openzeppelin/contracts/proxy/Clones.sol";
-import "./interfaces/ICommunity.sol";
+import "./interfaces/IAuthorizedInviteManager.sol";
 import "@artman325/releasemanager/contracts/CostManagerFactoryHelper.sol";
 import "@artman325/releasemanager/contracts/ReleaseManagerHelper.sol";
 
@@ -73,16 +73,17 @@ ARBITRATION
 
 All disputes related to this agreement shall be governed by and interpreted in accordance with the laws of New York, without regard to principles of conflict of laws. The parties to this agreement will submit all disputes arising under this agreement to arbitration in New York City, New York before a single arbitrator of the American Arbitration Association (“AAA”). The arbitrator shall be selected by application of the rules of the AAA, or by mutual agreement of the parties, except that such arbitrator shall be an attorney admitted to practice law New York. No party to this agreement will challenge the jurisdiction or venue provisions as provided in this section. No party to this agreement will challenge the jurisdiction or venue provisions as provided in this section.
 **/
-contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
+contract AuthorizedInviteManagerFactory is
+    CostManagerFactoryHelper,
+    ReleaseManagerHelper
+{
     using Clones for address;
 
     /**
-     * @custom:shortd Community implementation address
-     * @notice Community implementation address
+     * @custom:shortd AuthorizedInviteManager implementation address
+     * @notice AuthorizedInviteManager implementation address
      */
     address public immutable implementation;
-
-    address public immutable defaultAuthorizedInviteManager;
 
     address[] public instances;
 
@@ -94,15 +95,12 @@ contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
     constructor(
         address _implementation,
         address _costManager,
-        address _releaseManager,
-        address _defaultAuthorizedInviteManager
+        address _releaseManager
     )
         CostManagerFactoryHelper(_costManager)
         ReleaseManagerHelper(_releaseManager)
     {
         implementation = _implementation;
-
-        defaultAuthorizedInviteManager = _defaultAuthorizedInviteManager;
     }
 
     ////////////////////////////////////////////////////////////////////////
@@ -122,83 +120,23 @@ contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
     // public section //////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////
 
-    /**
-     * @param hook address of contract implemented ICommunityHook interface. Can be address(0)
-     * @param name erc721 name
-     * @param symbol erc721 symbol
-     * @param contractUri contract URI
-     * @custom:shortd creation CommunityERC721 instance
-     */
-    function produce(
-        address hook,
-        address invitedHook,
-        string memory name,
-        string memory symbol,
-        string memory contractUri
-    ) public {
+    function produce() public {
         address instance = address(implementation).clone();
-        _produce(instance, hook, invitedHook, name, symbol, contractUri);
+        _produce(instance);
     }
 
     /**
      * @param salt salt that used with CREATE2 opcode
-     * @param hook address of contract implemented ICommunityHook interface. Can be address(0)
-     * @param name erc721 name
-     * @param symbol erc721 symbol
-     * @param contractUri contract URI
-     * @custom:shortd creation CommunityERC721 instance
      */
-    function produceDeterministic(
-        bytes32 salt,
-        address hook,
-        address invitedHook,
-        string memory name,
-        string memory symbol,
-        string memory contractUri
-    ) public {
+    function produceDeterministic(bytes32 salt) public {
         address instance = address(implementation).cloneDeterministic(salt);
-        _produce(instance, hook, invitedHook, name, symbol, contractUri);
-    }
-
-    function getRolesInAllCommunities(
-        address addr
-    )
-        public
-        view
-        returns (address[] memory communities, uint8[][] memory roles)
-    {
-        uint256 len = instances.length;
-        communities = new address[](len);
-        roles = new uint8[][](len);
-
-        address[] memory accounts = new address[](1);
-        accounts[0] = addr;
-
-        uint8[][] memory tmp;
-
-        for (uint256 i = 0; i < len; i++) {
-            communities[i] = instances[i];
-
-            tmp = ICommunity(instances[i]).getRoles(accounts);
-            roles[i] = new uint8[](tmp[0].length);
-
-            roles[i] = tmp[0];
-        }
-
-        //function getRoles(address[] calldata accounts)external view returns(uint8[][] memory);
+        _produce(instance);
     }
 
     ////////////////////////////////////////////////////////////////////////
     // internal section ////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////
-    function _produce(
-        address instance,
-        address hook,
-        address invitedHook,
-        string memory name,
-        string memory symbol,
-        string memory contractUri
-    ) internal {
+    function _produce(address instance) internal {
         //before initialize
         if (instance == address(0)) {
             revert InstanceCreatedFailed();
@@ -207,22 +145,8 @@ contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
         emit InstanceCreated(instance, instances.length);
 
         //initialize
-        ICommunity(instance).initialize(
-            hook,
-            invitedHook,
-            costManager,
-            defaultAuthorizedInviteManager,
-            name,
-            symbol,
-            contractUri
-        );
+        IAuthorizedInviteManager(instance).initialize(costManager);
 
-        //after initialize
-        address[] memory s = new address[](1);
-        s[0] = msg.sender;
-        uint8[] memory r = new uint8[](1);
-        r[0] = 1; //"owners";
-        ICommunity(instance).grantRoles(s, r);
         //-- register instance in release manager
         registerInstance(instance);
         //-----------------
