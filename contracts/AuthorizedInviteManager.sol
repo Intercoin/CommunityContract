@@ -41,92 +41,6 @@ contract AuthorizedInviteManager is IAuthorizedInviteManager, Initializable, Ree
     event RoleAddedErrorMessage(address indexed sender, string msg);
 
     /**
-     * param sSig signature of admin whom generate invite and signed it
-     */
-    modifier accummulateGasCostWhenReserve(bytes32 hash)
-    {
-        uint remainingGasStart = gasleft();
-
-        _;
-
-        uint remainingGasEnd = gasleft();
-
-        inviteReserved[hash].gasCost = inviteReserved[hash].gasCost + (remainingGasStart - remainingGasEnd + 30700) * tx.gasprice;
-//        24979
-        //----
-    }
-
-    modifier accummulateGasCost(bytes memory sSig)
-    {
-        uint remainingGasStart = gasleft();
-
-        _;
-
-        uint remainingGasEnd = gasleft();
-//console.log("total = ",remainingGasStart - remainingGasEnd + 56867);
-        // uint usedGas = remainingGasStart - remainingGasEnd;
-        // // Add intrinsic gas and transfer gas. Need to account for gas stipend as well.
-        // // usedGas += 21000 + 9700;
-        // usedGas += 30700;
-        // // Possibly need to check max gasprice and usedGas here to limit possibility for abuse.
-        // uint gasCost = usedGas * tx.gasprice;
-        // // accummulate refund gas cost
-        // inviteSignatures[sSig].gasCost = inviteSignatures[sSig].gasCost + gasCost;
-        //inviteSignatures[sSig].gasCost = inviteSignatures[sSig].gasCost + (remainingGasStart - remainingGasEnd + 30700) * tx.gasprice;
-        //inviteSignatures[sSig].gasCost = inviteSignatures[sSig].gasCost + (remainingGasStart - remainingGasEnd + 56867) * tx.gasprice;
-        inviteSignatures[sSig].gasCost = inviteSignatures[sSig].gasCost + (remainingGasStart - remainingGasEnd + 51146) * tx.gasprice;
-        
-        //gasCost = gasCost + (remainingGasStart - remainingGasEnd + 30700) * tx.gasprice;
-        //----
-    }
-    
-    /**
-     * @param sSig signature of admin whom generate invite and signed it
-     */
-    modifier refundGasCost(bytes memory sSig)
-    {
-        uint remainingGasStart = gasleft();
-
-        _;
-        
-        uint gasCost;
-        
-        if (inviteSignatures[sSig].reimbursed == ReimburseStatus.NONE) {
-            uint remainingGasEnd = gasleft();
-            // uint usedGas = remainingGasStart - remainingGasEnd;
-            // // Add intrinsic gas and transfer gas. Need to account for gas stipend as well.
-            // usedGas += 21000 + 9700 + 47500;
-            // // Possibly need to check max gasprice and usedGas here to limit possibility for abuse.
-            // gasCost = usedGas * tx.gasprice;
-
-            // inviteSignatures[sSig].gasCost = inviteSignatures[sSig].gasCost + gasCost;
-            //inviteSignatures[sSig].gasCost = inviteSignatures[sSig].gasCost + ((remainingGasStart - remainingGasEnd + 78200) * tx.gasprice);
-            inviteSignatures[sSig].gasCost = inviteSignatures[sSig].gasCost + ((remainingGasStart - remainingGasEnd + 47240) * tx.gasprice);
-            
-        }
-        // Refund gas cost
-        gasCost = inviteSignatures[sSig].gasCost;
-
-        if (
-            (gasCost <= address(this).balance) && 
-            (
-            inviteSignatures[sSig].reimbursed == ReimburseStatus.NONE ||
-            inviteSignatures[sSig].reimbursed == ReimburseStatus.PENDING
-            )
-        ) {
-            inviteSignatures[sSig].reimbursed = ReimburseStatus.CLAIMED;
-            //payable (inviteSignatures[sSig].caller).transfer(gasCost);
-           
-            payable(msg.sender).transfer(gasCost);
-
-        } else {
-            inviteSignatures[sSig].reimbursed = ReimburseStatus.PENDING;
-        }
-        
-        
-    }
-
-    /**
     * @notice initializes contract
     */
     function initialize(
@@ -157,7 +71,6 @@ contract AuthorizedInviteManager is IAuthorizedInviteManager, Initializable, Ree
         bytes32 hash
     ) 
         external 
-        accummulateGasCostWhenReserve(hash)
     {
         require (inviteReserved[hash].timestamp == 0, "Already reserved");
         inviteReserved[hash].timestamp = uint64(block.timestamp);
@@ -175,7 +88,6 @@ contract AuthorizedInviteManager is IAuthorizedInviteManager, Initializable, Ree
         bytes memory rSig
     ) 
         external
-        accummulateGasCost(sSig)
     {
         bytes32 reverveHash = getInviteReservedHash(sSig, rSig);
         bool isReserved = inviteReserved[reverveHash].timestamp != 0 ? true : false;
@@ -187,7 +99,6 @@ contract AuthorizedInviteManager is IAuthorizedInviteManager, Initializable, Ree
         require(inviteSignatures[sSig].exists == false, "Such signature is already exists");
         inviteSignatures[sSig].sSig= sSig;
         inviteSignatures[sSig].rSig = rSig;
-        inviteSignatures[sSig].reimbursed = ReimburseStatus.NONE;
         inviteSignatures[sSig].used = false;
         inviteSignatures[sSig].exists = true;        
     }
@@ -215,7 +126,6 @@ contract AuthorizedInviteManager is IAuthorizedInviteManager, Initializable, Ree
         bytes memory rSig
     )
         external 
-        refundGasCost(sSig)
         //nonReentrant()
     {
         

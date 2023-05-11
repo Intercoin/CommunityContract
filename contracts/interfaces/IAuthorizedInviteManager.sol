@@ -2,14 +2,10 @@
 pragma solidity ^0.8.11;
 
 interface IAuthorizedInviteManager {
-    
-    enum ReimburseStatus{ NONE, PENDING, CLAIMED }
 
     struct inviteSignature {
         bytes sSig;
         bytes rSig;
-        uint256 gasCost;
-        ReimburseStatus reimbursed;
         bool used;
         bool exists;
     }
@@ -17,8 +13,6 @@ interface IAuthorizedInviteManager {
     struct inviteReserveStruct  {
         address sender;
         uint64 timestamp;
-        uint256 gasCost;
-        
     }
 
     function initialize(
@@ -28,7 +22,6 @@ interface IAuthorizedInviteManager {
     function inviteReserve(
         bytes32 hash
     ) external;
-
 
     /**
      * @notice registering invite,. calling by relayers
@@ -41,7 +34,7 @@ interface IAuthorizedInviteManager {
         bytes memory rSig
     ) external;
 
-/**
+    /**
      * @dev
      * @dev ==P==  
      * @dev format is "<some string data>:<address of communityContract>:<array of rolenames (sep=',')>:<chain id>:<deadline in unixtimestamp>:<some string data>"          
