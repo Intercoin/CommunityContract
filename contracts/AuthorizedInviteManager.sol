@@ -31,24 +31,8 @@ contract AuthorizedInviteManager is IAuthorizedInviteManager, Initializable, Ree
     mapping (bytes32 => inviteReserveStruct) inviteReserved;
 
     mapping (bytes => inviteSignature) inviteSignatures;  
-    
-    //receiver => sender
-    mapping(address => address) public invitedBy;
-    //sender => receivers
-    mapping(address => EnumerableSetUpgradeable.AddressSet) internal invited;
- 
+     
     uint8 internal constant NONE_ROLE_INDEX = 0;
-        
-    /**
-    * @notice constant reward that user-relayers will obtain
-    * @custom:shortd reward that user-relayers will obtain
-    */
-    uint256 public constant REWARD_AMOUNT = 1000000000000000; // 0.001 * 1e18
-    /**
-    * @notice constant reward amount that user-recepient will replenish
-    * @custom:shortd reward amount that user-recepient will replenish
-    */
-    uint256 public constant REPLENISH_AMOUNT = 1000000000000000; // 0.001 * 1e18
 
     uint8 internal constant OPERATION_SHIFT_BITS = 240;  // 256 - 16
     // Constants representing operations
@@ -308,8 +292,6 @@ contract AuthorizedInviteManager is IAuthorizedInviteManager, Initializable, Ree
 
         signature.used = true;
 
-        inviteAcceptPart2(pAddr, rpAddr);
-       
     }
 
      /**
@@ -337,46 +319,6 @@ contract AuthorizedInviteManager is IAuthorizedInviteManager, Initializable, Ree
         returns(bytes32)
     {
         return keccak256(abi.encode(sSig, rSig));
-    }
-
-    // used to split `inviteAccept` method to avoid "stack is too deep error"
-    function inviteAcceptPart2(address pAddr, address rpAddr) internal {
-        
-        //store first inviter
-        if (invitedBy[rpAddr] == address(0)) {
-            invitedBy[rpAddr] = pAddr;
-        }
-
-        invited[pAddr].add(rpAddr);
-        
-        _rewardCaller();
-        _replenishRecipient(rpAddr);
-    }
-
-    /**
-     * reward caller(relayers)
-     */
-    function _rewardCaller(
-    ) 
-        private 
-    {
-        if (REWARD_AMOUNT <= address(this).balance) {
-            payable(msg.sender).transfer(REWARD_AMOUNT);
-        }
-    }
-    
-    /**
-     * replenish recipient which added via invite
-     * @param rpAddr recipient's address 
-     */
-    function _replenishRecipient(
-        address rpAddr
-    ) 
-        private 
-    {
-        if (REPLENISH_AMOUNT <= address(this).balance) {
-            payable(rpAddr).transfer(REPLENISH_AMOUNT);
-        }
     }
     
     function _recoverAddresses(
