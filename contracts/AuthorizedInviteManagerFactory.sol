@@ -73,6 +73,11 @@ ARBITRATION
 
 All disputes related to this agreement shall be governed by and interpreted in accordance with the laws of New York, without regard to principles of conflict of laws. The parties to this agreement will submit all disputes arising under this agreement to arbitration in New York City, New York before a single arbitrator of the American Arbitration Association (“AAA”). The arbitrator shall be selected by application of the rules of the AAA, or by mutual agreement of the parties, except that such arbitrator shall be an attorney admitted to practice law New York. No party to this agreement will challenge the jurisdiction or venue provisions as provided in this section. No party to this agreement will challenge the jurisdiction or venue provisions as provided in this section.
 **/
+
+/**
+ * @title AuthorizedInviteManagerFactory
+ * @notice Factory contract for creating instances of AuthorizedInviteManager.
+ */
 contract AuthorizedInviteManagerFactory is
     CostManagerFactoryHelper,
     ReleaseManagerHelper
@@ -80,27 +85,42 @@ contract AuthorizedInviteManagerFactory is
     using Clones for address;
 
     /**
-     * @custom:shortd AuthorizedInviteManager implementation address
-     * @notice AuthorizedInviteManager implementation address
+     * @notice Address of the implementation contract for AuthorizedInviteManager.
      */
     address public immutable implementation;
 
+    /**
+     * @notice Array containing the addresses of all instances created by this factory.
+     */
     address[] public instances;
 
+    /**
+     * @notice Error thrown when an instance of AuthorizedInviteManager fails to be created.
+     */
     error InstanceCreatedFailed();
+
+    /**
+     * @notice Event emitted when an instance of AuthorizedInviteManager is successfully created.
+     * @param instance Address of the newly created instance.
+     * @param instancesCount Total number of instances created by this factory.
+     */
     event InstanceCreated(address instance, uint instancesCount);
 
     /**
+     * @notice Constructor function for the AuthorizedInviteManagerFactory contract.
+     * @param implementation_ Address of the implementation contract for AuthorizedInviteManager.
+     * @param costManager_ Address of the CostManager contract.
+     * @param releaseManager_ Address of the ReleaseManager contract.
      */
     constructor(
-        address _implementation,
-        address _costManager,
-        address _releaseManager
+        address implementation_,
+        address costManager_,
+        address releaseManager_
     )
-        CostManagerFactoryHelper(_costManager)
-        ReleaseManagerHelper(_releaseManager)
+        CostManagerFactoryHelper(costManager_)
+        ReleaseManagerHelper(releaseManager_)
     {
-        implementation = _implementation;
+        implementation = implementation_;
     }
 
     ////////////////////////////////////////////////////////////////////////
@@ -108,9 +128,8 @@ contract AuthorizedInviteManagerFactory is
     ////////////////////////////////////////////////////////////////////////
 
     /**
-     * @dev view amount of created instances
-     * @return amount amount instances
-     * @custom:shortd view amount of created instances
+     * @notice Returns the number of instances created by this factory.
+     * @return amount The number of instances.
      */
     function instancesCount() external view returns (uint256 amount) {
         amount = instances.length;
@@ -120,13 +139,17 @@ contract AuthorizedInviteManagerFactory is
     // public section //////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////
 
+    /**
+     * @notice Creates a new instance of AuthorizedInviteManager.
+     */
     function produce() public {
         address instance = address(implementation).clone();
         _produce(instance);
     }
 
     /**
-     * @param salt salt that used with CREATE2 opcode
+     * @notice Creates a new instance of AuthorizedInviteManager with a deterministic address.
+     * @param salt Salt that is used with the CREATE2 opcode to generate the new instance's address.
      */
     function produceDeterministic(bytes32 salt) public {
         address instance = address(implementation).cloneDeterministic(salt);
@@ -136,6 +159,10 @@ contract AuthorizedInviteManagerFactory is
     ////////////////////////////////////////////////////////////////////////
     // internal section ////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////
+    /**
+     * @notice Creates a new instance of AuthorizedInviteManager and registers it with the ReleaseManager.
+     * @param instance Address of the new instance.
+     */
     function _produce(address instance) internal {
         //before initialize
         if (instance == address(0)) {

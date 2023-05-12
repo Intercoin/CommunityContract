@@ -77,32 +77,48 @@ contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
     using Clones for address;
 
     /**
-     * @custom:shortd Community implementation address
      * @notice Community implementation address
      */
     address public immutable implementation;
 
+    /**
+     * @dev Address of the default contract that implements IAuthorizedInvitedHook.
+     */
     address public immutable defaultAuthorizedInviteManager;
 
+    /**
+     * @dev Array containing the addresses of all created Community instances.
+     */
     address[] public instances;
 
+    /**
+     * @dev Error thrown when creating a new instance of the Community contract fails.
+     */
     error InstanceCreatedFailed();
+
+    /**
+     * @dev Event emitted when a new instance of the Community contract is created.
+     * @param instance Address of the new instance.
+     * @param instancesCount Number of instances that have been created so far.
+     */
     event InstanceCreated(address instance, uint instancesCount);
 
     /**
+     * @dev Constructor that sets the implementation contract address, the cost manager contract address, 
+     * the release manager contract address, and the default authorized invite manager contract address.
      */
     constructor(
-        address _implementation,
-        address _costManager,
-        address _releaseManager,
-        address _defaultAuthorizedInviteManager
+        address implementation_,
+        address costManager_,
+        address releaseManager_,
+        address defaultAuthorizedInviteManager_
     )
-        CostManagerFactoryHelper(_costManager)
-        ReleaseManagerHelper(_releaseManager)
+        CostManagerFactoryHelper(costManager_)
+        ReleaseManagerHelper(releaseManager_)
     {
-        implementation = _implementation;
+        implementation = implementation_;
 
-        defaultAuthorizedInviteManager = _defaultAuthorizedInviteManager;
+        defaultAuthorizedInviteManager = defaultAuthorizedInviteManager_;
     }
 
     ////////////////////////////////////////////////////////////////////////
@@ -110,12 +126,11 @@ contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
     ////////////////////////////////////////////////////////////////////////
 
     /**
-     * @dev view amount of created instances
-     * @return amount amount instances
-     * @custom:shortd view amount of created instances
+     * @dev Returns the number of created instances.
+     * @return The number of created instances.
      */
-    function instancesCount() external view returns (uint256 amount) {
-        amount = instances.length;
+    function instancesCount() external view returns (uint256) {
+        return instances.length;
     }
 
     ////////////////////////////////////////////////////////////////////////
@@ -129,6 +144,14 @@ contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
      * @param contractUri contract URI
      * @custom:shortd creation CommunityERC721 instance
      */
+    /**
+     * @dev Creates a new instance of the Community contract and initializes it with the given parameters.
+     * @param hook The address of the contract that implements the ICommunityHook interface. Can be address(0).
+     * @param invitedHook The address of the contract that implements the IAuthorizedInvitedHook interface. Can be address(0).
+     * @param name The name of the ERC721 token that the user obtains when he acquires a role.
+     * @param symbol The symbol of the ERC721 token that the user obtains when he acquires a role.
+     * @param contractUri The URI for the ERC721 metadata.
+     */
     function produce(
         address hook,
         address invitedHook,
@@ -141,12 +164,14 @@ contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
     }
 
     /**
-     * @param salt salt that used with CREATE2 opcode
-     * @param hook address of contract implemented ICommunityHook interface. Can be address(0)
-     * @param name erc721 name
-     * @param symbol erc721 symbol
-     * @param contractUri contract URI
-     * @custom:shortd creation CommunityERC721 instance
+     * @dev Creates a new instance of the Community contract using the CREATE2 opcode and initializes 
+     * it with the given parameters.
+     * @param salt The salt used with the CREATE2 opcode.
+     * @param hook The address of the contract that implements the ICommunityHook interface. Can be address(0).
+     * @param invitedHook The address of the contract that implements the IAuthorizedInvitedHook interface. Can be address(0).
+     * @param name The name of the ERC721 token that the user obtains when he acquires a role.
+     * @param symbol The symbol of the ERC721 token that the user obtains when he acquires a role.
+     * @param contractUri The URI for the ERC721 metadata.
      */
     function produceDeterministic(
         bytes32 salt,
@@ -160,6 +185,12 @@ contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
         _produce(instance, hook, invitedHook, name, symbol, contractUri);
     }
 
+    /**
+     * @dev Returns the roles held by the given address across all communities.
+     * @param addr The address for which to retrieve roles.
+     * @return communities An array of all the communities in which the address holds roles.
+     * @return roles A nested array of role IDs, where the outer array is indexed by community and the inner array contains the role IDs held by the address in that community.
+     */
     function getRolesInAllCommunities(
         address addr
     )
@@ -184,13 +215,21 @@ contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
 
             roles[i] = tmp[0];
         }
-
-        //function getRoles(address[] calldata accounts)external view returns(uint8[][] memory);
     }
 
     ////////////////////////////////////////////////////////////////////////
     // internal section ////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////
+    /**
+     * @dev Creates a new community instance, initializes it, grants the "owners" role to the creator,
+     * registers it in the release manager, and emits an `InstanceCreated` event.
+     * @param instance The address of the new community instance.
+     * @param hook The address of the hook contract for the new community instance.
+     * @param invitedHook The address of the invited hook contract for the new community instance.
+     * @param name The name of the ERC721 token that the user obtains when he acquires a role.
+     * @param symbol The symbol of the ERC721 token that the user obtains when he acquires a role.
+     * @param contractUri The URI for the ERC721 metadata.
+     */
     function _produce(
         address instance,
         address hook,

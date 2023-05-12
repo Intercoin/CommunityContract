@@ -2,10 +2,16 @@
 pragma solidity ^0.8.11;
 
 import "./interfaces/IAuthorizedInvitedHook.sol";
-import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
+/**
+ * @title AuthorizedInvitedHookBase
+ * @dev Base contract that implements the IAuthorizedInvitedHook interface
+ */
 abstract contract AuthorizedInvitedHookBase is IAuthorizedInvitedHook {
     /**
+     * @dev Returns true if `interfaceId` is equal to the interface identifier
+     * of the `IAuthorizedInvitedHook` interface.
+     *
      * @dev See {IERC165-supportsInterface}.
      */
     function supportsInterface(
