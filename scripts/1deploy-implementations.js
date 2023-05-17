@@ -47,8 +47,27 @@ async function main() {
     // }
 	//----------------
 
-	const [deployer] = await ethers.getSigners();
-	
+	//const [deployer] = await ethers.getSigners();
+    // const [
+    //     /*depl_local*/,
+    //     deployer,
+    //     /*depl_releasemanager*/,
+    //     /*depl_invitemanager*/
+    // ] = await ethers.getSigners();
+    var signers = await ethers.getSigners();
+    var deployer;
+    if (signers.length == 1) {
+        deployer = signers[0];
+        
+    } else {
+        [
+            /*depl_local*/,
+            deployer,
+            /*depl_releasemanager*/,
+            /*depl_invitemanager*/
+        ] = signers;
+    }
+
 	const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
     const RELEASE_MANAGER = hre.network.name == 'mumbai'? process.env.RELEASE_MANAGER_MUMBAI : process.env.RELEASE_MANAGER;
 	console.log(
@@ -65,17 +84,21 @@ async function main() {
 	console.log("Account balance:", (deployerBalanceBefore).toString());
 
 	const CommunityF = await ethers.getContractFactory("Community");
+    const AuthorizedInviteManagerF = await ethers.getContractFactory("AuthorizedInviteManager");
         
-	let implementationCommunity         = await CommunityF.connect(deployer).deploy();
+	let implementationCommunity                 = await CommunityF.connect(deployer).deploy();
+    let implementationAuthorizedInviteManager   = await AuthorizedInviteManagerF.connect(deployer).deploy();
 
 	console.log("Implementations:");
-	console.log("  Community deployed at:       ", implementationCommunity.address);
+	console.log("  Community deployed at:               ", implementationCommunity.address);
+    console.log("  AuthorizedInviteManager deployed at: ", implementationAuthorizedInviteManager.address);
     console.log("Linked with manager:");
     console.log("  Release manager:", RELEASE_MANAGER);
 
-	data_object.implementationCommunity 	= implementationCommunity.address;
+	data_object.implementationCommunity 	            = implementationCommunity.address;
+    data_object.implementationAuthorizedInviteManager   = implementationAuthorizedInviteManager.address;
 
-    data_object.releaseManager	            = RELEASE_MANAGER;
+    data_object.releaseManager	                        = RELEASE_MANAGER;
 
     const deployerBalanceAfter = await deployer.getBalance();
     console.log("Spent:", ethers.utils.formatEther(deployerBalanceBefore.sub(deployerBalanceAfter)));

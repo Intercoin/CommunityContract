@@ -65,7 +65,13 @@ module.exports = {
       url: bscURL,
       chainId: 56,
       gasPrice: "auto",
-      accounts: [process.env.private_key],
+      accounts: [
+        process.env.private_key,
+        process.env.private_key_auxiliary,
+        process.env.private_key_releasemanager,
+        process.env.private_key_invitemanager,
+        process.env.private_key_commumnity
+      ],
       saveDeployments: true
     },
     bsctest: {
@@ -79,14 +85,26 @@ module.exports = {
       url: maticURL,
       chainId: 137,
       //gasPrice: "auto",
-      accounts: [process.env.private_key],
+      accounts: [
+        process.env.private_key,
+        process.env.private_key_auxiliary,
+        process.env.private_key_releasemanager,
+        process.env.private_key_invitemanager,
+        process.env.private_key_commumnity
+      ],
       saveDeployments: true
     },
     mumbai: {
       url: mumbaiURL,
       chainId: 80001,
-      gasPrice: "auto",
-      accounts: [process.env.private_key],
+      //gasPrice: "auto", 
+      accounts: [
+        process.env.private_key_auxiliary,
+        process.env.private_key_auxiliary,
+        process.env.private_key_auxiliary,
+        process.env.private_key_auxiliary,
+        process.env.private_key_auxiliary
+      ],
       saveDeployments: true
     },
     mainnet: {
@@ -108,9 +126,9 @@ module.exports = {
     currency: "USD"
   },
   etherscan: {
-    apiKey: process.env.MATIC_API_KEY
+    //apiKey: process.env.MATIC_API_KEY
     //apiKey: process.env.ETHERSCAN_API_KEY
-    //apiKey: process.env.bscscan_api_key
+    apiKey: process.env.bscscan_api_key
   },
   solidity: {
     compilers: [

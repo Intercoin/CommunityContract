@@ -33,19 +33,51 @@ async function main() {
 	data_object = data_object_root[hre.network.name];
 	if (
 		typeof data_object.implementationCommunity === 'undefined' ||
+		typeof data_object.authorizedInviteManager === 'undefined' ||
 		typeof data_object.releaseManager === 'undefined' ||
 		!data_object.implementationCommunity ||
+		!data_object.authorizedInviteManager ||
 		!data_object.releaseManager
 	) {
 		throw("Arguments file: wrong addresses");
 	}
 
-	const [deployer] = await ethers.getSigners();
+	//const [deployer] = await ethers.getSigners();
+	// const [
+    //     depl_local,
+    //     depl_auxiliary,
+    //     depl_releasemanager,
+    //     depl_invitemanager,
+	// 	depl_community
+    // ] = await ethers.getSigners();
 	
+	var depl_local,
+        depl_auxiliary,
+        depl_releasemanager,
+        depl_invitemanager,
+		depl_community;
+
+    var signers = await ethers.getSigners();
+    if (signers.length == 1) {
+        depl_local = signers[0];
+        depl_auxiliary = signers[0];
+        depl_releasemanager = signers[0];
+        depl_invitemanager = signers[0];
+		depl_community = signers[0];
+    } else {
+        [
+            depl_local,
+            depl_auxiliary,
+            depl_releasemanager,
+            depl_invitemanager,
+			depl_community
+        ] = signers;
+    }
+
 	const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 	console.log(
 		"Deploying contracts with the account:",
-		deployer.address
+		depl_community.address
 	);
 
 	var options = {
@@ -56,26 +88,26 @@ async function main() {
 		data_object.implementationCommunity,
 		ZERO_ADDRESS, //costmanager
 		data_object.releaseManager,
-		ZERO_ADDRESS, //defaultAuthorizedInviteManager
+		data_object.authorizedInviteManager, //defaultAuthorizedInviteManager
 	]
 	let params = [
 		..._params,
 		options
 	]
 
-	const deployerBalanceBefore = await deployer.getBalance();
+	const deployerBalanceBefore = await depl_community.getBalance();
 	console.log("Account balance:", (deployerBalanceBefore).toString());
 
 	const CommunityF = await ethers.getContractFactory("CommunityFactory");
 
-	this.factory = await CommunityF.connect(deployer).deploy(...params);
+	this.factory = await CommunityF.connect(depl_community).deploy(...params);
 
 	console.log("Factory deployed at:", this.factory.address);
 	console.log("with params:", [..._params]);
 
 	console.log("registered with release manager:", data_object.releaseManager);
     
-    const deployerBalanceAfter = await deployer.getBalance();
+    const deployerBalanceAfter = await depl_community.getBalance();
     console.log("Spent:", ethers.utils.formatEther(deployerBalanceBefore.sub(deployerBalanceAfter)));
     console.log("gasPrice:", ethers.utils.formatUnits((await network.provider.send("eth_gasPrice")), "gwei")," gwei");
 }
