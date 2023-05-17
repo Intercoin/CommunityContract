@@ -1,61 +1,52 @@
 # CommunityContract
-Smart contract for managing community membership and roles. Also has implemented NFT Interface. 
-When role granted to user, user obtained NFT for each role. 
-User can customize own NFT and specify ExtraURI    
+This repository contains the Community Contract, a smart contract that manages roles and permissions within a community.
+
+## The list of basic features:
+
+- The owner can create roles and manage roles and permissions for other roles.
+- When a role is granted to a user, the user obtains an NFT for each role.
+- Supports the protocol of Native Meta Transactions (ERC-2771).
+- Supports the ownable interface from the OpenZeppelin library, accessible to any user in the "owners" role.
+- Uses the standard for representing ownership of non-fungible tokens (ERC-721) with small changes:
+- - Every person who has a role also has an NFT that represents belonging to this role. Such an NFT cannot be transferred or burnt. However, when an admin revokes a role from the user, the NFT also disappears.
+
+## Installation
+You can clone the repository from GitHub:
+```bash
+git clone git@github.com:Intercoin/CommunityContract.git
+```
+or install it using npm:
+```bash
+npm i @artman325/community
+```
 
 # Deploy
-Any user can create own community by call method produce of CommunityFactory contract: [produce(hook, name, symbol)](docs/contracts/CommunityFactory.md#produce)
+Any user can create their own community by calling the produce method of the CommunityFactory contract: [produce(hook, invitedHook, name, symbol)](docs/contracts/CommunityFactory.md#produce).    
 
+Link for the factory below
 
-# Latest contract instances in test networks
-
-20220630 <br>
-Ethereum Rinkeby Testnet<br>
-<a href="https://rinkeby.etherscan.io/address/0xb9AbFA008348Bd3f96819B57c23052f90cca9221#contracts">CommunityFactory</a><br>
-
-Binance SmartChain TestNet<br>
-<a href="https://testnet.bscscan.com/address/0x3044c30ede2200260FD2f3E785b448F6C18f7F0A#contracts">CommunityFactory</a><br>
-
-ABI<br>
-<a href="https://gist.githubusercontent.com/artman325/6d91ded075ce36a18ff6774fd0b29440/raw/973eb1227992486126196c6a5021b670ddbf515f/communityfactory-abi">factory abi</a>
-<a href="https://gist.githubusercontent.com/artman325/9fa6f692d203ad11c7969f7d5e4e123a/raw/90bad3895c084ed8ee961ad2048f13aff6dae157/community-abi">instance abi</a>
-
-
-<br>
-Binance SmartChain TestNet<br>
-TBD
-
-<details>
-<summary>
-# Old versions
-</summary>
-</details>
-
+## Factory's addresses depend of networks
 
 # Overview
 There are 6 predefined roles:   
 
 role name| role index
 --|--
-`relayers`|1
-`owners`|2
-`admins`|3
-`members`|4
-`alumni`|5
-`visitors`|6
+`owners`|1
+`admins`|2
+`members`|3
+`alumni`|4
+`visitors`|5
 
-Role `relayers` is web servers X which can register new accounts in community via invite by owners/admins or some who can manage.
+The owners role is a single role that can manage itself, meaning one owner can add or remove other owners.
 
-Roles `owners` is a single role that can magage itself. means one owner can add(or remove) other owner.   
-   
-Contract can be used as external storage for getting list of members.   
+The contract can be used as external storage for getting a list of members.
 
-Any user obtain NFT with tokenID = `(roleid <<160)+walletaddress`
-Any who can manage certain role can setup tokenURI for this role by calling `setRoleURI`.  
-Also any member can setup personal URI for his role by calling `setExtraURI`.   
+Any user obtains an NFT with tokenID = (roleid << 160) + walletaddress.   
+Anyone who can manage a certain role can set up the tokenURI for this role by calling setRoleURI.    
 
-Full methods for each contracts can be find here [Community](docs/contracts/Community.md)
-Most usable method methods will be described below:
+Full methods for each contract can be found here: Community. The most usable methods will be described below:
+
 
 <table>
 <thead>
@@ -101,28 +92,13 @@ Most usable method methods will be described below:
 		<td>anyone</td>
 		<td>Returns number of all members belong to "role"</td>
 	</tr>
-	<tr>
-		<td><a href="#inviteprepare">invitePrepare</a></td>
-		<td>only "relayers"</td>
-		<td>storing signatures of invite</td>
-	</tr>
-	<tr>
-		<td><a href="#inviteaccept">inviteAccept</a></td>
-		<td>only "relayers"</td>
-		<td>accepting admin's invite</td>
-	</tr>
-	<tr>
-		<td><a href="#inviteview">inviteView</a></td>
-		<td>anyone</td>
-		<td>Returns tuple of invite stored at contract</td>
-	</tr>
 </tbody>
 </table>
 
 ## Methods
 
 #### grantRoles
-adding accounts to new `roles`.  Can  be called any role which manage `roles`. Revert if any roles can not be managed by sender
+Adds accounts to new roles. Can be called by any role that manages roles. Reverts if any roles cannot be managed by the sender.
 
 Params:
 name  | type | description
@@ -131,7 +107,7 @@ accounts|address[]| account's address
 roles|uint8[]| indexes of roles
 
 #### revokeRoles
-removing `roles` from certain accounts.  Can  be called any role which manage `roles`. Revert if any roles can not be managed by sender
+Removes roles from certain accounts. Can be called by any role that manages roles. Reverts if any roles cannot be managed by the sender.
 
 Params:
 name  | type | description
@@ -140,7 +116,7 @@ accounts|address[]| accounts's address
 roles|uint8[]| indexes of roles
 
 #### createRole
-Creating new role. Сan called by `owners`
+Creates a new role. Can only be called by owners.
 
 Params:
 name  | type | description
@@ -148,7 +124,7 @@ name  | type | description
 role|string| name of role
 
 #### manageRole
-allow account with `byRole` setup `ofRole` to another account with default role(`members`). Сan called only by `owners`.
+Allows an account with byRole to set up ofRole for another account with the default role (members). Can only be called by owners.
 
 Params:
 name  | type | description
@@ -162,7 +138,7 @@ maxAddresses|uint256| amount of addresses that be available to grant in `duratio
 duration|uint64| if zero - then no buckets. but if `maxAddresses` != 0 then it's real total maximum addresses available to grant
  
 #### getAddresses
-Returns all accounts belong to `role`
+Returns all accounts belonging to a role.
 
 Params:
 name  | type | description
@@ -170,7 +146,7 @@ name  | type | description
 role|uint8| index of role.
 
 #### getRoles
-Returns all roles which member belong to
+Returns all roles that a member belongs to.
 
 Params:
 name  | type | description
@@ -178,53 +154,18 @@ name  | type | description
 account|address | account's address. [optional] if not specified returned all roles
 
 #### addressesCount
-Returns number of all accounts belong to `role`
+Returns the number of all accounts belonging to a role.
 
 Params:
 name  | type | description
 --|--|--
 role|uint8| index of role.
 
-#### invitePrepare
-Storing signatures of invite
-
-Params:
-name  | type | description
---|--|--
-sSig|bytes|admin's signature
-rSig|bytes|recipient's signature
-
-#### inviteAccept
-Accepting admin's invite
-
-Params:
-name  | type | description
---|--|--
-p|string|admin's message which will be signed
-sSig|bytes|admin's signature
-rp|string|recipient's message which will be signed
-rSig|bytes|recipient's signature
-
-#### inviteView
-Returns tuple of invite stored at contract
-
-Params:
-name  | type | description
---|--|--
-sSig|bytes|admin's signature
-
-
-Return Tuple:
-name  | type | description
---|--|--
-sSig|bytes|admin's signature
-rSig|bytes|recipient's signature
-gasCost|uint256| stored gas which was spent by relayers for invitePrepare(or and inviteAccepted) 
-reimbursed|ENUM(0,1,2)|ReimburseStatus (0-NONE,1-PENDING,2-DONE)
-used|bool| if true invite is already used
-exists|bool|if true invite is exist
-
 
 ## Example to use
 visit [wiki](https://github.com/Intercoin/CommunityContract/wiki/Example-to-use)
 	
+## License
+
+[MIT](https://choosealicense.com/licenses/mit/)
+
