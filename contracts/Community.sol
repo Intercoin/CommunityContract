@@ -117,7 +117,7 @@ contract Community is
     struct Role {
         bytes32 name;
         string roleURI;
-        mapping(address => string) extraURI;
+        //mapping(address => string) extraURI;
         //EnumerableSetUpgradeable.UintSet canManageRoles;
         EnumerableSetUpgradeable.UintSet canGrantRoles;
         EnumerableSetUpgradeable.UintSet canRevokeRoles;
@@ -875,15 +875,16 @@ contract Community is
     ) public view override returns (string memory) {
         //_rolesByIndex[_roles[role.stringToBytes32()]].roleURI = roleURI;
         uint8 roleId = uint8(tokenId >> 160);
-        address w = address(uint160(tokenId - (roleId << 160)));
+        return _rolesByIndex[roleId].roleURI;
 
-        bytes memory bytesExtraURI = bytes(_rolesByIndex[roleId].extraURI[w]);
+        //address w = address(uint160(tokenId - (roleId << 160)));
+        // bytes memory bytesExtraURI = bytes(_rolesByIndex[roleId].extraURI[w]);
 
-        if (bytesExtraURI.length != 0) {
-            return _rolesByIndex[roleId].extraURI[w];
-        } else {
-            return _rolesByIndex[roleId].roleURI;
-        }
+        // if (bytesExtraURI.length != 0) {
+        //     return _rolesByIndex[roleId].extraURI[w];
+        // } else {
+        //     return _rolesByIndex[roleId].roleURI;
+        // }
     }
 
     /**
