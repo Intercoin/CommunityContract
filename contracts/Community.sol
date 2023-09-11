@@ -474,12 +474,12 @@ contract Community is
         require(
             (_roles[role.stringToBytes32()] == 0) &&
                 (_roles[role._toLower().stringToBytes32()] == 0),
-            "Such role is already exists"
+            "ROLE_EXISTS"
         );
 
         require(
             rolesCount < type(uint8).max - 1,
-            "Max amount of roles exceeded"
+            "ROLES_MAX_EXCEEDED"
         );
 
         _createRole(role.stringToBytes32());
@@ -518,7 +518,7 @@ contract Community is
             ofRole != _roles[DEFAULT_OWNERS_ROLE],
             string(
                 abi.encodePacked(
-                    "ofRole can not be '",
+                    "WRONG_OFROLE '",
                     _rolesByIndex[ofRole].name.bytes32ToString(),
                     "'"
                 )
@@ -547,7 +547,7 @@ contract Community is
 
         require(
             !_isInRole(forwarder, _roles[DEFAULT_OWNERS_ROLE]),
-            "FORWARDER_CAN_NOT_BE_OWNER"
+            "FORWARDER_CANNOT_BE_OWNER"
         );
         _setTrustedForwarder(forwarder);
 
@@ -823,7 +823,7 @@ contract Community is
         address account,
         uint8 roleIndex
     ) public view returns (bool) {
-        //require(_roles[rolename.stringToBytes32()] != 0, "Such role does not exists");
+        //require(_roles[rolename.stringToBytes32()] != 0, "ROLE_DOESNT_EXIST");
         return _rolesByAddress[account].contains(roleIndex);
     }
 
@@ -966,7 +966,7 @@ contract Community is
                 rolesIndexWhichWillGrant.length != 0,
                 string(
                     abi.encodePacked(
-                        "Sender can not grant role '",
+                        "CANT_GRANT_ROLE '",
                         _rolesByIndex[roleIndexes[i]].name.bytes32ToString(),
                         "'"
                     )
@@ -1030,7 +1030,7 @@ contract Community is
                 roleWhichWillRevoke != NONE_ROLE_INDEX,
                 string(
                     abi.encodePacked(
-                        "Sender can not revoke role '",
+                        "CANT_REVOKE_ROLE '",
                         _rolesByIndex[roleIndexes[i]].name.bytes32ToString(),
                         "'"
                     )
@@ -1353,7 +1353,7 @@ contract Community is
         if (rolesWhichCan.length == 0) {
             string memory errMsg = string(
                 abi.encodePacked(
-                    "Sender can not grant account with role '",
+                    "Cannot grant role '",
                     _rolesByIndex[targetRoleIndex].name.bytes32ToString(),
                     "'"
                 )
@@ -1383,7 +1383,7 @@ contract Community is
     function _checkOwner() internal view override {
         require(
             _isInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]),
-            "Ownable: caller is not the owner"
+            "NOT_OWNER"
         );
     }
 
@@ -1539,7 +1539,7 @@ contract Community is
             _isInRole(target, targetRoleIndex),
             string(
                 abi.encodePacked(
-                    "Missing role '",
+                    "MISSING_ROLE '",
                     _rolesByIndex[targetRoleIndex].name.bytes32ToString(),
                     "'"
                 )
@@ -1548,7 +1548,7 @@ contract Community is
     }
 
     function _isRoleValid(uint8 index) internal view {
-        require((rolesCount > index), "invalid role");
+        require((rolesCount > index), "INVALID_ROLE");
     }
 
     function requireAuthorizedManager() internal view {
