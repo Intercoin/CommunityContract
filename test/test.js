@@ -890,6 +890,75 @@ describe("Community", function () {
             expect(await CommunityInstance.connect(owner).hasRole(accountTwo.address, rolesIndex.get('role2'))).to.be.eq(false);
         });
 
+        it.only("check params input in `manageRoles`", async () => {
+            // create roles
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role1')]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role2')]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role3')]);
+            
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'manageRoles(uint8[],uint8[],bool[],bool[],uint256[],uint64[])', [
+                    [rolesIndex.get('role2'),rolesIndex.get('role2')], 
+                    [rolesIndex.get('role3')],
+                    [canGrantRole], 
+                    [canRevokeRole], 
+                    [maxAddresses], 
+                    [duration]
+                ],
+                "WRONG_INPUT_LENGTH"
+            );
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'manageRoles(uint8[],uint8[],bool[],bool[],uint256[],uint64[])', [
+                    [rolesIndex.get('role2')], 
+                    [rolesIndex.get('role3'),rolesIndex.get('role3')],
+                    [canGrantRole], 
+                    [canRevokeRole], 
+                    [maxAddresses], 
+                    [duration]
+                ],
+                "WRONG_INPUT_LENGTH"
+            );
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'manageRoles(uint8[],uint8[],bool[],bool[],uint256[],uint64[])', [
+                    [rolesIndex.get('role2')], 
+                    [rolesIndex.get('role3')],
+                    [canGrantRole,canGrantRole], 
+                    [canRevokeRole], 
+                    [maxAddresses], 
+                    [duration]
+                ],
+                "WRONG_INPUT_LENGTH"
+            );
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'manageRoles(uint8[],uint8[],bool[],bool[],uint256[],uint64[])', [
+                    [rolesIndex.get('role2')], 
+                    [rolesIndex.get('role3')],
+                    [canGrantRole], 
+                    [canRevokeRole,canRevokeRole], 
+                    [maxAddresses], 
+                    [duration]
+                ],
+                "WRONG_INPUT_LENGTH"
+            );
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'manageRoles(uint8[],uint8[],bool[],bool[],uint256[],uint64[])', [
+                    [rolesIndex.get('role2')], 
+                    [rolesIndex.get('role3')],
+                    [canGrantRole], 
+                    [canRevokeRole], 
+                    [maxAddresses,maxAddresses], 
+                    [duration]
+                ],
+                "WRONG_INPUT_LENGTH"
+            );
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'manageRoles(uint8[],uint8[],bool[],bool[],uint256[],uint64[])', [
+                    [rolesIndex.get('role2')], 
+                    [rolesIndex.get('role3')],
+                    [canGrantRole], 
+                    [canRevokeRole], 
+                    [maxAddresses], 
+                    [duration,duration]
+                ],
+                "WRONG_INPUT_LENGTH"
+            );
+            
+        });
+
         it("check amount of roles after revoke(empty strings)", async () => {
             await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesIndex.get('role1')]);
             await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],uint8[])', [

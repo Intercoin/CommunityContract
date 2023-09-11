@@ -214,6 +214,7 @@ contract Community is
     uint8 internal constant OPERATION_TRANSFEROWNERSHIP = 0xa;
     uint8 internal constant OPERATION_RENOUNCEOWNERSHIP = 0xb;
     uint8 internal constant OPERATION_SET_CONTRACT_URI = 0xc;
+    uint8 internal constant OPERATION_MANAGE_ROLES = 0xd;
 
     uint8 internal constant NONE_ROLE_INDEX = 0;
 
@@ -508,17 +509,6 @@ contract Community is
     ) public {
         requireInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]);
 
-        require(
-            ofRole != _roles[DEFAULT_OWNERS_ROLE],
-            string(
-                abi.encodePacked(
-                    "WRONG_OFROLE '",
-                    _rolesByIndex[ofRole].name.bytes32ToString(),
-                    "'"
-                )
-            )
-        );
-
         _manageRole(
             byRole,
             ofRole,
@@ -533,6 +523,59 @@ contract Community is
             0,
             0
         );
+    }
+
+    
+    /**
+     * Bulk version of method `manageRole`
+     * @param byRole array of source roles indexes
+     * @param ofRole array of target roles indexes
+     * @param canGrantRole array of whether addresses with byRole can grant ofRole to other addresses
+     * @param canRevokeRole array of whether addresses with byRole can revoke ofRole from other addresses
+     * @param maxAddresses array of maximum number of addresses that users with byRole can grant to ofRole in duration
+     * @param duration array of durations
+     *          if duration[i] == 0 then no limit by time: `maxAddresses` will be max accounts on this role
+     *          if maxAddresses[i] == 0 then no limit max accounts on this role
+     */
+    function manageRoles(
+        uint8[] calldata byRole,
+        uint8[] calldata ofRole,
+        bool[] calldata canGrantRole,
+        bool[] calldata canRevokeRole,
+        uint256[] calldata maxAddresses,
+        uint64[] calldata duration
+    ) public {
+        requireInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]);
+
+        uint256 len = byRole.length;
+        require (
+            (
+                len == ofRole.length &&
+                len == canGrantRole.length &&
+                len == canRevokeRole.length &&
+                len == maxAddresses.length &&
+                len == duration.length
+            ),
+            "WRONG_INPUT_LENGTH"
+        );
+
+        for (uint256 i = 0; i < len; i++) {
+            _manageRole(
+                byRole[i],
+                ofRole[i],
+                canGrantRole[i],
+                canRevokeRole[i],
+                maxAddresses[i],
+                duration[i]
+            );
+        }
+
+        _accountForOperation(
+            OPERATION_MANAGE_ROLES << OPERATION_SHIFT_BITS,
+            len,
+            0
+        );
+
     }
 
     function setTrustedForwarder(address forwarder) public override {
@@ -1182,6 +1225,18 @@ contract Community is
         uint256 maxAddresses,
         uint64 duration
     ) internal {
+        
+        require(
+            ofRole != _roles[DEFAULT_OWNERS_ROLE],
+            string(
+                abi.encodePacked(
+                    "WRONG_OFROLE '",
+                    _rolesByIndex[ofRole].name.bytes32ToString(),
+                    "'"
+                )
+            )
+        );
+
         _isRoleValid(byRole);
         _isRoleValid(ofRole);
 
