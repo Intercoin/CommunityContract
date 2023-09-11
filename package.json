@@ -9,6 +9,7 @@
     "!/contracts/mocks/**/*"
   ],
   "scripts": {
+    "size": "npx hardhat size-contracts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

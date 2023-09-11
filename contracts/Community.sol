@@ -107,7 +107,6 @@ contract Community is
     ////////////////////////////////
 
     struct GrantSettings {
-        uint8 requireRole; //=0,
         uint256 maxAddresses; //=0,
         uint64 duration; //=0
         uint64 lastIntervalIndex;
@@ -810,23 +809,41 @@ contract Community is
      * @dev can be duplicate items in output. see https://github.com/Intercoin/CommunityContract/issues/4#issuecomment-1049797389
      * @notice if call without params then returns all existing roles
      * @custom:shortd all roles
-     * @return arrays of (indexes, names, roleURIs)
+     * @return arrays of (indexes, names, roleURIs, canGrantRoles, canRevokeRoles)
      */
-    function getRoles()
+    function allRoles()
         public
         view
-        returns (uint8[] memory, string[] memory, string[] memory)
+        returns (uint8[] memory, string[] memory, string[] memory, uint8[][] memory, uint8[][] memory)
     {
         uint8[] memory indexes = new uint8[](rolesCount - 1);
         string[] memory names = new string[](rolesCount - 1);
         string[] memory roleURIs = new string[](rolesCount - 1);
+        uint8[][] memory canGrantRoles = new uint8[][](rolesCount - 1);
+        uint8[][] memory canRevokeRoles = new uint8[][](rolesCount - 1);
         // rolesCount start from 1
+        uint8 i_index=0;
+        uint8 len;
         for (uint8 i = 1; i < rolesCount; i++) {
-            indexes[i - 1] = i;
-            names[i - 1] = _rolesByIndex[i].name.bytes32ToString();
-            roleURIs[i - 1] = _rolesByIndex[i].roleURI;
+            i_index = i - 1;
+            indexes[i_index] = i;
+            names[i_index] = _rolesByIndex[i].name.bytes32ToString();
+            roleURIs[i_index] = _rolesByIndex[i].roleURI;
+
+            len = uint8(_rolesByIndex[i].canGrantRoles.length());
+            canGrantRoles[i_index] = new uint8[](len);
+            for (uint256 j = 0; j < len; j++) {
+                canGrantRoles[i_index][j] = uint8(_rolesByIndex[i].canGrantRoles.at(j));
+            }
+
+            len = uint8(_rolesByIndex[i].canRevokeRoles.length());
+            canRevokeRoles[i_index] = new uint8[](len);
+            for (uint256 j = 0; j < len; j++) {
+                canRevokeRoles[i_index][j] = uint8(_rolesByIndex[i].canRevokeRoles.at(j));
+            }
+
         }
-        return (indexes, names, roleURIs);
+        return (indexes, names, roleURIs, canGrantRoles, canRevokeRoles);
     }
 
     /**
