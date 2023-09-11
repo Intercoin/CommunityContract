@@ -1065,16 +1065,11 @@ contract Community is
                     j < _rolesByAddress[accountWhichWillRevoke].length();
                     j++
                 ) {
+                    uint8 indexAccountWhichWillRevoke = _rolesByAddress[accountWhichWillRevoke].get(j);
                     if (
-                        _rolesByIndex[
-                            uint8(
-                                _rolesByAddress[accountWhichWillRevoke].get(j)
-                            )
-                        ].canRevokeRoles.contains(roleIndexes[i]) == true
+                        _rolesByIndex[indexAccountWhichWillRevoke].canRevokeRoles.contains(roleIndexes[i]) == true
                     ) {
-                        roleWhichWillRevoke = _rolesByAddress[
-                            accountWhichWillRevoke
-                        ].get(j);
+                        roleWhichWillRevoke = indexAccountWhichWillRevoke;
                         break;
                     }
                 }
