@@ -23,6 +23,10 @@ const bsctestURL = 'https://data-seed-prebsc-1-s1.binance.org:8545';
 const mainnetURL = `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_MAINNET}`
 const maticURL = `https://polygon-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_MATIC}`
 const mumbaiURL = 'https://matic-mumbai.chainstacklabs.com';
+const arbitrumURL = `https://arbitrum-one.publicnode.com`;
+//const avalancheURL = `https://endpoints.omniatech.io/v1/avax/mainnet/public`;
+const avalancheURL = `https://avalanche-c-chain.publicnode.com`;
+
 
 module.exports = {
   networks: {
@@ -81,7 +85,7 @@ module.exports = {
       accounts: [process.env.private_key],
       saveDeployments: true
     },
-    matic: {
+    polygon: {
       url: maticURL,
       chainId: 137,
       //gasPrice: "auto",
@@ -94,7 +98,7 @@ module.exports = {
       ],
       saveDeployments: true
     },
-    mumbai: {
+    polygonMumbai: {
       url: mumbaiURL,
       chainId: 80001,
       //gasPrice: "auto", 
@@ -113,6 +117,32 @@ module.exports = {
       gasPrice: 20000000000,
       accounts: [process.env.private_key],
       saveDeployments: true
+    },
+    arbitrumOne: {
+      url: arbitrumURL,
+      chainId: 42161,
+      gasPrice: "auto",
+      accounts: [
+        process.env.private_key,
+        process.env.private_key_auxiliary,
+        process.env.private_key_releasemanager,
+        process.env.private_key_invitemanager,
+        process.env.private_key_commumnity
+      ],
+      saveDeployments: true
+    },
+    avalanche: {
+      url: avalancheURL,
+      chainId: 43114,
+      gasPrice: "auto",
+      accounts: [
+        process.env.private_key,
+        process.env.private_key_auxiliary,
+        process.env.private_key_releasemanager,
+        process.env.private_key_invitemanager,
+        process.env.private_key_commumnity
+      ],
+      saveDeployments: true
     }
   },
   docgen: {
@@ -128,7 +158,15 @@ module.exports = {
   etherscan: {
     //apiKey: process.env.MATIC_API_KEY
     //apiKey: process.env.ETHERSCAN_API_KEY
-    apiKey: process.env.bscscan_api_key
+    //apiKey: process.env.bscscan_api_key
+    apiKey: {
+      polygonMumbai: process.env.MATIC_API_KEY,
+      polygon: process.env.MATIC_API_KEY,
+      mainnet: process.env.ETHERSCAN_API_KEY,
+      bsc: process.env.bscscan_api_key,
+      arbitrumOne: process.env.ARBITRUMONE_API_KEY,
+      avalanche: process.env.AVALANCHE_API_KEY
+    }
   },
   solidity: {
     compilers: [
