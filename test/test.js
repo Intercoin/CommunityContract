@@ -248,14 +248,14 @@ describe("Community", function () {
         });
 
         it("should be setup by owner", async() => {
-            await expect(CommunityInstance.connect(accountOne).setTrustedForwarder(accountTwo.address)).to.be.revertedWith("Missing role '" +rolesTitle.get('owners')+"'");
+            await expect(CommunityInstance.connect(accountOne).setTrustedForwarder(accountTwo.address)).to.be.revertedWith("MISSING_ROLE '" +rolesTitle.get('owners')+"'");
             expect(await CommunityInstance.connect(accountOne).isTrustedForwarder(ZERO_ADDRESS)).to.be.true;
             await CommunityInstance.connect(owner).setTrustedForwarder(accountTwo.address);
             expect(await CommunityInstance.connect(accountTwo).isTrustedForwarder(accountTwo.address)).to.be.true;
         });
         
         it("shouldnt become owner and trusted forwarder", async() => {
-            await expect(CommunityInstance.connect(owner).setTrustedForwarder(owner.address)).to.be.revertedWith("FORWARDER_CAN_NOT_BE_OWNER");
+            await expect(CommunityInstance.connect(owner).setTrustedForwarder(owner.address)).to.be.revertedWith("FORWARDER_CANNOT_BE_OWNER");
         });
 
     });
@@ -475,7 +475,7 @@ describe("Community", function () {
                 expect(executedCountBefore).to.be.eq(ZERO);
                 expect(executedCountAfter).to.be.eq(ONE);
 
-                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesIndex.get('role1')], "Such role is already exists");
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesIndex.get('role1')], "ROLE_EXISTS");
 
             }); 
         });
@@ -563,7 +563,7 @@ describe("Community", function () {
             expect(oldContractURI).to.be.eq(CONTRACT_URI);
 
             const newContractURI = oldContractURI + 'NEW';
-            await expect(CommunityInstance.connect(accountFourth).setContractURI(newContractURI)).to.be.revertedWith("Missing role '" +rolesTitle.get('owners')+"'");
+            await expect(CommunityInstance.connect(accountFourth).setContractURI(newContractURI)).to.be.revertedWith("MISSING_ROLE '" +rolesTitle.get('owners')+"'");
             await CommunityInstance.connect(owner).setContractURI(newContractURI);
 
             const contractURI = await CommunityInstance.contractURI();
@@ -594,15 +594,15 @@ describe("Community", function () {
         });
 
         it("can create new role", async () => {
-            await mixedCall(CommunityInstance, trustedForwardMode, accountThree, 'createRole(string)', [rolesTitle.get('role1')], "Missing role '" +rolesTitle.get('owners')+"'");
+            await mixedCall(CommunityInstance, trustedForwardMode, accountThree, 'createRole(string)', [rolesTitle.get('role1')], "MISSING_ROLE '" +rolesTitle.get('owners')+"'");
 
-            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('owners')], "Such role is already exists");
-            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('admins')], "Such role is already exists");
-            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('members')], "Such role is already exists");
-            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('cc_admins')], "Such role is already exists");
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('owners')], "ROLE_EXISTS");
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('admins')], "ROLE_EXISTS");
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('members')], "ROLE_EXISTS");
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('cc_admins')], "ROLE_EXISTS");
             
             await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role1')]);
-            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role1')], "Such role is already exists");
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role1')], "ROLE_EXISTS");
             
         });
 
@@ -685,7 +685,7 @@ describe("Community", function () {
                 accountThree, 
                 'manageRole(uint8,uint8,bool,bool,uint8,uint256,uint64)', 
                 [rolesIndex.get('role1'),rolesIndex.get('role2'),canGrantRole, canRevokeRole, requireRole, maxAddresses, duration],
-                "Missing role '" +rolesTitle.get('owners')+"'"
+                "MISSING_ROLE '" +rolesTitle.get('owners')+"'"
             );
 
             // role exist check
@@ -696,7 +696,7 @@ describe("Community", function () {
                 owner, 
                 'manageRole(uint8,uint8,bool,bool,uint8,uint256,uint64)', 
                 [rolesIndex.get('role4'),rolesIndex.get('role2'),canGrantRole, canRevokeRole, requireRole, maxAddresses, duration],
-                "invalid role"
+                "INVALID_ROLE"
             );
             // ofRole invalid
             await mixedCall(
@@ -705,7 +705,7 @@ describe("Community", function () {
                 owner, 
                 'manageRole(uint8,uint8,bool,bool,uint8,uint256,uint64)', 
                 [rolesIndex.get('role1'),rolesIndex.get('role4'),canGrantRole, canRevokeRole, requireRole, maxAddresses, duration],
-                "invalid role"
+                "INVALID_ROLE"
             );
 
             // manage role
@@ -713,12 +713,12 @@ describe("Community", function () {
             
             await mixedCall(CommunityInstance, trustedForwardMode, accountThree, 'grantRoles(address[],uint8[])', [
                 [accountTwo.address], [rolesIndex.get('role1')]
-            ], "Sender can not grant role '" +rolesTitle.get('role1')+"'");
+            ], "CANT_GRANT_ROLE '" +rolesTitle.get('role1')+"'");
 
             // added member to none-exists role 
             await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],uint8[])', [
                 [accountTwo.address], [rolesIndex.get('role4')]
-            ], "invalid role");
+            ], "INVALID_ROLE");
             
             await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],uint8[])', [
                 [accountTwo.address], [rolesIndex.get('role1')]
@@ -750,7 +750,7 @@ describe("Community", function () {
             await mixedCall(CommunityInstance, trustedForwardMode, owner, 'manageRole(uint8,uint8,bool,bool,uint8,uint256,uint64)', [rolesIndex.get('role1'),rolesIndex.get('role2'),false, canRevokeRole, requireRole, maxAddresses, duration]);
             await mixedCall(CommunityInstance, trustedForwardMode, accountOne, 'grantRoles(address[],uint8[])', [
                 [accountThree.address], [rolesIndex.get('role2')]
-            ], "Sender can not grant role '" +rolesTitle.get('role2')+"'");
+            ], "CANT_GRANT_ROLE '" +rolesTitle.get('role2')+"'");
 
         }); 
 
@@ -779,7 +779,7 @@ describe("Community", function () {
             ]);
             await mixedCall(CommunityInstance, trustedForwardMode, accountOne, 'revokeRoles(address[],uint8[])', [
                 [accountThree.address], [rolesIndex.get('role2')]
-            ], "Sender can not revoke role '" +rolesTitle.get('role2')+"'");
+            ], "CANT_REVOKE_ROLE '" +rolesTitle.get('role2')+"'");
 
         }); 
 
@@ -800,7 +800,7 @@ describe("Community", function () {
             
             await mixedCall(CommunityInstance, trustedForwardMode, accountThree, 'revokeRoles(address[],uint8[])', [
                 [accountTwo.address], [rolesIndex.get('role1')]
-            ],"Sender can not revoke role '" +rolesTitle.get('role1')+"'");
+            ],"CANT_REVOKE_ROLE '" +rolesTitle.get('role1')+"'");
 
             // remove
             await mixedCall(CommunityInstance, trustedForwardMode, owner, 'revokeRoles(address[],uint8[])', [
@@ -831,7 +831,7 @@ describe("Community", function () {
                 owner, 
                 'manageRole(uint8,uint8,bool,bool,uint8,uint256,uint64)', 
                 [rolesIndex.get('role2'), rolesIndex.get('owners'),canGrantRole, canRevokeRole, requireRole, maxAddresses, duration],
-                "ofRole can not be '" +rolesTitle.get('owners')+"'"
+                "WRONG_OFROLE '" +rolesTitle.get('owners')+"'"
             );
         }); 
 
@@ -1778,7 +1778,7 @@ describe("Community", function () {
                 let extrauri = "http://google.com/extra";
 
                 //Sender can not manage Members with role
-                await mixedCall(CommunityInstance, trustedForwardMode, accountNine, 'setRoleURI(uint8,string)', [rolesIndex.get('role3'), uri], "Missing role '" +rolesTitle.get('owners')+"'");
+                await mixedCall(CommunityInstance, trustedForwardMode, accountNine, 'setRoleURI(uint8,string)', [rolesIndex.get('role3'), uri], "MISSING_ROLE '" +rolesTitle.get('owners')+"'");
 
                 expect(
                     await CommunityInstance.tokenURI(generateTokenId(accountThree.address, rolesIndex.get('role3')))
@@ -1788,7 +1788,7 @@ describe("Community", function () {
                     await CommunityInstance.tokenURI(generateTokenId(accountSix.address, rolesIndex.get('role3')))
                 ).to.be.eq("");
 
-                await mixedCall(CommunityInstance, trustedForwardMode, accountThree, 'setRoleURI(uint8,string)', [rolesIndex.get('role3'),uri], "Missing role '" +rolesTitle.get('owners')+"'");
+                await mixedCall(CommunityInstance, trustedForwardMode, accountThree, 'setRoleURI(uint8,string)', [rolesIndex.get('role3'),uri], "MISSING_ROLE '" +rolesTitle.get('owners')+"'");
 
                 await mixedCall(CommunityInstance, trustedForwardMode, accountTen, 'setRoleURI(uint8,string)', [rolesIndex.get('role3'),uri]);
 
