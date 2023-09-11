@@ -273,7 +273,6 @@ contract Community is
         uint8 indexed targetRole,
         bool canGrantRole,
         bool canRevokeRole,
-        uint8 requireRole,
         uint256 maxAddresses,
         uint64 duration,
         address indexed sender
@@ -353,7 +352,6 @@ contract Community is
             true,
             true,
             0,
-            0,
             0
         );
         _manageRole(
@@ -362,7 +360,6 @@ contract Community is
             true,
             true,
             0,
-            0,
             0
         );
         _manageRole(
@@ -370,7 +367,6 @@ contract Community is
             _roles[DEFAULT_VISITORS_ROLE],
             true,
             true,
-            0,
             0,
             0
         );
@@ -497,7 +493,6 @@ contract Community is
      * @param ofRole target role index
      * @param canGrantRole whether addresses with byRole can grant ofRole to other addresses
      * @param canRevokeRole whether addresses with byRole can revoke ofRole from other addresses
-     * @param requireRole whether addresses with byRole can grant ofRole to other addresses
      * @param maxAddresses the maximum number of addresses that users with byRole can grant to ofRole in duration
      * @param duration duration
      *          if duration == 0 then no limit by time: `maxAddresses` will be max accounts on this role
@@ -508,7 +503,6 @@ contract Community is
         uint8 ofRole,
         bool canGrantRole,
         bool canRevokeRole,
-        uint8 requireRole,
         uint256 maxAddresses,
         uint64 duration
     ) public {
@@ -530,7 +524,6 @@ contract Community is
             ofRole,
             canGrantRole,
             canRevokeRole,
-            requireRole,
             maxAddresses,
             duration
         );
@@ -1176,7 +1169,6 @@ contract Community is
      * @param ofRole target role index
      * @param canGrantRole whether addresses with byRole can grant ofRole to other addresses
      * @param canRevokeRole whether addresses with byRole can revoke ofRole from other addresses
-     * @param requireRole whether addresses with byRole can grant ofRole to other addresses
      * @param maxAddresses the maximum number of addresses that users with byRole can grant to ofRole in duration
      * @param duration duration
      *          if duration == 0 then no limit by time: `maxAddresses` will be max accounts on this role
@@ -1187,7 +1179,6 @@ contract Community is
         uint8 ofRole,
         bool canGrantRole,
         bool canRevokeRole,
-        uint8 requireRole,
         uint256 maxAddresses,
         uint64 duration
     ) internal {
@@ -1206,7 +1197,6 @@ contract Community is
             _rolesByIndex[byRole].canRevokeRoles.remove(ofRole);
         }
 
-        _rolesByIndex[byRole].grantSettings[ofRole].requireRole = requireRole;
         _rolesByIndex[byRole].grantSettings[ofRole].maxAddresses = maxAddresses;
         _rolesByIndex[byRole].grantSettings[ofRole].duration = duration;
 
@@ -1215,7 +1205,6 @@ contract Community is
             ofRole,
             canGrantRole,
             canRevokeRole,
-            requireRole,
             maxAddresses,
             duration,
             _msgSender()
