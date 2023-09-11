@@ -1066,9 +1066,7 @@ contract Community is
                     j++
                 ) {
                     uint8 indexAccountWhichWillRevoke = _rolesByAddress[accountWhichWillRevoke].get(j);
-                    if (
-                        _rolesByIndex[indexAccountWhichWillRevoke].canRevokeRoles.contains(roleIndexes[i]) == true
-                    ) {
+                    if (_rolesByIndex[indexAccountWhichWillRevoke].canRevokeRoles.contains(roleIndexes[i])) {
                         roleWhichWillRevoke = indexAccountWhichWillRevoke;
                         break;
                     }
@@ -1558,7 +1556,7 @@ contract Community is
                 if (
                     _rolesByIndex[uint8(_rolesByAddress[sender].get(i))]
                         .canGrantRoles
-                        .contains(targetRoleIndex) == true
+                        .contains(targetRoleIndex)
                 ) {
                     iLen++;
                 }
@@ -1571,7 +1569,7 @@ contract Community is
                 if (
                     _rolesByIndex[uint8(_rolesByAddress[sender].get(i))]
                         .canGrantRoles
-                        .contains(targetRoleIndex) == true
+                        .contains(targetRoleIndex)
                 ) {
                     rolesWhichCan[iLen] = _rolesByAddress[sender].get(i);
                     iLen++;
