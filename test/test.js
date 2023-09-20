@@ -818,6 +818,79 @@ describe("Community", function () {
 
         });
 
+        it("can manage roles", async () => {
+            
+            // create two roles
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role1')]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role2')]);
+            
+            // ownable check
+            await mixedCall(
+                CommunityInstance, 
+                trustedForwardMode, 
+                accountThree, 
+                'manageRoles(uint8[],uint8[],bool[],bool[],uint256[],uint64[])', 
+                [[rolesIndex.get('role1')],[rolesIndex.get('role2')],[canGrantRole], [canRevokeRole], [maxAddresses], [duration]],
+                "MISSING_ROLE '" +rolesTitle.get('owners')+"'"
+            );
+
+            // role exist check
+            // byRole invalid
+            await mixedCall(
+                CommunityInstance, 
+                trustedForwardMode, 
+                owner, 
+                'manageRoles(uint8[],uint8[],bool[],bool[],uint256[],uint64[])', 
+                [[rolesIndex.get('role4')],[rolesIndex.get('role2')],[canGrantRole], [canRevokeRole], [maxAddresses], [duration]],
+                "INVALID_ROLE"
+            );
+            // ofRole invalid
+            await mixedCall(
+                CommunityInstance, 
+                trustedForwardMode, 
+                owner, 
+                'manageRoles(uint8[],uint8[],bool[],bool[],uint256[],uint64[])', 
+                [[rolesIndex.get('role1')],[rolesIndex.get('role4')],[canGrantRole], [canRevokeRole], [maxAddresses], [duration]],
+                "INVALID_ROLE"
+            );
+
+            // manage role
+            await mixedCall(
+                CommunityInstance, 
+                trustedForwardMode, 
+                owner, 
+                'manageRoles(uint8[],uint8[],bool[],bool[],uint256[],uint64[])', 
+                [
+                    [rolesIndex.get('role1')],
+                    [rolesIndex.get('role2')],
+                    [canGrantRole], 
+                    [canRevokeRole], 
+                    [maxAddresses], 
+                    [duration]
+                ]
+            );
+            
+            await mixedCall(CommunityInstance, trustedForwardMode, accountThree, 'grantRoles(address[],uint8[])', [
+                [accountTwo.address], [rolesIndex.get('role1')]
+            ], "CANT_GRANT_ROLE '" +rolesTitle.get('role1')+"'");
+
+            // added member to none-exists role 
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],uint8[])', [
+                [accountTwo.address], [rolesIndex.get('role4')]
+            ], "INVALID_ROLE");
+            
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],uint8[])', [
+                [accountTwo.address], [rolesIndex.get('role1')]
+            ]);
+
+            //add role2 to accountFourth by accountTwo
+            await mixedCall(CommunityInstance, trustedForwardMode, accountTwo, 'grantRoles(address[],uint8[])', [
+                [accountFourth.address], [rolesIndex.get('role2')]
+            ]);
+
+        });
+
+
         it("shouldn't grant if disable in manageRole", async () => {
             // create two roles
             await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role1')]);
