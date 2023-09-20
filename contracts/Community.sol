@@ -107,7 +107,6 @@ contract Community is
     ////////////////////////////////
 
     struct GrantSettings {
-        uint8 requireRole; //=0,
         uint256 maxAddresses; //=0,
         uint64 duration; //=0
         uint64 lastIntervalIndex;
@@ -214,6 +213,7 @@ contract Community is
     uint8 internal constant OPERATION_TRANSFEROWNERSHIP = 0xa;
     uint8 internal constant OPERATION_RENOUNCEOWNERSHIP = 0xb;
     uint8 internal constant OPERATION_SET_CONTRACT_URI = 0xc;
+    uint8 internal constant OPERATION_MANAGE_ROLES = 0xd;
 
     uint8 internal constant NONE_ROLE_INDEX = 0;
 
@@ -273,7 +273,6 @@ contract Community is
         uint8 indexed targetRole,
         bool canGrantRole,
         bool canRevokeRole,
-        uint8 requireRole,
         uint256 maxAddresses,
         uint64 duration,
         address indexed sender
@@ -353,7 +352,6 @@ contract Community is
             true,
             true,
             0,
-            0,
             0
         );
         _manageRole(
@@ -362,7 +360,6 @@ contract Community is
             true,
             true,
             0,
-            0,
             0
         );
         _manageRole(
@@ -370,7 +367,6 @@ contract Community is
             _roles[DEFAULT_VISITORS_ROLE],
             true,
             true,
-            0,
             0,
             0
         );
@@ -429,7 +425,12 @@ contract Community is
             0
         );
     }
-
+    /**
+     * @notice the same as grantRoles but for AuthorizeManager
+     * @param accountWhichWillGrant accountWhichWillGrant can be setup by AuthorizeManager
+     * @param accounts participant's addresses
+     * @param roleIndexes Role indexes
+     */
     function grantRolesExternal(
         address accountWhichWillGrant,
         address[] memory accounts,
@@ -444,7 +445,12 @@ contract Community is
             0
         );
     }
-
+    /**
+     * @notice the same as revokeRoles but for AuthorizeManager
+     * @param accountWhichWillRevoke accountWhichWillRevoke can be setup by AuthorizeManager
+     * @param accounts participant's addresses
+     * @param roleIndexes Role indexes
+     */
     function revokeRolesExternal(
         address accountWhichWillRevoke,
         address[] memory accounts,
@@ -497,7 +503,6 @@ contract Community is
      * @param ofRole target role index
      * @param canGrantRole whether addresses with byRole can grant ofRole to other addresses
      * @param canRevokeRole whether addresses with byRole can revoke ofRole from other addresses
-     * @param requireRole whether addresses with byRole can grant ofRole to other addresses
      * @param maxAddresses the maximum number of addresses that users with byRole can grant to ofRole in duration
      * @param duration duration
      *          if duration == 0 then no limit by time: `maxAddresses` will be max accounts on this role
@@ -508,29 +513,16 @@ contract Community is
         uint8 ofRole,
         bool canGrantRole,
         bool canRevokeRole,
-        uint8 requireRole,
         uint256 maxAddresses,
         uint64 duration
     ) public {
         requireInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]);
-
-        require(
-            ofRole != _roles[DEFAULT_OWNERS_ROLE],
-            string(
-                abi.encodePacked(
-                    "WRONG_OFROLE '",
-                    _rolesByIndex[ofRole].name.bytes32ToString(),
-                    "'"
-                )
-            )
-        );
 
         _manageRole(
             byRole,
             ofRole,
             canGrantRole,
             canRevokeRole,
-            requireRole,
             maxAddresses,
             duration
         );
@@ -540,6 +532,59 @@ contract Community is
             0,
             0
         );
+    }
+
+    
+    /**
+     * Bulk version of method `manageRole`
+     * @param byRole array of source roles indexes
+     * @param ofRole array of target roles indexes
+     * @param canGrantRole array of whether addresses with byRole can grant ofRole to other addresses
+     * @param canRevokeRole array of whether addresses with byRole can revoke ofRole from other addresses
+     * @param maxAddresses array of maximum number of addresses that users with byRole can grant to ofRole in duration
+     * @param duration array of durations
+     *          if duration[i] == 0 then no limit by time: `maxAddresses` will be max accounts on this role
+     *          if maxAddresses[i] == 0 then no limit max accounts on this role
+     */
+    function manageRoles(
+        uint8[] calldata byRole,
+        uint8[] calldata ofRole,
+        bool[] calldata canGrantRole,
+        bool[] calldata canRevokeRole,
+        uint256[] calldata maxAddresses,
+        uint64[] calldata duration
+    ) public {
+        requireInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]);
+
+        uint256 len = byRole.length;
+        require (
+            (
+                len == ofRole.length &&
+                len == canGrantRole.length &&
+                len == canRevokeRole.length &&
+                len == maxAddresses.length &&
+                len == duration.length
+            ),
+            "WRONG_INPUT_LENGTH"
+        );
+
+        for (uint256 i = 0; i < len; i++) {
+            _manageRole(
+                byRole[i],
+                ofRole[i],
+                canGrantRole[i],
+                canRevokeRole[i],
+                maxAddresses[i],
+                duration[i]
+            );
+        }
+
+        _accountForOperation(
+            OPERATION_MANAGE_ROLES << OPERATION_SHIFT_BITS,
+            len,
+            0
+        );
+
     }
 
     function setTrustedForwarder(address forwarder) public override {
@@ -621,7 +666,9 @@ contract Community is
     ///////////////////////////////////////////////////////////
     /// public (view)section
     ///////////////////////////////////////////////////////////
-
+    /**
+    * @return address of inviteHook 
+    */
     function invitedHook() public view returns (address) {
         return _invitedHook;
     }
@@ -694,6 +741,12 @@ contract Community is
         return l;
     }
 
+    /**
+    * @param roleIndex index of role
+    * @param offset offset
+    * @param limit limit
+    * @return two-dimensional array of addresses with single item at first lelel.(to be constistent as in  `getAddresses`)
+    */
     function getAddressesByRole(
         uint8 roleIndex,
         uint256 offset,
@@ -774,23 +827,41 @@ contract Community is
      * @dev can be duplicate items in output. see https://github.com/Intercoin/CommunityContract/issues/4#issuecomment-1049797389
      * @notice if call without params then returns all existing roles
      * @custom:shortd all roles
-     * @return arrays of (indexes, names, roleURIs)
+     * @return arrays of (indexes, names, roleURIs, canGrantRoles, canRevokeRoles)
      */
-    function getRoles()
+    function allRoles()
         public
         view
-        returns (uint8[] memory, string[] memory, string[] memory)
+        returns (uint8[] memory, string[] memory, string[] memory, uint8[][] memory, uint8[][] memory)
     {
         uint8[] memory indexes = new uint8[](rolesCount - 1);
         string[] memory names = new string[](rolesCount - 1);
         string[] memory roleURIs = new string[](rolesCount - 1);
+        uint8[][] memory canGrantRoles = new uint8[][](rolesCount - 1);
+        uint8[][] memory canRevokeRoles = new uint8[][](rolesCount - 1);
         // rolesCount start from 1
+        uint8 i_index=0;
+        uint8 len;
         for (uint8 i = 1; i < rolesCount; i++) {
-            indexes[i - 1] = i;
-            names[i - 1] = _rolesByIndex[i].name.bytes32ToString();
-            roleURIs[i - 1] = _rolesByIndex[i].roleURI;
+            i_index = i - 1;
+            indexes[i_index] = i;
+            names[i_index] = _rolesByIndex[i].name.bytes32ToString();
+            roleURIs[i_index] = _rolesByIndex[i].roleURI;
+
+            len = uint8(_rolesByIndex[i].canGrantRoles.length());
+            canGrantRoles[i_index] = new uint8[](len);
+            for (uint256 j = 0; j < len; j++) {
+                canGrantRoles[i_index][j] = uint8(_rolesByIndex[i].canGrantRoles.at(j));
+            }
+
+            len = uint8(_rolesByIndex[i].canRevokeRoles.length());
+            canRevokeRoles[i_index] = new uint8[](len);
+            for (uint256 j = 0; j < len; j++) {
+                canRevokeRoles[i_index][j] = uint8(_rolesByIndex[i].canRevokeRoles.at(j));
+            }
+
         }
-        return (indexes, names, roleURIs);
+        return (indexes, names, roleURIs, canGrantRoles, canRevokeRoles);
     }
 
     /**
@@ -925,6 +996,10 @@ contract Community is
         }
     }
 
+    /**
+    * @notice return defaultAuthorizedInviteManager address
+    * @return defaultAuthorizedInviteManager
+    */
     function getAuthorizedInviteManager() public view returns (address) {
         return defaultAuthorizedInviteManager;
     }
@@ -1012,16 +1087,9 @@ contract Community is
                     j < _rolesByAddress[accountWhichWillRevoke].length();
                     j++
                 ) {
-                    if (
-                        _rolesByIndex[
-                            uint8(
-                                _rolesByAddress[accountWhichWillRevoke].get(j)
-                            )
-                        ].canRevokeRoles.contains(roleIndexes[i]) == true
-                    ) {
-                        roleWhichWillRevoke = _rolesByAddress[
-                            accountWhichWillRevoke
-                        ].get(j);
+                    uint8 indexAccountWhichWillRevoke = _rolesByAddress[accountWhichWillRevoke].get(j);
+                    if (_rolesByIndex[indexAccountWhichWillRevoke].canRevokeRoles.contains(roleIndexes[i])) {
+                        roleWhichWillRevoke = indexAccountWhichWillRevoke;
                         break;
                     }
                 }
@@ -1176,7 +1244,6 @@ contract Community is
      * @param ofRole target role index
      * @param canGrantRole whether addresses with byRole can grant ofRole to other addresses
      * @param canRevokeRole whether addresses with byRole can revoke ofRole from other addresses
-     * @param requireRole whether addresses with byRole can grant ofRole to other addresses
      * @param maxAddresses the maximum number of addresses that users with byRole can grant to ofRole in duration
      * @param duration duration
      *          if duration == 0 then no limit by time: `maxAddresses` will be max accounts on this role
@@ -1187,10 +1254,21 @@ contract Community is
         uint8 ofRole,
         bool canGrantRole,
         bool canRevokeRole,
-        uint8 requireRole,
         uint256 maxAddresses,
         uint64 duration
     ) internal {
+        
+        require(
+            ofRole != _roles[DEFAULT_OWNERS_ROLE],
+            string(
+                abi.encodePacked(
+                    "WRONG_OFROLE '",
+                    _rolesByIndex[ofRole].name.bytes32ToString(),
+                    "'"
+                )
+            )
+        );
+
         _isRoleValid(byRole);
         _isRoleValid(ofRole);
 
@@ -1206,7 +1284,6 @@ contract Community is
             _rolesByIndex[byRole].canRevokeRoles.remove(ofRole);
         }
 
-        _rolesByIndex[byRole].grantSettings[ofRole].requireRole = requireRole;
         _rolesByIndex[byRole].grantSettings[ofRole].maxAddresses = maxAddresses;
         _rolesByIndex[byRole].grantSettings[ofRole].duration = duration;
 
@@ -1215,7 +1292,6 @@ contract Community is
             ofRole,
             canGrantRole,
             canRevokeRole,
-            requireRole,
             maxAddresses,
             duration,
             _msgSender()
@@ -1502,7 +1578,7 @@ contract Community is
                 if (
                     _rolesByIndex[uint8(_rolesByAddress[sender].get(i))]
                         .canGrantRoles
-                        .contains(targetRoleIndex) == true
+                        .contains(targetRoleIndex)
                 ) {
                     iLen++;
                 }
@@ -1515,7 +1591,7 @@ contract Community is
                 if (
                     _rolesByIndex[uint8(_rolesByAddress[sender].get(i))]
                         .canGrantRoles
-                        .contains(targetRoleIndex) == true
+                        .contains(targetRoleIndex)
                 ) {
                     rolesWhichCan[iLen] = _rolesByAddress[sender].get(i);
                     iLen++;
