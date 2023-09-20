@@ -157,7 +157,8 @@ contract Community is
      */
     string public contractURI;
 
-    uint8 internal rolesCount;
+    
+    uint8 internal nextRoleIndex;
     address public hook;
     address internal _invitedHook;
 
@@ -326,7 +327,7 @@ contract Community is
         name = name_;
         symbol = symbol_;
 
-        rolesCount = 1;
+        nextRoleIndex = 1;
 
         _createRole(DEFAULT_OWNERS_ROLE);
         _createRole(DEFAULT_ADMINS_ROLE);
@@ -484,7 +485,7 @@ contract Community is
         );
 
         require(
-            rolesCount < type(uint8).max - 1,
+            nextRoleIndex < type(uint8).max - 1,
             "ROLES_MAX_EXCEEDED"
         );
 
@@ -695,19 +696,23 @@ contract Community is
      * @dev can be duplicate items in output. see https://github.com/Intercoin/CommunityContract/issues/4#issuecomment-1049797389
      * @notice Returns all addresses across all roles
      * @custom:shortd all addresses across all roles
-     * @return two-dimensional array of addresses
+     * @return two-dimensional array of addresses, where roleIndex = index from output_array_index + 1
      */
     function getAddresses() public view returns (address[][] memory) {
         address[][] memory l;
 
-        l = new address[][](rolesCount - 1);
+        l = new address[][](nextRoleIndex - 1);
+
+        // nextRoleIndex start from 1
+        uint8 j_index=0;
 
         uint256 tmplen;
-        for (uint8 j = 0; j < rolesCount - 1; j++) {
+        for (uint8 j = 1; j < nextRoleIndex; j++) {
+            j_index = j - 1;
             tmplen = _rolesByIndex[j].members.length();
-            l[j] = new address[](tmplen);
+            l[j_index] = new address[](tmplen);
             for (uint256 i = 0; i < tmplen; i++) {
-                l[j][i] = address(_rolesByIndex[j].members.at(i));
+                l[j_index][i] = address(_rolesByIndex[j].members.at(i));
             }
         }
         return l;
@@ -834,15 +839,15 @@ contract Community is
         view
         returns (uint8[] memory, string[] memory, string[] memory, uint8[][] memory, uint8[][] memory)
     {
-        uint8[] memory indexes = new uint8[](rolesCount - 1);
-        string[] memory names = new string[](rolesCount - 1);
-        string[] memory roleURIs = new string[](rolesCount - 1);
-        uint8[][] memory canGrantRoles = new uint8[][](rolesCount - 1);
-        uint8[][] memory canRevokeRoles = new uint8[][](rolesCount - 1);
-        // rolesCount start from 1
+        uint8[] memory indexes = new uint8[](nextRoleIndex - 1);
+        string[] memory names = new string[](nextRoleIndex - 1);
+        string[] memory roleURIs = new string[](nextRoleIndex - 1);
+        uint8[][] memory canGrantRoles = new uint8[][](nextRoleIndex - 1);
+        uint8[][] memory canRevokeRoles = new uint8[][](nextRoleIndex - 1);
+        // nextRoleIndex start from 1
         uint8 i_index=0;
         uint8 len;
-        for (uint8 i = 1; i < rolesCount; i++) {
+        for (uint8 i = 1; i < nextRoleIndex; i++) {
             i_index = i - 1;
             indexes[i_index] = i;
             names[i_index] = _rolesByIndex[i].name.bytes32ToString();
@@ -916,7 +921,7 @@ contract Community is
     function balanceOf(
         address account
     ) public view override returns (uint256 balance) {
-        for (uint8 i = 1; i < rolesCount; i++) {
+        for (uint8 i = 1; i < nextRoleIndex; i++) {
             if (_isInRole(account, i)) {
                 balance += 1;
             }
@@ -1220,21 +1225,22 @@ contract Community is
      * @param role role name
      */
     function _createRole(bytes32 role) internal {
-        _roles[role] = rolesCount;
-        _rolesByIndex[rolesCount].name = role;
-        rolesCount += 1;
+        _roles[role] = nextRoleIndex;
+        _rolesByIndex[nextRoleIndex].name = role;
 
+        nextRoleIndex += 1;
         if (hook != address(0)) {
             try
                 ICommunityHook(hook).supportsInterface(
                     type(ICommunityHook).interfaceId
                 )
             returns (bool) {
-                ICommunityHook(hook).roleCreated(role, rolesCount);
+                ICommunityHook(hook).roleCreated(role, _roles[role]);
             } catch {
                 revert("wrong interface");
             }
         }
+        
         emit RoleCreated(role, _msgSender());
     }
 
@@ -1624,7 +1630,7 @@ contract Community is
     }
 
     function _isRoleValid(uint8 index) internal view {
-        require((rolesCount > index), "INVALID_ROLE");
+        require((nextRoleIndex >= index), "INVALID_ROLE");
     }
 
     function requireAuthorizedManager() internal view {

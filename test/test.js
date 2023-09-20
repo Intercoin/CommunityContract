@@ -14,6 +14,7 @@ const FIVE = BigNumber.from('5');
 const SIX = BigNumber.from('6');
 const SEVEN = BigNumber.from('7');
 const EIGHT = BigNumber.from('8');
+const NINE = BigNumber.from('9');
 const TEN = BigNumber.from('10');
 const HUNDRED = BigNumber.from('100');
 const THOUSAND = BigNumber.from('1000');
@@ -548,8 +549,6 @@ describe("Community", function () {
             event = rc.events.find(event => event.event === 'InstanceCreated');
             [instance, instancesCount] = event.args;
             CommunityInstance = await ethers.getContractAt("Community",instance);
-
-            
 
             if (trustedForwardMode) {
                 await CommunityInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
@@ -1253,7 +1252,6 @@ describe("Community", function () {
 
         describe("test using params as array", function () {
             beforeEach("prepare", async() => {
-                
                 // create roles
                 await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role1')]);
                 await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role2')]);
@@ -1292,7 +1290,6 @@ describe("Community", function () {
                         rolesIndex.get('role2')
                     ]
                 ]);
-
             }); 
 
             it("check getRoles(address)", async () => {
@@ -1398,6 +1395,89 @@ describe("Community", function () {
 
                 expect(allMembersInRole1.add(allMembersInRole2)).to.be.eq(12); 
                 
+            });
+
+            it("check getAddresses()", async () => {
+                let arr = await CommunityInstance.connect(accountTen)['getAddresses()']();
+
+                //add some1 user to last created role
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],uint8[])', [[accountTwo.address], [rolesIndex.get('role4')]]);
+
+                // owners,admins,members,alumni,visitors,role1,role2,role3,role4
+                expect(arr.length).to.be.eq(NINE);
+
+                arr.forEach((addresses, keyAddr, mapAddr) => {
+                    var index = keyAddr + 1;
+
+                    switch (index) {
+                        case rolesTitle.get('owners'):
+                            addresses.forEach((value, key, map) => {
+                                expect([
+                                    owner.address,
+                                    CommunityFactory.address
+                                ].includes(value)).to.be.eq(true);
+                            });
+                            break;
+                        case rolesTitle.get('role1'):
+                            addresses.forEach((value, key, map) => {
+                                expect([
+                                    owner.address,
+                                    accountTwo.address,
+                                    accountThree.address,
+                                    accountSix.address,
+                                    accountSeven.address
+                                ].includes(value)).to.be.eq(true);
+                            });
+                            break;
+                        case rolesTitle.get('role2'):
+                            addresses.forEach((value, key, map) => {
+                                expect([
+                                    owner.address,
+                                    accountTwo.address,
+                                    accountThree.address,
+                                    accountFourth.address,
+                                    accountFive.address,
+                                    accountSix.address,
+                                    accountSeven.address
+                                ].includes(value)).to.be.eq(true);
+                            });
+                            break;
+                        case rolesTitle.get('role3'):
+                            addresses.forEach((value, key, map) => {
+                                expect([
+                                    owner.address,
+                                    accountTwo.address,
+                                    accountThree.address,
+                                    accountFourth.address,
+                                    accountFive.address
+                                ].includes(value)).to.be.eq(true);
+                            });
+                            break;
+                        case rolesTitle.get('role4'):
+                            addresses.forEach((value, key, map) => {
+                                expect([accountTwo.address].includes(value)).to.be.eq(true);
+                            });
+                            expect([
+                                owner.address,
+                                accountThree.address,
+                                accountFourth.address,
+                                accountFive.address,
+                                accountSix.address,
+                                accountSeven.address
+                            ].includes(value)).to.be.eq(false);
+                            break;
+                        case rolesTitle.get('members'):
+                        case rolesTitle.get('alumni'):
+                        case rolesTitle.get('admins'):
+                        case rolesTitle.get('visitors'):
+                            expect(addresses.length).to.be.eq(ZERO);
+                                
+                            break;
+
+                    }
+
+                });
+
             });
             it("check getAddressesByRole(address[])", async () => {
                 let arr;
