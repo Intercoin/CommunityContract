@@ -607,7 +607,7 @@ describe("Community", function () {
 
         it("can view all roles", async () => {
             var rolesList;
-            [rolesList,] = await CommunityInstance.connect(owner)["getRoles()"]();
+            [rolesList,] = await CommunityInstance.connect(owner)["allRoles()"]();
             
             // here it will be only internal roles
             let rolesExists =[
@@ -635,6 +635,94 @@ describe("Community", function () {
 
             expect(rolesList.includes(ZERO)).to.be.eq(false);
             
+        });
+
+        it("check canGrantRoles/canRevokeRoles when call allRoles()", async () => {
+            // create new role "Role1".
+            // after creation new role - "admins" still can not be manage 
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role1')]);
+
+            var rolesList,names, URIs, canGrantRoles, canRevokeRoles;
+            [rolesList, names, URIs, canGrantRoles, canRevokeRoles] = await CommunityInstance.connect(owner)["allRoles()"]();
+
+            // roles except owners and admins
+            let rolesThatCanBeManagedByAdmins =[
+                rolesIndex.get('members'),
+                rolesIndex.get('alumni'),
+                rolesIndex.get('visitors')
+            ];
+            
+            for(var i = 0; i<rolesList.length; i++) {
+                switch (rolesList[i]) {
+                    case rolesIndex.get('admins'):
+                        rolesThatCanBeManagedByAdmins.forEach((value, key, map) => {
+                            expect(canGrantRoles[i].includes(value)).to.be.eq(true);
+                        });
+
+                        rolesThatCanBeManagedByAdmins.forEach((value, key, map) => {
+                            expect(canRevokeRoles[i].includes(value)).to.be.eq(true);
+                        });
+                        break;
+                    case rolesIndex.get('owners'):
+                    case rolesIndex.get('members'):
+                    case rolesIndex.get('alumni'):
+                    case rolesIndex.get('visitors'):
+                        expect(canGrantRoles[i].length).to.be.eq(ZERO);
+                        break;
+                }
+            }
+
+            
+            // grant some roles 
+            // can grant :
+            //  admins->role1 
+            //  role1->members 
+            // can revoke :
+            //  admins->role1 
+            //  role1->members 
+            //  role1->visitors 
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'manageRole(uint8,uint8,bool,bool,uint256,uint64)', [rolesIndex.get('admins'),rolesIndex.get('role1'),canGrantRole, canRevokeRole, maxAddresses, duration]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'manageRole(uint8,uint8,bool,bool,uint256,uint64)', [rolesIndex.get('role1'),rolesIndex.get('members'),canGrantRole, canRevokeRole, maxAddresses, duration]);
+            await mixedCall(CommunityInstance, trustedForwardMode, owner, 'manageRole(uint8,uint8,bool,bool,uint256,uint64)', [rolesIndex.get('role1'),rolesIndex.get('visitors'),false, canRevokeRole, maxAddresses, duration]);
+            [rolesList, names, URIs, canGrantRoles, canRevokeRoles] = await CommunityInstance.connect(owner)["allRoles()"]();
+
+            rolesThatCanBeManagedByAdmins.push(rolesIndex.get('role1'));
+            rolesThatCanBeGrantedByRole1 = [
+                rolesIndex.get('members')
+            ];
+            rolesThatCanBeRevokedByRole1 = [
+                rolesIndex.get('members'),
+                rolesIndex.get('visitors')
+            ];
+            
+            // lets check
+            for(var i = 0; i<rolesList.length; i++) {
+                switch (rolesList[i]) {
+                    case rolesIndex.get('admins'):
+                        rolesThatCanBeManagedByAdmins.forEach((value, key, map) => {
+                            expect(canGrantRoles[i].includes(value)).to.be.eq(true);
+                        });
+
+                        rolesThatCanBeManagedByAdmins.forEach((value, key, map) => {
+                            expect(canRevokeRoles[i].includes(value)).to.be.eq(true);
+                        });
+                        break;
+                    case rolesIndex.get('owners'):
+                    case rolesIndex.get('members'):
+                    case rolesIndex.get('alumni'):
+                    case rolesIndex.get('visitors'):
+                        expect(canGrantRoles[i].length).to.be.eq(ZERO);
+                        break;
+                    case rolesIndex.get('role1'):
+                        rolesThatCanBeGrantedByRole1.forEach((value, key, map) => {
+                            expect(canGrantRoles[i].includes(value)).to.be.eq(true);
+                        });
+                        rolesThatCanBeRevokedByRole1.forEach((value, key, map) => {
+                            expect(canRevokeRoles[i].includes(value)).to.be.eq(true);
+                        });
+                        break;
+                }
+            }
         });
 
         it("can view all members in role", async () => {
@@ -890,7 +978,7 @@ describe("Community", function () {
             expect(await CommunityInstance.connect(owner).hasRole(accountTwo.address, rolesIndex.get('role2'))).to.be.eq(false);
         });
 
-        it.only("check params input in `manageRoles`", async () => {
+        it("check params input in `manageRoles`", async () => {
             // create roles
             await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role1')]);
             await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role2')]);

@@ -425,7 +425,12 @@ contract Community is
             0
         );
     }
-
+    /**
+     * @notice the same as grantRoles but for AuthorizeManager
+     * @param accountWhichWillGrant accountWhichWillGrant can be setup by AuthorizeManager
+     * @param accounts participant's addresses
+     * @param roleIndexes Role indexes
+     */
     function grantRolesExternal(
         address accountWhichWillGrant,
         address[] memory accounts,
@@ -440,7 +445,12 @@ contract Community is
             0
         );
     }
-
+    /**
+     * @notice the same as revokeRoles but for AuthorizeManager
+     * @param accountWhichWillRevoke accountWhichWillRevoke can be setup by AuthorizeManager
+     * @param accounts participant's addresses
+     * @param roleIndexes Role indexes
+     */
     function revokeRolesExternal(
         address accountWhichWillRevoke,
         address[] memory accounts,
@@ -656,7 +666,9 @@ contract Community is
     ///////////////////////////////////////////////////////////
     /// public (view)section
     ///////////////////////////////////////////////////////////
-
+    /**
+    * @return address of inviteHook 
+    */
     function invitedHook() public view returns (address) {
         return _invitedHook;
     }
@@ -729,6 +741,12 @@ contract Community is
         return l;
     }
 
+    /**
+    * @param roleIndex index of role
+    * @param offset offset
+    * @param limit limit
+    * @return two-dimensional array of addresses with single item at first lelel.(to be constistent as in  `getAddresses`)
+    */
     function getAddressesByRole(
         uint8 roleIndex,
         uint256 offset,
@@ -978,6 +996,10 @@ contract Community is
         }
     }
 
+    /**
+    * @notice return defaultAuthorizedInviteManager address
+    * @return defaultAuthorizedInviteManager
+    */
     function getAuthorizedInviteManager() public view returns (address) {
         return defaultAuthorizedInviteManager;
     }
