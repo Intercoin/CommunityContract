@@ -1,19 +1,21 @@
 require('dotenv').config()
 
-require("@nomiclabs/hardhat-ethers")
+//require("@nomiclabs/hardhat-ethers")
 require('hardhat-docgen')
 require('hardhat-deploy')
-require("@nomiclabs/hardhat-waffle")
+
 require("@nomiclabs/hardhat-web3")
-require("@nomiclabs/hardhat-etherscan")
-require("solidity-coverage")
-require("hardhat-gas-reporter")
+//require("@nomiclabs/hardhat-etherscan")
+
 //require("hardhat-docgen")
 require("@hardhat-docgen/core")
 //require("@hardhat-docgen/markdown")
 require("./docgen-custom-markdown")
 require('hardhat-contract-sizer')
 require("hardhat-gas-trackooor");
+
+require("@nomicfoundation/hardhat-toolbox");
+require("@nomicfoundation/hardhat-chai-matchers");
 
 const kovanURL = `https://eth-kovan.alchemyapi.io/v2/${process.env.ALCHEMY_KOVAN}`
 const goerliURL = `https://eth-goerli.alchemyapi.io/v2/${process.env.ALCHEMY_GOERLI}`
