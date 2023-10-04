@@ -1,28 +1,28 @@
-const { ethers, waffle } = require('hardhat');
-const { BigNumber } = require('ethers');
-const { utils } = require("ethers");
-const { expect } = require('chai');
-const chai = require('chai');
+const { ethers } = require('hardhat');
+const { utils, AbiCoder } = require("ethers");
 const { time } = require('@openzeppelin/test-helpers');
-
-const ZERO = BigNumber.from('0');
-const ONE = BigNumber.from('1');
-const TWO = BigNumber.from('2');
-const THREE = BigNumber.from('3');
-const FOUR = BigNumber.from('4');
-const FIVE = BigNumber.from('5');
-const SIX = BigNumber.from('6');
-const SEVEN = BigNumber.from('7');
-const EIGHT = BigNumber.from('8');
-const NINE = BigNumber.from('9');
-const TEN = BigNumber.from('10');
-const HUNDRED = BigNumber.from('100');
-const THOUSAND = BigNumber.from('1000');
+const { expect } = require('chai'); 
+require("@nomicfoundation/hardhat-chai-matchers");
 
 
-const ONE_ETH = ethers.utils.parseEther('1');
+const ZERO      = BigInt('0');
+const ONE       = BigInt('1');
+const TWO       = BigInt('2');
+const THREE     = BigInt('3');
+const FOUR      = BigInt('4');
+const FIVE      = BigInt('5');
+const SIX       = BigInt('6');
+const SEVEN     = BigInt('7');
+const EIGHT     = BigInt('8');
+const NINE      = BigInt('9');
+const TEN       = BigInt('10');
+const HUNDRED   = BigInt('100');
+const THOUSAND  = BigInt('1000');
 
-//const TOTALSUPPLY = ethers.utils.parseEther('1000000000');    
+
+const ONE_ETH = ethers.parseEther('1');
+
+//const TOTALSUPPLY = ethers.parseEther('1000000000');    
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const DEAD_ADDRESS = '0x000000000000000000000000000000000000dEaD';
 
@@ -36,22 +36,7 @@ const TOKEN_SYMBOL = 'TOKEN_SYMBOL';
 const CONTRACT_URI = 'http://some.domain/info';
 
 describe("Community", function () {
-    const accounts = waffle.provider.getWallets();
-    
-    // Setup accounts.
-    const owner = accounts[0];                     
-    const accountOne = accounts[1];
-    const accountTwo = accounts[2];  
-    const accountThree = accounts[3];
-    const accountFourth= accounts[4];
-    const accountFive = accounts[5];
-    const accountSix = accounts[6];
-    const accountSeven = accounts[7];
-    const accountEight = accounts[8];
-    const accountNine = accounts[9];
-    const accountTen = accounts[10];
-    const relayer = accounts[11];
-    const trustedForwarder = accounts[12];
+
     
     // setup useful vars
     
@@ -72,26 +57,58 @@ describe("Community", function () {
     ]);
 
     var rolesIndex = new Map([
-      ['owners',    1],
-      ['admins',    2],
-      ['members',   3],
-      ['alumni',    4],
-      ['visitors',  5],
+      ['owners',    1n],
+      ['admins',    2n],
+      ['members',   3n],
+      ['alumni',    4n],
+      ['visitors',  5n],
       // do not change order indexes above. and in tests try to create role in this order to be able to compare with index. or need to get role index by string  from contract
-      ['role1',     6],
-      ['role2',     7],
-      ['role3',     8],
-      ['role4',     9],
-      ['role5',     10],
-      ['role6',     11],
-      ['cc_admins', 12]
+      ['role1',     6n],
+      ['role2',     7n],
+      ['role3',     8n],
+      ['role4',     9n],
+      ['role5',     10n],
+      ['role6',     11n],
+      ['cc_admins', 12n]
     ]);
     var CommunityFactory;
     var AuthorizedInviteManager;
     var AuthorizedInviteManagerGasTracker;
     var CostManagerBad, CostManagerGood;
 
+    var owner,
+        accountOne,
+        accountTwo,
+        accountThree,
+        accountFourth,
+        accountFive,
+        accountSix,
+        accountSeven,
+        accountEight,
+        accountNine,
+        accountTen,
+        relayer,
+        trustedForwarder;
+
     beforeEach("deploying", async() => {
+
+        // Setup accounts.
+        [
+            owner,
+            accountOne,
+            accountTwo,
+            accountThree,
+            accountFourth,
+            accountFive,
+            accountSix,
+            accountSeven,
+            accountEight,
+            accountNine,
+            accountTen,
+            relayer,
+            trustedForwarder
+        ] = await ethers.getSigners();
+        
         let tx,rc,event,instance,instancesCount,factoriesList,factoriesInfo;
 
         const ReleaseManagerFactoryF = await ethers.getContractFactory("MockReleaseManagerFactory");
@@ -108,13 +125,15 @@ describe("Community", function () {
         let implementationReleaseManager    = await ReleaseManagerF.deploy();
         let implementationCommunity         = await CommunityF.deploy();
         
-        let releaseManagerFactory   = await ReleaseManagerFactoryF.connect(owner).deploy(implementationReleaseManager.address);
+        let releaseManagerFactory   = await ReleaseManagerFactoryF.connect(owner).deploy(implementationReleaseManager.target);
         
         //
         tx = await releaseManagerFactory.connect(owner).produce();
         rc = await tx.wait(); // 0ms, as tx is already confirmed
-        event = rc.events.find(event => event.event === 'InstanceProduced');
+
+        event = rc.logs.find(event => event.fragment.name === 'InstanceProduced');
         [instance, instancesCount] = event.args;
+
         let releaseManager = await ethers.getContractAt("MockReleaseManager",instance);
 
         // 
@@ -122,13 +141,13 @@ describe("Community", function () {
         const AuthorizedInviteManagerF = await ethers.getContractFactory("AuthorizedInviteManager");
         const implementationAuthorizedInviteManager = await AuthorizedInviteManagerF.deploy();
         const AuthorizedInviteManagerFactory = await AuthorizedInviteManagerFactoryF.connect(owner).deploy(
-            implementationAuthorizedInviteManager.address,
+            implementationAuthorizedInviteManager.target,
             NO_COSTMANAGER,
-            releaseManager.address
+            releaseManager.target
         );
 
         await releaseManager.connect(owner).newRelease(
-            [AuthorizedInviteManagerFactory.address], 
+            [AuthorizedInviteManagerFactory.target], 
             [
                 [
                     2,//uint8 factoryIndex; 
@@ -140,21 +159,21 @@ describe("Community", function () {
 
         tx = await AuthorizedInviteManagerFactory.connect(owner).produce();
         rc = await tx.wait(); // 0ms, as tx is already confirmed
-        event = rc.events.find(event => event.event === 'InstanceCreated');
+        event = rc.logs.find(event => event.fragment.name === 'InstanceCreated');
         [instance, instancesCount] = event.args;
         AuthorizedInviteManager = await ethers.getContractAt("AuthorizedInviteManager",instance);
    
-        // CommunityFactory = await CommunityFactoryF.deploy(implementationCommunity.address, implementationCommunityERC721.address);
+        // CommunityFactory = await CommunityFactoryF.deploy(implementationCommunity.target, implementationCommunityERC721.target);
         CommunityFactory = await CommunityFactoryF.connect(owner).deploy(
-            implementationCommunity.address,
+            implementationCommunity.target,
             NO_COSTMANAGER,
-            releaseManager.address,
-            AuthorizedInviteManager.address
+            releaseManager.target,
+            AuthorizedInviteManager.target
         );
 
         await releaseManager.connect(owner).newRelease(
             [
-                CommunityFactory.address
+                CommunityFactory.target
             ], 
             [
                 [
@@ -175,7 +194,7 @@ describe("Community", function () {
             let tx = await CommunityFactory.connect(owner).produce(NO_HOOK,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
 
             const rc = await tx.wait(); // 0ms, as tx is already confirmed
-            const event = rc.events.find(event => event.event === 'InstanceCreated');
+            const event = rc.logs.find(event => event.fragment.name === 'InstanceCreated');
             const [instance,] = event.args;
             expect(instance).not.to.be.eq(ZERO_ADDRESS);
             //simpleContract = await ethers.getContractAt("MockSimpleContract",instance);   
@@ -185,7 +204,7 @@ describe("Community", function () {
             let tx = await CommunityFactory.connect(owner).produceDeterministic(salt,NO_HOOK,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
 
             let rc = await tx.wait(); // 0ms, as tx is already confirmed
-            let event = rc.events.find(event => event.event === 'InstanceCreated');
+            let event = rc.logs.find(event => event.fragment.name === 'InstanceCreated');
             let [instance,] = event.args;
             expect(instance).not.to.be.eq(ZERO_ADDRESS);
             await expect(CommunityFactory.connect(owner).produceDeterministic(salt,NO_HOOK,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI)).to.be.revertedWith('ERC1167: create2 failed');
@@ -200,7 +219,7 @@ describe("Community", function () {
 
             tx = await CommunityFactory.connect(owner).produceDeterministic(salt,NO_HOOK,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
             rc = await tx.wait(); // 0ms, as tx is already confirmed
-            event = rc.events.find(event => event.event === 'InstanceCreated');
+            event = rc.logs.find(event => event.fragment.name === 'InstanceCreated');
             [instanceWithSalt,] = event.args;
             //revert snapshot
             await ethers.provider.send('evm_revert', [snapId]);
@@ -208,14 +227,14 @@ describe("Community", function () {
             // make create2. then create and finally again with salt. 
             tx = await CommunityFactory.connect(owner).produceDeterministic(salt2,NO_HOOK,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
             rc = await tx.wait(); // 0ms, as tx is already confirmed
-            event = rc.events.find(event => event.event === 'InstanceCreated');
+            event = rc.logs.find(event => event.fragment.name === 'InstanceCreated');
             [instanceWithSalt2,] = event.args;
             
             await CommunityFactory.connect(owner).produce(NO_HOOK,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
 
             tx = await CommunityFactory.connect(owner).produceDeterministic(salt,NO_HOOK,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
             rc = await tx.wait(); // 0ms, as tx is already confirmed
-            event = rc.events.find(event => event.event === 'InstanceCreated');
+            event = rc.logs.find(event => event.fragment.name === 'InstanceCreated');
             [instanceWithSaltAgain,] = event.args;
 
 
@@ -238,7 +257,7 @@ describe("Community", function () {
             //
             tx = await CommunityFactory.connect(owner).produce(NO_HOOK,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
             rc = await tx.wait(); // 0ms, as tx is already confirmed
-            event = rc.events.find(event => event.event === 'InstanceCreated');
+            event = rc.logs.find(event => event.fragment.name === 'InstanceCreated');
             [instance, instancesCount] = event.args;
             CommunityInstance = await ethers.getContractAt("Community",instance);
 
@@ -268,7 +287,7 @@ describe("Community", function () {
         let expectError = (typeof(revertedMessage_) === 'undefined') ? false : true;
 
         if (trustedForwardMode) {
-            const dataTx = await instance.connect(trustedForwarder).populateTransaction[func_signature_](...params_);
+            const dataTx = await instance.connect(trustedForwarder)[func_signature_].populateTransaction(...params_);
             dataTx.data = dataTx.data.concat((from_.address).substring(2));
             if (expectError) {
                 return await expect(trustedForwarder.sendTransaction(dataTx)).to.be.revertedWith(revertedMessage_);
@@ -291,20 +310,20 @@ describe("Community", function () {
             //
             tx = await CommunityFactory.connect(owner)["produce(address,address,string,string,string)"](NO_HOOK,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
             rc = await tx.wait(); // 0ms, as tx is already confirmed
-            event = rc.events.find(event => event.event === 'InstanceCreated');
+            event = rc.logs.find(event => event.fragment.name === 'InstanceCreated');
             [instance, instancesCount] = event.args;
             let communityInstance1 = await ethers.getContractAt("Community",instance);
 
-            await CommunityFactory.connect(owner).setCostManager(CostManagerGood.address);
+            await CommunityFactory.connect(owner).setCostManager(CostManagerGood.target);
 
             tx = await CommunityFactory.connect(owner)["produce(address,address,string,string,string)"](NO_HOOK,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
             rc = await tx.wait(); // 0ms, as tx is already confirmed
-            event = rc.events.find(event => event.event === 'InstanceCreated');
+            event = rc.logs.find(event => event.fragment.name === 'InstanceCreated');
             [instance, instancesCount] = event.args;
             let communityInstance2 = await ethers.getContractAt("Community",instance);
 
             expect(await communityInstance1.costManager()).to.be.eq(ZERO_ADDRESS);
-            expect(await communityInstance2.costManager()).to.be.eq(CostManagerGood.address);
+            expect(await communityInstance2.costManager()).to.be.eq(CostManagerGood.target);
 
         }); 
 
@@ -319,7 +338,7 @@ describe("Community", function () {
                 //
                 tx = await CommunityFactory.connect(owner)["produce(address,address,string,string,string)"](NO_HOOK,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
                 rc = await tx.wait(); // 0ms, as tx is already confirmed
-                event = rc.events.find(event => event.event === 'InstanceCreated');
+                event = rc.logs.find(event => event.fragment.name === 'InstanceCreated');
                 [instance, instancesCount] = event.args;
                 CommunityInstance = await ethers.getContractAt("Community",instance);
 
@@ -331,30 +350,30 @@ describe("Community", function () {
 
             it("shouldnt override costmanager", async () => {
                 // await expect(
-                //     CommunityInstance.connect(accountSix).overrideCostManager(CostManagerGood.address)
+                //     CommunityInstance.connect(accountSix).overrideCostManager(CostManagerGood.target)
                 // ).to.be.revertedWith("cannot override");
-                await mixedCall(CommunityInstance, trustedForwardMode, accountSix, 'overrideCostManager(address)', [CostManagerGood.address], "cannot override");
+                await mixedCall(CommunityInstance, trustedForwardMode, accountSix, 'overrideCostManager(address)', [CostManagerGood.target], "cannot override");
             }); 
 
             it("shouldnt override costmanager if `factory's owner` lost ownership", async () => {
                 await CommunityFactory.connect(owner).transferOwnership(accountSix.address);
                 // await expect(
-                //     CommunityInstance.connect(owner).overrideCostManager(CostManagerGood.address)
+                //     CommunityInstance.connect(owner).overrideCostManager(CostManagerGood.target)
                 // ).to.be.revertedWith("cannot override");
-                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'overrideCostManager(address)', [CostManagerGood.address], "cannot override");
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'overrideCostManager(address)', [CostManagerGood.target], "cannot override");
             }); 
 
             it("should override costmanager", async () => {
                 let oldCostManager = await CommunityInstance.costManager();
                 
                 // here owner it's factory owner
-                //await CommunityInstance.connect(owner).overrideCostManager(CostManagerGood.address);
-                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'overrideCostManager(address)', [CostManagerGood.address]);
+                //await CommunityInstance.connect(owner).overrideCostManager(CostManagerGood.target);
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'overrideCostManager(address)', [CostManagerGood.target]);
 
                 let newCostManager = await CommunityInstance.costManager();
 
                 expect(oldCostManager).not.to.be.eq(newCostManager);
-                expect(newCostManager).to.be.eq(CostManagerGood.address);
+                expect(newCostManager).to.be.eq(CostManagerGood.target);
 
             }); 
             
@@ -364,27 +383,27 @@ describe("Community", function () {
                 // here owner it's factory owner
                 await CommunityFactory.connect(owner).transferOwnership(accountSix.address);
 
-                //await CommunityInstance.connect(accountSix).overrideCostManager(CostManagerGood.address);
-                await mixedCall(CommunityInstance, trustedForwardMode, accountSix, 'overrideCostManager(address)', [CostManagerGood.address]);
+                //await CommunityInstance.connect(accountSix).overrideCostManager(CostManagerGood.target);
+                await mixedCall(CommunityInstance, trustedForwardMode, accountSix, 'overrideCostManager(address)', [CostManagerGood.target]);
 
                 let newCostManager = await CommunityInstance.costManager();
 
                 expect(oldCostManager).not.to.be.eq(newCostManager);
-                expect(newCostManager).to.be.eq(CostManagerGood.address);
+                expect(newCostManager).to.be.eq(CostManagerGood.target);
 
             }); 
 
             it("should call renounceOverrideCostManager by owner only", async () => {
                 await expect(
-                    CommunityFactory.connect(accountSix).renounceOverrideCostManager(CommunityInstance.address)
+                    CommunityFactory.connect(accountSix).renounceOverrideCostManager(CommunityInstance.target)
                 ).to.be.revertedWith("Ownable: caller is not the owner");
 
-                await CommunityFactory.connect(owner).renounceOverrideCostManager(CommunityInstance.address)
+                await CommunityFactory.connect(owner).renounceOverrideCostManager(CommunityInstance.target)
 
                 // await expect(
-                //     CommunityInstance.connect(owner).overrideCostManager(CostManagerGood.address)
+                //     CommunityInstance.connect(owner).overrideCostManager(CostManagerGood.target)
                 // ).to.be.revertedWith("cannot override");
-                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'overrideCostManager(address)', [CostManagerGood.address], "cannot override");
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'overrideCostManager(address)', [CostManagerGood.target], "cannot override");
                 
             }); 
 
@@ -406,7 +425,7 @@ describe("Community", function () {
             communityHook = await CommunityHookF.deploy();
 
             await expect(
-                CommunityFactory.connect(owner)["produce(address,address,string,string,string)"](communityHook.address,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI)
+                CommunityFactory.connect(owner)["produce(address,address,string,string,string)"](communityHook.target,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI)
             ).to.be.revertedWith("wrong interface");
             // error happens when trying to setup roles for sender
 
@@ -420,9 +439,9 @@ describe("Community", function () {
                 communityHook = await CommunityHookF.deploy();
                 let tx,rc,event,instance,instancesCount;
                 //
-                tx = await CommunityFactory.connect(owner)["produce(address,address,string,string,string)"](communityHook.address,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
+                tx = await CommunityFactory.connect(owner)["produce(address,address,string,string,string)"](communityHook.target,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
                 rc = await tx.wait(); // 0ms, as tx is already confirmed
-                event = rc.events.find(event => event.event === 'InstanceCreated');
+                event = rc.logs.find(event => event.fragment.name === 'InstanceCreated');
                 [instance, instancesCount] = event.args;
                 CommunityInstance = await ethers.getContractAt("Community",instance);
 
@@ -444,9 +463,9 @@ describe("Community", function () {
                 const executedCountAfter = await communityHook.roleGrantedExecuted();
 
                 // grant to owners(while factory produce)
-                expect(executedCountBefore).to.be.eq(ONE);
+                expect(BigInt(executedCountBefore)).to.be.eq(ONE);
 
-                expect(executedCountAfter.sub(executedCountBefore)).to.be.eq(ONE); // grant to role1(grantRoles)
+                expect(executedCountAfter - executedCountBefore).to.be.eq(ONE); // grant to role1(grantRoles)
             }); 
 
             it("while revokeRole", async () => {
@@ -489,9 +508,9 @@ describe("Community", function () {
                 communityHook = await CommunityHookF.deploy();
                 let tx,rc,event,instance,instancesCount;
                 //
-                tx = await CommunityFactory.connect(owner)["produce(address,address,string,string,string)"](communityHook.address,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
+                tx = await CommunityFactory.connect(owner)["produce(address,address,string,string,string)"](communityHook.target,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
                 rc = await tx.wait(); // 0ms, as tx is already confirmed
-                event = rc.events.find(event => event.event === 'InstanceCreated');
+                event = rc.logs.find(event => event.fragment.name === 'InstanceCreated');
                 [instance, instancesCount] = event.args;
                 CommunityInstance = await ethers.getContractAt("Community",instance);
 
@@ -544,9 +563,10 @@ describe("Community", function () {
 
             let tx,rc,event,instance,instancesCount;
             //
+
             tx = await CommunityFactory.connect(owner)["produce(address,address,string,string,string)"](NO_HOOK,NO_INVITED_HOOK,TOKEN_NAME,TOKEN_SYMBOL,CONTRACT_URI);
             rc = await tx.wait(); // 0ms, as tx is already confirmed
-            event = rc.events.find(event => event.event === 'InstanceCreated');
+            event = rc.logs.find(event => event.fragment.name === 'InstanceCreated');
             [instance, instancesCount] = event.args;
             CommunityInstance = await ethers.getContractAt("Community",instance);
 
@@ -567,26 +587,25 @@ describe("Community", function () {
             const contractURI = await CommunityInstance.contractURI();
             expect(newContractURI).to.be.eq(contractURI);
         });
+
         it("instanceCount check", async () => {
             expect(await CommunityFactory.instancesCount()).to.be.eq(ONE);
         });
+
         it("can't send ETH", async () => {
 
-            const price = ethers.utils.parseEther('1');
-            const amountETHSendToContract = price.mul(TWO); // 2ETH
-
+            const amountETHSendToContract = ethers.parseEther('2'); // 2ETH
             // send ETH to Contract      
             await expect(
-                accountThree.sendTransaction({to: CommunityInstance.address, value: amountETHSendToContract})
-            ).to.be.revertedWith("NOT_SUPPORTED");
-
+                accountThree.sendTransaction({to: CommunityInstance.target, value: amountETHSendToContract})
+            ).to.be.revertedWithCustomError(CommunityInstance,"NOT_SUPPORTED");
 
         });
 
         it("creator must be owner", async () => {
             
             var rolesList = (await CommunityInstance.connect(owner)["getRoles(address[])"]([owner.address]));
-            
+
             expect(rolesList[0].includes(rolesIndex.get('owners'))).to.be.eq(true); // outside OWNERS role
 
         });
@@ -666,7 +685,7 @@ describe("Community", function () {
                     case rolesIndex.get('members'):
                     case rolesIndex.get('alumni'):
                     case rolesIndex.get('visitors'):
-                        expect(canGrantRoles[i].length).to.be.eq(ZERO);
+                        expect(BigInt(canGrantRoles[i].length)).to.be.eq(ZERO);
                         break;
                 }
             }
@@ -710,7 +729,7 @@ describe("Community", function () {
                     case rolesIndex.get('members'):
                     case rolesIndex.get('alumni'):
                     case rolesIndex.get('visitors'):
-                        expect(canGrantRoles[i].length).to.be.eq(ZERO);
+                        expect(BigInt(canGrantRoles[i].length)).to.be.eq(ZERO);
                         break;
                     case rolesIndex.get('role1'):
                         rolesThatCanBeGrantedByRole1.forEach((value, key, map) => {
@@ -725,6 +744,7 @@ describe("Community", function () {
         });
 
         it("can view all members in role", async () => {
+            
             // create roles
             await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role1')]);
             await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role2')]);
@@ -747,13 +767,14 @@ describe("Community", function () {
             // let allMembers = await CommunityInstance.connect(owner)["getMembers()"]();
             // expect(allMembers.length).to.be.eq(SEVEN); // accounts - One,Two,Three,Four,Five,Six,Seven
             let allMembersCount = await CommunityInstance.connect(owner)["addressesCount()"]();
+
             expect(allMembersCount).to.be.eq(EIGHT); // accounts - One,Two,Three,Four,Five,Six,Seven and OWNER
 
             let allMembersInRole1 = await CommunityInstance.connect(owner)["getAddresses(uint8[])"]([rolesIndex.get('role1')]);
-            expect(allMembersInRole1[0].length).to.be.eq(FIVE); // accounts - Two,Three,Four,Five,Six
+            expect(BigInt(allMembersInRole1[0].length)).to.be.eq(FIVE); // accounts - Two,Three,Four,Five,Six
 
             let allMembersInRole2 = await CommunityInstance.connect(owner)["getAddresses(uint8[])"]([rolesIndex.get('role2')]);
-            expect(allMembersInRole2[0].length).to.be.eq(THREE); // accounts - Five,Six,Seven
+            expect(BigInt(allMembersInRole2[0].length)).to.be.eq(THREE); // accounts - Five,Six,Seven
 
 
         }); 
@@ -1130,7 +1151,7 @@ describe("Community", function () {
             
             var rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address[])"]([accountFive.address]));
 
-            expect(rolesList[0].length).to.be.eq(ZERO);
+            expect(BigInt(rolesList[0].length)).to.be.eq(ZERO);
 
         });
 
@@ -1156,7 +1177,7 @@ describe("Community", function () {
             var rolesList;
 
             rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address[])"]([accountFive.address]));
-            expect(rolesList[0].length).to.be.eq(ZERO);
+            expect(BigInt(rolesList[0].length)).to.be.eq(ZERO);
             await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],uint8[])', [
                 [accountFive.address], 
                 [rolesIndex.get('role1'),rolesIndex.get('role2')]
@@ -1171,7 +1192,7 @@ describe("Community", function () {
             ]);
 
             rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address[])"]([accountFive.address]));
-            expect(rolesList[0].length).to.be.eq(SIX); // role#1,role#2,role#3,role#4,role#5,role#6
+            expect(BigInt(rolesList[0].length)).to.be.eq(SIX); // role#1,role#2,role#3,role#4,role#5,role#6
 
             await mixedCall(CommunityInstance, trustedForwardMode, owner, 'revokeRoles(address[],uint8[])', [
                 [accountFive.address], 
@@ -1187,7 +1208,7 @@ describe("Community", function () {
             ]);
 
             rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address[])"]([accountFive.address]));
-            expect(rolesList[0].length).to.be.eq(ZERO); 
+            expect(BigInt(rolesList[0].length)).to.be.eq(ZERO); 
         });
 
         it("check getRolesInAllCommunities", async () => {
@@ -1225,8 +1246,8 @@ describe("Community", function () {
             let t1 = await CommunityFactory.connect(owner).getRolesInAllCommunities(accountFive.address);
             let t2 = await CommunityFactory.connect(owner).getRolesInAllCommunities(accountFourth.address);
             
-            expect(t1["communities"][0]).to.be.eq(CommunityInstance.address);
-            expect(t2["communities"][0]).to.be.eq(CommunityInstance.address);
+            expect(t1["communities"][0]).to.be.eq(CommunityInstance.target);
+            expect(t2["communities"][0]).to.be.eq(CommunityInstance.target);
             expect(
                 t1["roles"][0].join('')
                 ).to.be.eq([
@@ -1352,7 +1373,7 @@ describe("Community", function () {
                 expect((rolesList[0].concat(rolesList[1])).includes(rolesIndex.get('role4'))).to.be.eq(false); 
 
                 // 6
-                expect(rolesList[0].concat(rolesList[1]).length).to.be.eq(6);
+                expect(BigInt(rolesList[0].concat(rolesList[1]).length)).to.be.eq(SIX);
                 
                 rolesList = (await CommunityInstance.connect(accountTen)["getRoles(address[])"]([accountThree.address, accountFive.address]));
                 expect((rolesList[0].concat(rolesList[1])).includes(rolesIndex.get('role1'))).to.be.eq(true); 
@@ -1361,7 +1382,7 @@ describe("Community", function () {
                 expect((rolesList[0].concat(rolesList[1])).includes(rolesIndex.get('role4'))).to.be.eq(false); 
 
                 // 5
-                expect(rolesList[0].concat(rolesList[1]).length).to.be.eq(5);
+                expect(BigInt(rolesList[0].concat(rolesList[1]).length)).to.be.eq(FIVE);
             });
 
             it("check addressesCount(uint8)", async () => {
@@ -1393,7 +1414,7 @@ describe("Community", function () {
                 // accounts in role1 - One, Two,Three, Six, Seven
                 // accounts in role2 - One, Two,Three, Fourth, Five, Six, Seven
 
-                expect(allMembersInRole1.add(allMembersInRole2)).to.be.eq(12); 
+                expect(allMembersInRole1 + allMembersInRole2).to.be.eq(12); 
                 
             });
 
@@ -1404,7 +1425,7 @@ describe("Community", function () {
                 await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],uint8[])', [[accountTwo.address], [rolesIndex.get('role4')]]);
 
                 // owners,admins,members,alumni,visitors,role1,role2,role3,role4
-                expect(arr.length).to.be.eq(NINE);
+                expect(BigInt(arr.length)).to.be.eq(NINE);
 
                 arr.forEach((addresses, keyAddr, mapAddr) => {
                     var index = keyAddr + 1;
@@ -1414,7 +1435,7 @@ describe("Community", function () {
                             addresses.forEach((value, key, map) => {
                                 expect([
                                     owner.address,
-                                    CommunityFactory.address
+                                    CommunityFactory.target
                                 ].includes(value)).to.be.eq(true);
                             });
                             break;
@@ -1470,7 +1491,7 @@ describe("Community", function () {
                         case rolesTitle.get('alumni'):
                         case rolesTitle.get('admins'):
                         case rolesTitle.get('visitors'):
-                            expect(addresses.length).to.be.eq(ZERO);
+                            expect(BigInt(addresses.length)).to.be.eq(ZERO);
                                 
                             break;
 
@@ -1483,8 +1504,8 @@ describe("Community", function () {
                 let arr;
 
                 arr = await CommunityInstance.connect(accountTen).getAddressesByRole(rolesIndex.get('role2'),0,10);
-                expect(arr.length).to.be.eq(ONE);
-                expect(arr[0].length).to.be.eq(SEVEN);
+                expect(BigInt(arr.length)).to.be.eq(ONE);
+                expect(BigInt(arr[0].length)).to.be.eq(SEVEN);
                 expect(arr[0][0]).to.be.eq(owner.address);
                 expect(arr[0][1]).to.be.eq(accountTwo.address);
                 expect(arr[0][2]).to.be.eq(accountThree.address);
@@ -1494,8 +1515,8 @@ describe("Community", function () {
                 expect(arr[0][6]).to.be.eq(accountSeven.address);
 
                 arr = await CommunityInstance.connect(accountTen).getAddressesByRole(rolesIndex.get('role2'),1,10);
-                expect(arr.length).to.be.eq(ONE);
-                expect(arr[0].length).to.be.eq(SIX);
+                expect(BigInt(arr.length)).to.be.eq(ONE);
+                expect(BigInt(arr[0].length)).to.be.eq(SIX);
                 expect(arr[0][0]).to.be.eq(accountTwo.address);
                 expect(arr[0][1]).to.be.eq(accountThree.address);
                 expect(arr[0][2]).to.be.eq(accountFourth.address);
@@ -1504,29 +1525,29 @@ describe("Community", function () {
                 expect(arr[0][5]).to.be.eq(accountSeven.address);
 
                 arr = await CommunityInstance.connect(accountTen).getAddressesByRole(rolesIndex.get('role2'),5,10);
-                expect(arr.length).to.be.eq(ONE);
-                expect(arr[0].length).to.be.eq(TWO);
+                expect(BigInt(arr.length)).to.be.eq(ONE);
+                expect(BigInt(arr[0].length)).to.be.eq(TWO);
                 expect(arr[0][0]).to.be.eq(accountSix.address);
                 expect(arr[0][1]).to.be.eq(accountSeven.address);
 
                 arr = await CommunityInstance.connect(accountTen).getAddressesByRole(rolesIndex.get('role2'),2,3);
-                expect(arr.length).to.be.eq(ONE);
-                expect(arr[0].length).to.be.eq(THREE);
+                expect(BigInt(arr.length)).to.be.eq(ONE);
+                expect(BigInt(arr[0].length)).to.be.eq(THREE);
                 expect(arr[0][0]).to.be.eq(accountThree.address);
                 expect(arr[0][1]).to.be.eq(accountFourth.address);
                 expect(arr[0][2]).to.be.eq(accountFive.address);
                 
                 arr = await CommunityInstance.connect(accountTen).getAddressesByRole(rolesIndex.get('role2'),5,0);
-                expect(arr.length).to.be.eq(ONE);
-                expect(arr[0].length).to.be.eq(ZERO);
+                expect(BigInt(arr.length)).to.be.eq(ONE);
+                expect(BigInt(arr[0].length)).to.be.eq(ZERO);
 
                 arr = await CommunityInstance.connect(accountTen).getAddressesByRole(rolesIndex.get('role2'),0,0);
-                expect(arr.length).to.be.eq(ONE);
-                expect(arr[0].length).to.be.eq(ZERO);
+                expect(BigInt(arr.length)).to.be.eq(ONE);
+                expect(BigInt(arr[0].length)).to.be.eq(ZERO);
 
                 arr = await CommunityInstance.connect(accountTen).getAddressesByRole(rolesIndex.get('role2'),100,100);
-                expect(arr.length).to.be.eq(ONE);
-                expect(arr[0].length).to.be.eq(ZERO);
+                expect(BigInt(arr.length)).to.be.eq(ONE);
+                expect(BigInt(arr[0].length)).to.be.eq(ZERO);
             });
         }); 
 
@@ -1544,16 +1565,15 @@ describe("Community", function () {
                 // privatekey1 = owner._signingKey()["privateKey"];
                 // privatekey2 = accountTwo._signingKey()["privateKey"];
                
-                const price = ethers.utils.parseEther('1');
-                const amountETHSendToContract = price.mul(TWO); // 2ETH
+                const amountETHSendToContract = ethers.parseEther('2'); // 2ETH
 
                 // send ETH to Contract      
                 await accountThree.sendTransaction({
-                    to: AuthorizedInviteManager.address, 
+                    to: AuthorizedInviteManager.target, 
                     value: amountETHSendToContract
                 });
 
-                const AuthorizedInviteManagerStartingBalance = (await ethers.provider.getBalance(AuthorizedInviteManager.address));
+                const AuthorizedInviteManagerStartingBalance = (await ethers.provider.getBalance(AuthorizedInviteManager.target));
              
                 // create roles
                 await mixedCall(CommunityInstance, trustedForwardMode, owner, 'createRole(string)', [rolesTitle.get('role1')]);
@@ -1564,7 +1584,7 @@ describe("Community", function () {
             it("should wait a timeout if reserved before", async () => {   
                 let adminMsg = [
                     'invite',
-                    CommunityInstance.address,
+                    CommunityInstance.target,
                     [
                         rolesTitle.get('role1'),
                         rolesTitle.get('role2'),
@@ -1582,10 +1602,11 @@ describe("Community", function () {
 
                 //const hash = utils.keccak256(utils.toUtf8Bytes(sSig+rSig));
                 
-                const hash = utils.keccak256(
-                    utils.defaultAbiCoder.encode(
-                    ["bytes", "bytes"],
-                    [ sSig, rSig ])
+                const hash = ethers.keccak256(
+                    AbiCoder.defaultAbiCoder().encode(
+                        ["bytes", "bytes"],
+                        [ sSig, rSig ]
+                    )
                 );
 
                 await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'inviteReserve(bytes32)', [hash]);
@@ -1595,7 +1616,8 @@ describe("Community", function () {
                 await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'invitePrepare(bytes,bytes)', [sSig,rSig], 'Invite still reserved');
 
                 const reserveDelay = await AuthorizedInviteManager.RESERVE_DELAY();
-                await time.increase(reserveDelay.toNumber() * 1000);
+
+                await time.increase(reserveDelay * BigInt(1000));
 
                 await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'invitePrepare(bytes,bytes)', [sSig,rSig]);
 
@@ -1607,7 +1629,7 @@ describe("Community", function () {
             it("invites by admins which cant add any role from list", async () => {   
                 let adminMsg = [
                     'invite',
-                    CommunityInstance.address,
+                    CommunityInstance.target,
                     [
                         rolesTitle.get('role1'),
                         rolesTitle.get('role2'),
@@ -1633,7 +1655,7 @@ describe("Community", function () {
             it("invites by admins which cant add role (1 of 2)", async () => {   
                 let adminMsg = [
                     'invite',
-                    CommunityInstance.address,
+                    CommunityInstance.target,
                     [
                         rolesTitle.get('role1'),
                         rolesTitle.get('role2')
@@ -1669,10 +1691,10 @@ describe("Community", function () {
                 let txTmp;
                 // generate messages and signatures
                     
-                //let adminMsg = 'invite:'+CommunityInstance.address+':role1,role2,role3:GregMagarshak';
+                //let adminMsg = 'invite:'+CommunityInstance.target+':role1,role2,role3:GregMagarshak';
                 let adminMsg = [
                     'invite',
-                    CommunityInstance.address,
+                    CommunityInstance.target,
                     [
                         rolesTitle.get('role1'),
                         rolesTitle.get('role2'),
@@ -1690,7 +1712,7 @@ describe("Community", function () {
 
                 var recipientStartingBalance = (await ethers.provider.getBalance(accountTwo.address));
                 var relayerStartingBalance = (await ethers.provider.getBalance(relayer.address));
-                const AuthorizedInviteManagerStartingBalance = (await ethers.provider.getBalance(AuthorizedInviteManager.address));
+                const AuthorizedInviteManagerStartingBalance = (await ethers.provider.getBalance(AuthorizedInviteManager.target));
 
                 // imitate invitePrepare and check it in system
                 txTmp = await mixedCall(AuthorizedInviteManager, trustedForwardMode, relayer, 'invitePrepare(bytes,bytes)', [sSig,rSig]);
@@ -1712,11 +1734,11 @@ describe("Community", function () {
 
                 const relayerEndingBalance = await ethers.provider.getBalance(relayer.address);
                 const recipientEndingBalance = await ethers.provider.getBalance(accountTwo.address);
-                const AuthorizedInviteManagerEndingBalance = (await ethers.provider.getBalance(AuthorizedInviteManager.address));
+                const AuthorizedInviteManagerEndingBalance = (await ethers.provider.getBalance(AuthorizedInviteManager.target));
                 
                 // calculate tx cost
-                let txInvitePrepareCost = txInvitePrepare.cumulativeGasUsed * txInvitePrepare.effectiveGasPrice
-                let txInviteAcceptCost = txInviteAccept.cumulativeGasUsed * txInviteAccept.effectiveGasPrice
+                // let txInvitePrepareCost = BigInt(txInvitePrepare.cumulativeGasUsed) * BigInt(txInvitePrepare.effectiveGasPrice)
+                // let txInviteAcceptCost = BigInt(txInviteAccept.cumulativeGasUsed) * BigInt(txInviteAccept.effectiveGasPrice)
                 
 
                 // check roles of accountTwo
@@ -1735,7 +1757,7 @@ describe("Community", function () {
 
                 let adminMsgFirst = [
                     'invite',
-                    CommunityInstance.address,
+                    CommunityInstance.target,
                     [
                         rolesTitle.get('role1')
                     ].join(','),
@@ -1745,7 +1767,7 @@ describe("Community", function () {
                     ].join(':');
                 let adminMsgSecond = [
                     'invite',
-                    CommunityInstance.address,
+                    CommunityInstance.target,
                     [
                         rolesTitle.get('role2')
                     ].join(','),
@@ -1781,7 +1803,7 @@ describe("Community", function () {
                 it("when recipient address not equal", async () => {   
                     let adminMsg = [
                         'invite',
-                        CommunityInstance.address,
+                        CommunityInstance.target,
                         [
                             rolesTitle.get('role1'),
                             rolesTitle.get('role2'),
@@ -1908,7 +1930,7 @@ describe("Community", function () {
             //
             tx = await CommunityFactory.connect(accountTen)["produce(address,address,string,string,string)"](NO_HOOK, NO_INVITED_HOOK, TOKEN_NAME, TOKEN_SYMBOL,CONTRACT_URI);
             rc = await tx.wait(); // 0ms, as tx is already confirmed
-            event = rc.events.find(event => event.event === 'InstanceCreated');
+            event = rc.logs.find(event => event.fragment.name === 'InstanceCreated');
             [instance, instancesCount] = event.args;
             CommunityInstance = await ethers.getContractAt("Community",instance);
 
@@ -1930,11 +1952,15 @@ describe("Community", function () {
         
         describe("erc721 tokens tests", function () {
             let generateTokenId = function(address, roleIndex) {
-                
+
                 // roleIndex<<160 + address
-                let t = BigNumber.from("0x"+roleIndex+"0000000000000000000000000000000000000000")
-                let t2 = BigNumber.from(address);
-                return t.add(t2);
+                let t = BigInt(roleIndex) << BigInt(160);
+
+                let t2 = BigInt(address);
+
+                let ret = (t + t2).toString(16);
+                return "0x"+ret.padStart(64, '0');
+                
             }
             beforeEach("deploying", async() => {
 
@@ -2018,6 +2044,7 @@ describe("Community", function () {
             });
 
             it("shouldn't safeTransferFrom", async () => {
+                
                 await expect(
                     CommunityInstance.connect(owner)["safeTransferFrom(address,address,uint256)"](
                         owner.address,
@@ -2031,7 +2058,7 @@ describe("Community", function () {
                         owner.address,
                         accountFourth.address,
                         generateTokenId(owner.address, rolesIndex.get('role1')),
-                        []
+                        "0x"//[]
                     )
                 ).to.be.revertedWith("CommunityContract: NOT_AUTHORIZED");
             });
@@ -2123,7 +2150,7 @@ describe("Community", function () {
             //
             tx = await CommunityFactory.connect(owner)["produce(address,address,string,string,string)"](NO_HOOK, NO_INVITED_HOOK, TOKEN_NAME, TOKEN_SYMBOL, CONTRACT_URI);
             rc = await tx.wait(); // 0ms, as tx is already confirmed
-            event = rc.events.find(event => event.event === 'InstanceCreated');
+            event = rc.logs.find(event => event.fragment.name === 'InstanceCreated');
             [instance, instancesCount] = event.args;
             CommunityInstance = await ethers.getContractAt("Community",instance);
 

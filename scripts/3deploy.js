@@ -1,29 +1,7 @@
-const fs = require('fs');
-//const HDWalletProvider = require('truffle-hdwallet-provider');
-
-function get_data(_message) {
-    return new Promise(function(resolve, reject) {
-        fs.readFile('./scripts/arguments.json', (err, data) => {
-            if (err) {
-                if (err.code == 'ENOENT' && err.syscall == 'open' && err.errno == -4058) {
-					let obj = {};
-					data = JSON.stringify(obj, null, "");
-                    fs.writeFile('./scripts/arguments.json', data, (err) => {
-                        if (err) throw err;
-                        resolve(data);
-                    });
-                } else {
-                    throw err;
-                }
-            } else {
-            	resolve(data);
-			}
-        });
-    });
-}
+const common = require('./lib/common.js');
 
 async function main() {
-	var data = await get_data();
+	var data = await common.get_data();
     var data_object_root = JSON.parse(data);
 	if (typeof data_object_root[hre.network.name] === 'undefined') {
 		throw("Arguments file: missed data");
@@ -95,21 +73,21 @@ async function main() {
 		options
 	]
 
-	const deployerBalanceBefore = await depl_community.getBalance();
+	const deployerBalanceBefore = await ethers.provider.getBalance(depl_community.address);
 	console.log("Account balance:", (deployerBalanceBefore).toString());
 
 	const CommunityF = await ethers.getContractFactory("CommunityFactory");
 
-	this.factory = await CommunityF.connect(depl_community).deploy(...params);
+	this.factory = await common.wrapDeploy('CommunityF', CommunityF, depl_community, {params: params});
 
-	console.log("Factory deployed at:", this.factory.address);
+	console.log("Factory deployed at:", this.factory.target);
 	console.log("with params:", [..._params]);
 
 	console.log("registered with release manager:", data_object.releaseManager);
     
-    const deployerBalanceAfter = await depl_community.getBalance();
-    console.log("Spent:", ethers.utils.formatEther(deployerBalanceBefore.sub(deployerBalanceAfter)));
-    console.log("gasPrice:", ethers.utils.formatUnits((await network.provider.send("eth_gasPrice")), "gwei")," gwei");
+    const deployerBalanceAfter = await ethers.provider.getBalance(depl_community.address);
+    console.log("Spent:", ethers.formatEther(deployerBalanceBefore - deployerBalanceAfter));
+    console.log("gasPrice:", ethers.formatUnits((await network.provider.send("eth_gasPrice")), "gwei")," gwei");
 }
 
 main()

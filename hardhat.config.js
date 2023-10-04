@@ -1,19 +1,21 @@
 require('dotenv').config()
 
-require("@nomiclabs/hardhat-ethers")
+//require("@nomiclabs/hardhat-ethers")
 require('hardhat-docgen')
 require('hardhat-deploy')
-require("@nomiclabs/hardhat-waffle")
+
 require("@nomiclabs/hardhat-web3")
-require("@nomiclabs/hardhat-etherscan")
-require("solidity-coverage")
-require("hardhat-gas-reporter")
+//require("@nomiclabs/hardhat-etherscan")
+
 //require("hardhat-docgen")
 require("@hardhat-docgen/core")
 //require("@hardhat-docgen/markdown")
 require("./docgen-custom-markdown")
 require('hardhat-contract-sizer')
 require("hardhat-gas-trackooor");
+
+require("@nomicfoundation/hardhat-toolbox");
+require("@nomicfoundation/hardhat-chai-matchers");
 
 const kovanURL = `https://eth-kovan.alchemyapi.io/v2/${process.env.ALCHEMY_KOVAN}`
 const goerliURL = `https://eth-goerli.alchemyapi.io/v2/${process.env.ALCHEMY_GOERLI}`
@@ -22,7 +24,7 @@ const bscURL = 'https://bsc-dataseed.binance.org' //`https://eth-rinkeby.alchemy
 const bsctestURL = 'https://data-seed-prebsc-1-s1.binance.org:8545';
 const mainnetURL = `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_MAINNET}`
 const maticURL = `https://polygon-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_MATIC}`
-const mumbaiURL = 'https://matic-mumbai.chainstacklabs.com';
+const mumbaiURL = 'https://polygon-mumbai-bor.publicnode.com';//'https://matic-mumbai.chainstacklabs.com';
 const arbitrumURL = `https://arbitrum-one.publicnode.com`;
 //const avalancheURL = `https://endpoints.omniatech.io/v1/avax/mainnet/public`;
 const avalancheURL = `https://avalanche-c-chain.publicnode.com`;
@@ -88,7 +90,7 @@ module.exports = {
     polygon: {
       url: maticURL,
       chainId: 137,
-      //gasPrice: "auto",
+      gasPrice: "auto",
       accounts: [
         process.env.private_key,
         process.env.private_key_auxiliary,
@@ -101,7 +103,7 @@ module.exports = {
     polygonMumbai: {
       url: mumbaiURL,
       chainId: 80001,
-      //gasPrice: "auto", 
+      gasPrice: "auto", 
       accounts: [
         process.env.private_key_auxiliary,
         process.env.private_key_auxiliary,
