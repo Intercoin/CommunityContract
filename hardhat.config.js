@@ -24,7 +24,7 @@ const bscURL = 'https://bsc-dataseed.binance.org' //`https://eth-rinkeby.alchemy
 const bsctestURL = 'https://data-seed-prebsc-1-s1.binance.org:8545';
 const mainnetURL = `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_MAINNET}`
 const maticURL = `https://polygon-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_MATIC}`
-const mumbaiURL = 'https://matic-mumbai.chainstacklabs.com';
+const mumbaiURL = 'https://polygon-mumbai-bor.publicnode.com';//'https://matic-mumbai.chainstacklabs.com';
 const arbitrumURL = `https://arbitrum-one.publicnode.com`;
 //const avalancheURL = `https://endpoints.omniatech.io/v1/avax/mainnet/public`;
 const avalancheURL = `https://avalanche-c-chain.publicnode.com`;
@@ -90,7 +90,7 @@ module.exports = {
     polygon: {
       url: maticURL,
       chainId: 137,
-      //gasPrice: "auto",
+      gasPrice: "auto",
       accounts: [
         process.env.private_key,
         process.env.private_key_auxiliary,
@@ -103,7 +103,7 @@ module.exports = {
     polygonMumbai: {
       url: mumbaiURL,
       chainId: 80001,
-      //gasPrice: "auto", 
+      gasPrice: "auto", 
       accounts: [
         process.env.private_key_auxiliary,
         process.env.private_key_auxiliary,

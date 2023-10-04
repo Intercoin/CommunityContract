@@ -1952,18 +1952,15 @@ describe("Community", function () {
         
         describe("erc721 tokens tests", function () {
             let generateTokenId = function(address, roleIndex) {
-console.log('START');
-console.log(roleIndex);
-console.log(address);
+
                 // roleIndex<<160 + address
-                let t = BigInt("0x"+roleIndex+"0000000000000000000000000000000000000000")
-console.log(t);
+                let t = BigInt(roleIndex) << BigInt(160);
+
                 let t2 = BigInt(address);
-console.log(t2);
-console.log(t + t2);
-console.log("0x"+((t + t2).toString(16)));
-console.log('END');
-                return "0x"+(t + t2).toString(16);
+
+                let ret = (t + t2).toString(16);
+                return "0x"+ret.padStart(64, '0');
+                
             }
             beforeEach("deploying", async() => {
 
@@ -2046,12 +2043,8 @@ console.log('END');
                 ).to.be.revertedWith("CommunityContract: NOT_AUTHORIZED");
             });
 
-            it.only("shouldn't safeTransferFrom", async () => {
-                console.log(owner.address);
-                console.log(rolesIndex.get('role1'));
-                console.log(generateTokenId(owner.address, rolesIndex.get('role1')));
-                return;
-
+            it("shouldn't safeTransferFrom", async () => {
+                
                 await expect(
                     CommunityInstance.connect(owner)["safeTransferFrom(address,address,uint256)"](
                         owner.address,
@@ -2065,7 +2058,7 @@ console.log('END');
                         owner.address,
                         accountFourth.address,
                         generateTokenId(owner.address, rolesIndex.get('role1')),
-                        []
+                        "0x"//[]
                     )
                 ).to.be.revertedWith("CommunityContract: NOT_AUTHORIZED");
             });
@@ -2173,12 +2166,12 @@ console.log('END');
 
             //grant owners role to several users
             for (var i in addressesForTest) {
-                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],uint8[])', [[addressesForTest[i].target], [rolesIndex.get('owners')]]);
+                await mixedCall(CommunityInstance, trustedForwardMode, owner, 'grantRoles(address[],uint8[])', [[addressesForTest[i].address], [rolesIndex.get('owners')]]);
             };
 
             // all addresses should have owners role
             for (var i in addressesForTest) {
-                rolesList = (await CommunityInstance.connect(owner)["getRoles(address[])"]([addressesForTest[i].target]));
+                rolesList = (await CommunityInstance.connect(owner)["getRoles(address[])"]([addressesForTest[i].address]));
                 expect(rolesList[0].includes(rolesIndex.get('owners'))).to.be.eq(true); // else outside OWNERS role            
             };
 
@@ -2187,7 +2180,7 @@ console.log('END');
 
             // now all addresses shouldn't have owners role.
             for (var i in addressesForTest) {
-                rolesList = (await CommunityInstance.connect(owner)["getRoles(address[])"]([addressesForTest[i].target]));
+                rolesList = (await CommunityInstance.connect(owner)["getRoles(address[])"]([addressesForTest[i].address]));
                 expect(rolesList[0].includes(rolesIndex.get('owners'))).to.be.eq(false); // else outside OWNERS role            
             };
             // and initial owner too

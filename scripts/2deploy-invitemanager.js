@@ -1,40 +1,7 @@
-const fs = require('fs');
-//const HDWalletProvider = require('truffle-hdwallet-provider');
-
-function get_data(_message) {
-    return new Promise(function(resolve, reject) {
-        fs.readFile('./scripts/arguments.json', (err, data) => {
-            if (err) {
-                if (err.code == 'ENOENT' && err.syscall == 'open' && err.errno == -4058) {
-					let obj = {};
-					data = JSON.stringify(obj, null, "");
-                    fs.writeFile('./scripts/arguments.json', data, (err) => {
-                        if (err) throw err;
-                        resolve(data);
-                    });
-                } else {
-                    throw err;
-                }
-            } else {
-            	resolve(data);
-			}
-        });
-    });
-}
-
-function write_data(_message) {
-    return new Promise(function(resolve, reject) {
-        fs.writeFile('./scripts/arguments.json', _message, (err) => {
-            if (err) throw err;
-            console.log('Data written to file');
-            resolve();
-        });
-    });
-}
-
+const common = require('./lib/common.js');
 
 async function main() {
-	var data = await get_data();
+	var data = await common.get_data();
     var data_object_root = JSON.parse(data);
 	if (typeof data_object_root[hre.network.name] === 'undefined') {
 		throw("Arguments file: missed data");
@@ -103,17 +70,17 @@ async function main() {
 		options
 	]
 
-	const deployerBalanceBefore = await depl_invitemanager.getBalance();
+	const deployerBalanceBefore = await ethers.provider.getBalance(depl_invitemanager.address);
 	console.log("Account balance:", (deployerBalanceBefore).toString());
 
 	const AuthorizedInviteManagerF = await ethers.getContractFactory("AuthorizedInviteManagerFactory");
 
-	this.factory = await AuthorizedInviteManagerF.connect(depl_invitemanager).deploy(...params);
+	this.factory = await common.wrapDeploy('AuthorizedInviteManagerF', AuthorizedInviteManagerF, depl_invitemanager, {params: params});
 
     const ReleaseManagerF = await ethers.getContractFactory("ReleaseManager");
     const releaseManager = await ethers.getContractAt("ReleaseManager",data_object.releaseManager);
-    await releaseManager.connect(depl_releasemanager).newRelease(
-        [this.factory.address], 
+    let txNewRelease = await releaseManager.connect(depl_releasemanager).newRelease(
+        [this.factory.target], 
         [
             [
                 2,//uint8 factoryIndex; 
@@ -123,24 +90,33 @@ async function main() {
         ]
     );
 
+    console.log('newRelease - waiting');
+    await txNewRelease.wait(3);
+    console.log('newRelease - mined');
+ console.log('this.factory = ', this.factory.target);
+ console.log('depl_invitemanager = ', depl_invitemanager.address);
+
     let tx = await this.factory.connect(depl_invitemanager).produce();
-    let rc = await tx.wait(); // 0ms, as tx is already confirmed
-    let event = rc.events.find(event => event.event === 'InstanceCreated');
+//console.log(tx);    
+console.log('produce - waiting');
+    let rc = await tx.wait(3); // 0ms, as tx is already confirmed
+console.log('produce - mined');
+    let event = rc.logs.find(event => event.fragment.name === 'InstanceCreated');
     let instance, instancesCount;
     [instance, instancesCount] = event.args;
     
     data_object.authorizedInviteManager   = instance;
 
 
-	console.log("authorizedInviteManagerFactory deployed at:", this.factory.address);
+	console.log("authorizedInviteManagerFactory deployed at:", this.factory.target);
 	console.log("with params:", [..._params]);
     console.log("authorizedInviteManager deployed at:", instance);
 
 	console.log("registered with release manager:", data_object.releaseManager);
     
-    const deployerBalanceAfter = await depl_invitemanager.getBalance();
-    console.log("Spent:", ethers.utils.formatEther(deployerBalanceBefore.sub(deployerBalanceAfter)));
-    console.log("gasPrice:", ethers.utils.formatUnits((await network.provider.send("eth_gasPrice")), "gwei")," gwei");
+    const deployerBalanceAfter = await ethers.provider.getBalance(depl_invitemanager.address);
+    console.log("Spent:", ethers.formatEther(deployerBalanceBefore - deployerBalanceAfter));
+    console.log("gasPrice:", ethers.formatUnits((await network.provider.send("eth_gasPrice")), "gwei")," gwei");
 
     //---
 	const ts_updated = Date.now();
@@ -148,7 +124,7 @@ async function main() {
     data_object_root[`${hre.network.name}`] = data_object;
     data_object_root.time_updated = ts_updated;
     let data_to_write = JSON.stringify(data_object_root, null, 2);
-    await write_data(data_to_write);
+    await common.write_data(data_to_write);
 }
 
 main()
