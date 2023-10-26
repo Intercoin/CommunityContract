@@ -139,20 +139,20 @@ contract Community is
 
     /**
      * @notice getting name
-     * @custom:shortd ERC721'name
+     * 
      * @return name
      */
     string public name;
 
     /**
      * @notice getting symbol
-     * @custom:shortd ERC721's symbol
+     * 
      * @return symbol
      */
     string public symbol;
     /**
      * @notice uri that represent more information about thic community
-     * @custom:shortd contract URI
+     * 
      * @return URI
      */
     string public contractURI;
@@ -165,37 +165,42 @@ contract Community is
     uint256 addressesCounter;
 
     /**
-     * @custom:shortd role name "owners" in bytes32
+     * 
      * @notice constant role name "owners" in bytes32
      */
+    uint8 internal constant DEFAULT_OWNERS_ROLE_INDEX = 1;
     bytes32 public constant DEFAULT_OWNERS_ROLE =
         0x6f776e6572730000000000000000000000000000000000000000000000000000;
 
     /**
-     * @custom:shortd role name "admins" in bytes32
+     * 
      * @notice constant role name "admins" in bytes32
      */
+    uint8 internal constant DEFAULT_ADMINS_ROLE_INDEX = 2;
     bytes32 public constant DEFAULT_ADMINS_ROLE =
         0x61646d696e730000000000000000000000000000000000000000000000000000;
 
     /**
-     * @custom:shortd role name "members" in bytes32
+     * 
      * @notice constant role name "members" in bytes32
      */
+    uint8 internal constant DEFAULT_MEMBERS_ROLE_INDEX = 3;
     bytes32 public constant DEFAULT_MEMBERS_ROLE =
         0x6d656d6265727300000000000000000000000000000000000000000000000000;
 
     /**
-     * @custom:shortd role name "alumni" in bytes32
+     * 
      * @notice constant role name "alumni" in bytes32
      */
+    uint8 internal constant DEFAULT_ALUMNI_ROLE_INDEX = 4;
     bytes32 public constant DEFAULT_ALUMNI_ROLE =
         0x616c756d6e690000000000000000000000000000000000000000000000000000;
 
     /**
-     * @custom:shortd role name "visitors" in bytes32
+     * 
      * @notice constant role name "visitors" in bytes32
      */
+    uint8 internal constant DEFAULT_VISITORS_ROLE_INDEX = 5;
     bytes32 public constant DEFAULT_VISITORS_ROLE =
         0x76697369746f7273000000000000000000000000000000000000000000000000;
 
@@ -236,22 +241,22 @@ contract Community is
     mapping(uint8 => Role) internal _rolesByIndex;
     /**
      * @notice map users granted by
-     * @custom:shortd map users granted by
+     * 
      */
     mapping(address => ActionInfo[]) public grantedBy;
     /**
      * @notice map users revoked by
-     * @custom:shortd map users revoked by
+     * 
      */
     mapping(address => ActionInfo[]) public revokedBy;
     /**
      * @notice history of users granted
-     * @custom:shortd history of users granted
+     * 
      */
     mapping(address => ActionInfo[]) public granted;
     /**
      * @notice history of users revoked
-     * @custom:shortd history of users revoked
+     * 
      */
     mapping(address => ActionInfo[]) public revoked;
 
@@ -337,9 +342,9 @@ contract Community is
 
         //_grantRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]);
         _grantRole(
-            _roles[DEFAULT_OWNERS_ROLE],
+            DEFAULT_OWNERS_ROLE_INDEX,
             _msgSender(),
-            _roles[DEFAULT_OWNERS_ROLE],
+            DEFAULT_OWNERS_ROLE_INDEX,
             _msgSender()
         );
 
@@ -348,24 +353,24 @@ contract Community is
         // any other rules can be added later by owners
 
         _manageRole(
-            _roles[DEFAULT_ADMINS_ROLE],
-            _roles[DEFAULT_MEMBERS_ROLE],
+            DEFAULT_ADMINS_ROLE_INDEX,
+            DEFAULT_MEMBERS_ROLE_INDEX,
             true,
             true,
             0,
             0
         );
         _manageRole(
-            _roles[DEFAULT_ADMINS_ROLE],
-            _roles[DEFAULT_ALUMNI_ROLE],
+            DEFAULT_ADMINS_ROLE_INDEX,
+            DEFAULT_ALUMNI_ROLE_INDEX,
             true,
             true,
             0,
             0
         );
         _manageRole(
-            _roles[DEFAULT_ADMINS_ROLE],
-            _roles[DEFAULT_VISITORS_ROLE],
+            DEFAULT_ADMINS_ROLE_INDEX,
+            DEFAULT_VISITORS_ROLE_INDEX,
             true,
             true,
             0,
@@ -391,7 +396,7 @@ contract Community is
 
     /**
      * @notice Added new Roles for each account
-     * @custom:shortd Added new Roles for each account
+     * 
      * @param accounts participant's addresses
      * @param roleIndexes Role indexes
      */
@@ -410,7 +415,7 @@ contract Community is
 
     /**
      * @notice Removed Roles from each member
-     * @custom:shortd Removed Roles from each member
+     * 
      * @param accounts participant's addresses
      * @param roleIndexes Role indexes
      */
@@ -469,7 +474,7 @@ contract Community is
 
     /**
      * @notice creating new role. Can be called by owners role only
-     * @custom:shortd creating new role. Can be called by owners role only
+     * 
      * @param role role name
      */
     function createRole(string memory role) public {
@@ -608,8 +613,8 @@ contract Community is
      * @notice setting tokenURI for role
      * @param roleIndex role index
      * @param roleURI token URI
-     * @custom:shortd setting tokenURI for role
-     * @custom:calledby any who can manage this role
+     * 
+     * 
      */
     function setRoleURI(uint8 roleIndex, string memory roleURI) public {
         requireInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]);
@@ -625,8 +630,8 @@ contract Community is
     /**
      * @notice setting contract URI
      * @param uri contract URI
-     * @custom:shortd setting contract URI.
-     * @custom:calledby owners
+     * 
+     * 
      */
     function setContractURI(string memory uri) public {
         requireInRole(_msgSender(), _roles[DEFAULT_OWNERS_ROLE]);
@@ -695,7 +700,7 @@ contract Community is
     /**
      * @dev can be duplicate items in output. see https://github.com/Intercoin/CommunityContract/issues/4#issuecomment-1049797389
      * @notice Returns all addresses across all roles
-     * @custom:shortd all addresses across all roles
+     * 
      * @return two-dimensional array of addresses, where roleIndex = index from output_array_index + 1
      */
     function getAddresses() public view returns (address[][] memory) {
@@ -721,7 +726,7 @@ contract Community is
     /**
      * @dev can be duplicate items in output. see https://github.com/Intercoin/CommunityContract/issues/4#issuecomment-1049797389
      * @notice Returns all addresses belong to Role
-     * @custom:shortd all addresses belong to Role
+     * 
      * @param roleIndexes array of role's indexes
      * @return two-dimensional array of addresses
      */
@@ -805,7 +810,7 @@ contract Community is
     /**
      * @dev can be duplicate items in output. see https://github.com/Intercoin/CommunityContract/issues/4#issuecomment-1049797389
      * @notice Returns all roles which member belong to
-     * @custom:shortd member's roles
+     * 
      * @param accounts member's addresses
      * @return l two-dimensional array of roles
      */
@@ -831,7 +836,7 @@ contract Community is
     /**
      * @dev can be duplicate items in output. see https://github.com/Intercoin/CommunityContract/issues/4#issuecomment-1049797389
      * @notice if call without params then returns all existing roles
-     * @custom:shortd all roles
+     * 
      * @return arrays of (indexes, names, roleURIs, canGrantRoles, canRevokeRoles)
      */
     function allRoles()
@@ -871,7 +876,7 @@ contract Community is
 
     /**
      * @notice count of members for that role
-     * @custom:shortd count of members for role
+     * 
      * @param roleIndex role index
      * @return count of members for that role
      */
@@ -881,7 +886,7 @@ contract Community is
 
     /**
      * @notice if call without params then returns count of all users which have at least one role
-     * @custom:shortd all members count
+     * 
      * @return count of members
      */
     function addressesCount() public view returns (uint256) {
@@ -890,7 +895,7 @@ contract Community is
 
     /**
      * @notice is member has role
-     * @custom:shortd checking is member belong to role
+     * 
      * @param account user address
      * @param roleIndex role index
      * @return bool
@@ -905,7 +910,7 @@ contract Community is
 
     /**
      * @notice return role index by name
-     * @custom:shortd return role index by name
+     * 
      * @param rolename role name in string
      * @return role index
      */
@@ -916,7 +921,7 @@ contract Community is
     /**
      * @notice getting balance of owner address
      * @param account user's address
-     * @custom:shortd part of ERC721
+     * 
      */
     function balanceOf(
         address account
@@ -931,7 +936,7 @@ contract Community is
     /**
      * @notice getting owner of tokenId
      * @param tokenId tokenId
-     * @custom:shortd part of ERC721
+     * 
      */
     function ownerOf(uint256 tokenId) public view override returns (address) {
         uint8 roleId = uint8(tokenId >> 160);
@@ -942,7 +947,7 @@ contract Community is
 
     /**
      * @notice getting tokenURI(part of ERC721)
-     * @custom:shortd getting tokenURI
+     * 
      * @param tokenId token ID
      * @return tokenuri
      */
@@ -1016,8 +1021,8 @@ contract Community is
     /**
      * @notice setting contractURI for this contract
      * @param uri uri
-     * @custom:shortd setting tokenURI for role
-     * @custom:calledby owners only
+     * 
+     * 
      */
     function _setContractURI(string memory uri) internal {
         contractURI = uri;
@@ -1642,7 +1647,7 @@ contract Community is
     //////////////////////////////////////
     /**
      * @notice
-     * @custom:shortd
+     * 
      */
     function operationReverted() internal pure {
         revert("CommunityContract: NOT_AUTHORIZED");
@@ -1650,7 +1655,7 @@ contract Community is
 
     /**
      * @notice getting part of ERC721
-     * @custom:shortd part of ERC721
+     * 
      */
     function safeTransferFrom(
         address /*from*/,
@@ -1662,7 +1667,7 @@ contract Community is
 
     /**
      * @notice getting part of ERC721
-     * @custom:shortd part of ERC721
+     * 
      */
     function transferFrom(
         address /*from*/,
@@ -1674,7 +1679,7 @@ contract Community is
 
     /**
      * @notice getting part of ERC721
-     * @custom:shortd part of ERC721
+     * 
      */
     function approve(
         address /*to*/,
@@ -1685,7 +1690,7 @@ contract Community is
 
     /**
      * @notice getting part of ERC721
-     * @custom:shortd part of ERC721
+     * 
      */
     function getApproved(
         uint256 /* tokenId*/
@@ -1695,7 +1700,7 @@ contract Community is
 
     /**
      * @notice getting part of ERC721
-     * @custom:shortd part of ERC721
+     * 
      */
     function setApprovalForAll(
         address /*operator*/,
@@ -1706,7 +1711,7 @@ contract Community is
 
     /**
      * @notice getting part of ERC721
-     * @custom:shortd part of ERC721
+     * 
      */
     function isApprovedForAll(
         address /*owner*/,
@@ -1717,7 +1722,7 @@ contract Community is
 
     /**
      * @notice getting part of ERC721
-     * @custom:shortd part of ERC721
+     * 
      */
     function safeTransferFrom(
         address /*from*/,
@@ -1730,7 +1735,7 @@ contract Community is
 
     /**
      * @notice getting part of ERC721
-     * @custom:shortd part of ERC721
+     * 
      */
     function supportsInterface(
         bytes4 interfaceId
