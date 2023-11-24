@@ -11,10 +11,10 @@ import "./interfaces/ICommunity.sol";
 import "./interfaces/IAuthorizedInviteManager.sol";
 import "./interfaces/IAuthorizedInvitedHook.sol";
 
-import "@artman325/releasemanager/contracts/CostManagerHelper.sol";
-import "@artman325/releasemanager/contracts/ReleaseManagerHelper.sol";
-import "@artman325/releasemanager/contracts/interfaces/IReleaseManager.sol";
-import "@artman325/trustedforwarder/contracts/TrustedForwarder.sol";
+import "@intercoin/releasemanager/contracts/CostManagerHelper.sol";
+import "@intercoin/releasemanager/contracts/ReleaseManagerHelper.sol";
+import "@intercoin/releasemanager/contracts/interfaces/IReleaseManager.sol";
+import "@intercoin/trustedforwarder/contracts/TrustedForwarder.sol";
 /**
 *****************
 TEMPLATE CONTRACT
