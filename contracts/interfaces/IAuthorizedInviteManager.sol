@@ -20,7 +20,7 @@ interface IAuthorizedInviteManager {
 
     /**
      * @notice registering invite,. calling by relayers
-     * @custom:shortd registering invite
+     * 
      * @param aSig signature of admin whom generate invite and signed it
      * @param rSig signature of recipient
      */
@@ -35,7 +35,7 @@ interface IAuthorizedInviteManager {
      * @dev format is "<address of R wallet>:<name of user>"
      * @dev 0x5B38Da6a701c568545dCfcB03FcB875f56beddC4:John Doe
      * @notice accepting invite
-     * @custom:shortd accepting invite
+     * 
      * @param p invite message of admin whom generate messageHash and signed it
      * @param aSig signature of admin whom generate invite and signed it
      * @param rp message of recipient whom generate messageHash and signed it
@@ -50,7 +50,7 @@ interface IAuthorizedInviteManager {
 
     /**
      * @notice viewing invite by admin signature
-     * @custom:shortd viewing invite by admin signature
+     * 
      * @param aSig signature of admin whom generate invite and signed it
      * @return structure inviteSignature
      */
