@@ -1,19 +1,6 @@
 require('dotenv').config()
-
-//require("@nomiclabs/hardhat-ethers")
-require('hardhat-docgen')
-require('hardhat-deploy')
-
-require("@nomiclabs/hardhat-web3")
-//require("@nomiclabs/hardhat-etherscan")
-
-//require("hardhat-docgen")
-require("@hardhat-docgen/core")
-//require("@hardhat-docgen/markdown")
-require("./docgen-custom-markdown")
-require('hardhat-contract-sizer')
-require("hardhat-gas-trackooor");
-
+require("@nomiclabs/hardhat-web3");
+require('hardhat-deploy');
 require("@nomicfoundation/hardhat-toolbox");
 require("@nomicfoundation/hardhat-chai-matchers");
 
