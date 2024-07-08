@@ -15,6 +15,7 @@ module.exports = {
         
         console.log('Waiting for confirmed');
         let rc = await contract.deploymentTransaction().wait(3);
+
         if (rc.status != 1) {
             throw('deployment failed');
         }

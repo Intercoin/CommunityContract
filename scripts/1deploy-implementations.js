@@ -57,6 +57,7 @@ async function main() {
 
 	//let implementationCommunity                 = await CommunityF.connect(deployer).deploy();
     let implementationCommunity = await common.wrapDeploy('CommunityF', CommunityF, deployer);
+
     let implementationAuthorizedInviteManager   = await common.wrapDeploy('AuthorizedInviteManagerF', AuthorizedInviteManagerF, deployer);
 
 	console.log("Implementations:");
@@ -82,6 +83,10 @@ async function main() {
     let data_to_write = JSON.stringify(data_object_root, null, 2);
 	console.log(data_to_write);
     await common.write_data(data_to_write);
+
+    console.log('verifying');
+    await hre.run("verify:verify", {address: data_object.implementationCommunity, constructorArguments: []});
+    await hre.run("verify:verify", {address: data_object.implementationAuthorizedInviteManager, constructorArguments: []});
 }
 
 main()

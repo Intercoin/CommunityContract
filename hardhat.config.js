@@ -22,15 +22,16 @@ module.exports = {
     local: {
       url: "http://localhost:8545", //rinkebyURL,
       chainId: 1337,
-      gasPrice: "auto",
+      //gasPrice: "auto",
       //accounts: {mnemonic: process.env.MNEMONIC,initialIndex:1},
       accounts: [process.env.private_key],
       saveDeployments: true
     },
     hardhat: {
       allowUnlimitedContractSize: false,
+      chainId: 137,
       forking: {
-        url: mainnetURL
+        url: maticURL
       }
     },
     kovan: {
@@ -57,7 +58,7 @@ module.exports = {
     bsc: {
       url: bscURL,
       chainId: 56,
-      gasPrice: "auto",
+      //gasPrice: "auto",
       accounts: [
         process.env.private_key,
         process.env.private_key_auxiliary,
@@ -77,7 +78,7 @@ module.exports = {
     polygon: {
       url: maticURL,
       chainId: 137,
-      gasPrice: "auto",
+      //gasPrice: "auto",
       accounts: [
         process.env.private_key,
         process.env.private_key_auxiliary,

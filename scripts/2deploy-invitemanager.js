@@ -83,8 +83,8 @@ async function main() {
         [this.factory.target], 
         [
             [
-                2,//uint8 factoryIndex; 
-                2,//uint16 releaseTag; 
+                21,//uint8 factoryIndex; 
+                21,//uint16 releaseTag; 
                 "0x53696c766572000000000000000000000000000000000000"//bytes24 factoryChangeNotes;
             ]
         ]
@@ -93,14 +93,16 @@ async function main() {
     console.log('newRelease - waiting');
     await txNewRelease.wait(3);
     console.log('newRelease - mined');
- console.log('this.factory = ', this.factory.target);
- console.log('depl_invitemanager = ', depl_invitemanager.address);
+
+    console.log('this.factory = ', this.factory.target);
+    console.log('depl_invitemanager = ', depl_invitemanager.address);
+
 
     let tx = await this.factory.connect(depl_invitemanager).produce();
 //console.log(tx);    
-console.log('produce - waiting');
+    console.log('produce - waiting');
     let rc = await tx.wait(3); // 0ms, as tx is already confirmed
-console.log('produce - mined');
+    console.log('produce - mined');
     let event = rc.logs.find(event => event.fragment.name === 'InstanceCreated');
     let instance, instancesCount;
     [instance, instancesCount] = event.args;
@@ -125,6 +127,11 @@ console.log('produce - mined');
     data_object_root.time_updated = ts_updated;
     let data_to_write = JSON.stringify(data_object_root, null, 2);
     await common.write_data(data_to_write);
+
+    console.log("verifying");
+    await hre.run("verify:verify", {address: this.factory.target, constructorArguments: _params});
+    
+    
 }
 
 main()

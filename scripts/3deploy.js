@@ -84,10 +84,31 @@ async function main() {
 	console.log("with params:", [..._params]);
 
 	console.log("registered with release manager:", data_object.releaseManager);
+
+    const releaseManager = await ethers.getContractAt("ReleaseManager",data_object.releaseManager);
+    let txNewRelease = await releaseManager.connect(depl_releasemanager).newRelease(
+        [this.factory.target], 
+        [
+            [
+                1,//uint8 factoryIndex; 
+                1,//uint16 releaseTag; 
+                "0x53696c766572000000000000000000000000000000000000"//bytes24 factoryChangeNotes;
+            ]
+        ]
+    );
+
+    console.log('newRelease - waiting');
+    await txNewRelease.wait(3);
+    console.log('newRelease - mined');
+
+
     
     const deployerBalanceAfter = await ethers.provider.getBalance(depl_community.address);
     console.log("Spent:", ethers.formatEther(deployerBalanceBefore - deployerBalanceAfter));
     console.log("gasPrice:", ethers.formatUnits((await network.provider.send("eth_gasPrice")), "gwei")," gwei");
+
+	console.log("verifying");
+    await hre.run("verify:verify", {address: this.factory.target, constructorArguments: _params});
 }
 
 main()
