@@ -29,10 +29,16 @@ module.exports = {
     },
     hardhat: {
       allowUnlimitedContractSize: false,
-      chainId: 137,
+      //[mainnet]
+      chainId: 1,
       forking: {
-        url: maticURL
+        url: mainnetURL
       }
+      // [polygon]
+      // chainId: 137,
+      // forking: {
+      //   url: maticURL
+      // }
     },
     kovan: {
       url: kovanURL,
@@ -104,8 +110,14 @@ module.exports = {
     mainnet: {
       url: mainnetURL,
       chainId: 1,
-      gasPrice: 20000000000,
-      accounts: [process.env.private_key],
+      gasPrice: 3000000000, // 3 gwei
+      accounts: [
+        process.env.private_key,
+        process.env.private_key_auxiliary,
+        process.env.private_key_releasemanager,
+        process.env.private_key_invitemanager,
+        process.env.private_key_commumnity
+      ],
       saveDeployments: true
     },
     arbitrumOne: {
