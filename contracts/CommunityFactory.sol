@@ -142,7 +142,7 @@ contract CommunityFactory is CostManagerFactoryHelper, ReleaseManagerHelper {
      * @param name erc721 name
      * @param symbol erc721 symbol
      * @param contractUri contract URI
-     * @custom:shortd creation CommunityERC721 instance
+     * 
      */
     /**
      * @dev Creates a new instance of the Community contract and initializes it with the given parameters.
